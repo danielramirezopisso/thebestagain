@@ -4,22 +4,6 @@ const API_BASE = "https://script.google.com/macros/s/AKfycbx8v-5H9lV3uVQkqMf_1ZR
 
 let CATEGORIES = [];
 
-async function apiGet(path) {
-  const res = await fetch(`${API_BASE}?path=${encodeURIComponent(path)}`, { method: "GET" });
-  return res.json();
-}
-
-// IMPORTANT: Apps Script often fails with JSON + CORS preflight.
-// Using text/plain avoids OPTIONS preflight and works from GitHub Pages.
-async function apiPost(path, data) {
-  const res = await fetch(`${API_BASE}?path=${encodeURIComponent(path)}`, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(data || {})
-  });
-  return res.json();
-}
-
 function setStatus(msg) {
   const el = document.getElementById("status");
   if (el) el.textContent = msg || "";
@@ -34,119 +18,167 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-async function initApp() {
+async function apiGet(path) {
+  const url = `${API_BASE}?path=${encodeURIComponent(path)}`;
+  console.log("[apiGet]", url);
+
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 12000);
+
   try {
-    setStatus("Loading categories…");
-    const c = await apiGet("categories");
+    const res = await fetch(url, { method: "GET", signal: controller.signal });
+    const text = await res.text();
+    console.log("[apiGet] status:", res.status, "raw:", text);
 
-    if (!c.ok) {
-      setStatus(`Error loading categories: ${c.error}`);
-      return;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { ok: false, error: "Non-JSON response", raw: text, status: res.status };
     }
-
-    CATEGORIES = c.categories || [];
-
-    const sel = document.getElementById("category");
-    sel.innerHTML = CATEGORIES.map(cat =>
-      `<option value="${escapeHtml(cat.id)}">${escapeHtml(cat.name)}</option>`
-    ).join("");
-
-    setStatus("");
-    await loadMarkers();
   } catch (err) {
-    setStatus(`Network error (categories): ${err.message || err}`);
+    console.error("[apiGet] error:", err);
+    return { ok: false, error: err.name === "AbortError" ? "timeout" : (err.message || String(err)) };
+  } finally {
+    clearTimeout(t);
   }
+}
+
+// ROBUST POST for Apps Script + GitHub Pages:
+// We send a form-encoded body: payload=<json string>
+// This avoids CORS preflight issues.
+async function apiPost(path, data) {
+  const url = `${API_BASE}?path=${encodeURIComponent(path)}`;
+  console.log("[apiPost]", url, data);
+
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const params = new URLSearchParams();
+    params.set("payload", JSON.stringify(data || {}));
+
+    const res = await fetch(url, {
+      method: "POST",
+      body: params,
+      signal: controller.signal,
+    });
+
+    const text = await res.text();
+    console.log("[apiPost] status:", res.status, "raw:", text);
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { ok: false, error: "Non-JSON response", raw: text, status: res.status };
+    }
+  } catch (err) {
+    console.error("[apiPost] error:", err);
+    return { ok: false, error: err.name === "AbortError" ? "timeout" : (err.message || String(err)) };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function initApp() {
+  setStatus("Loading categories…");
+
+  const c = await apiGet("categories");
+  if (!c.ok) {
+    setStatus(`Error loading categories: ${c.error}`);
+    return;
+  }
+
+  CATEGORIES = c.categories || [];
+
+  const sel = document.getElementById("category");
+  sel.innerHTML = CATEGORIES.map(cat =>
+    `<option value="${escapeHtml(cat.id)}">${escapeHtml(cat.name)}</option>`
+  ).join("");
+
+  setStatus("");
+  await loadMarkers();
 }
 
 async function loadMarkers() {
   const wrap = document.getElementById("markers");
   if (!wrap) return;
 
-  try {
-    wrap.textContent = "Loading…";
+  wrap.textContent = "Loading…";
 
-    const r = await apiGet("markers");
-    if (!r.ok) {
-      wrap.textContent = `Error: ${r.error}`;
-      return;
-    }
-
-    const markers = r.markers || [];
-    if (!markers.length) {
-      wrap.textContent = "No markers yet.";
-      return;
-    }
-
-    const catName = (id) => (CATEGORIES.find(c => c.id === id)?.name || id);
-
-    wrap.innerHTML = `
-      <table style="width:100%; border-collapse:collapse;">
-        <thead>
-          <tr>
-            <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Title</th>
-            <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Category</th>
-            <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Rating</th>
-            <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lat</th>
-            <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lon</th>
-            <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${markers.map(m => `
-            <tr>
-              <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.title)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(catName(m.category_id))}</td>
-              <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.rating_manual)}</td>
-              <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lat ?? ""}</td>
-              <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lon ?? ""}</td>
-              <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-                ${escapeHtml((m.created_at || "").replace("T"," ").slice(0,19))}
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-  } catch (err) {
-    wrap.textContent = `Network error (markers): ${err.message || err}`;
+  const r = await apiGet("markers");
+  if (!r.ok) {
+    wrap.textContent = `Error: ${r.error}`;
+    return;
   }
+
+  const markers = r.markers || [];
+  if (!markers.length) {
+    wrap.textContent = "No markers yet.";
+    return;
+  }
+
+  const catName = (id) => (CATEGORIES.find(c => c.id === id)?.name || id);
+
+  wrap.innerHTML = `
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Title</th>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Category</th>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Rating</th>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lat</th>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lon</th>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${markers.map(m => `
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.title)}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(catName(m.category_id))}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.rating_manual)}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lat ?? ""}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lon ?? ""}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+              ${escapeHtml((m.created_at || "").replace("T"," ").slice(0,19))}
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
 }
 
 async function createMarker() {
-  setStatus("");
+  setStatus("Saving…");
 
-  try {
-    const title = document.getElementById("title").value.trim();
-    const category_id = document.getElementById("category").value;
-    const rating_manual = Number(document.getElementById("rating").value);
+  const title = document.getElementById("title").value.trim();
+  const category_id = document.getElementById("category").value;
+  const rating_manual = Number(document.getElementById("rating").value);
 
-    const latRaw = document.getElementById("lat").value.trim();
-    const lonRaw = document.getElementById("lon").value.trim();
+  const latRaw = document.getElementById("lat").value.trim();
+  const lonRaw = document.getElementById("lon").value.trim();
 
-    const payload = {
-      title,
-      category_id,
-      rating_manual,
-      lat: latRaw === "" ? "" : Number(latRaw),
-      lon: lonRaw === "" ? "" : Number(lonRaw),
-    };
+  const payload = {
+    title,
+    category_id,
+    rating_manual,
+    lat: latRaw === "" ? "" : Number(latRaw),
+    lon: lonRaw === "" ? "" : Number(lonRaw),
+  };
 
-    setStatus("Saving…");
-    const r = await apiPost("markers/create", payload);
+  const r = await apiPost("markers/create", payload);
 
-    if (!r.ok) {
-      setStatus(`Error: ${r.error}`);
-      return;
-    }
-
-    // Clear inputs (keep dropdowns)
-    document.getElementById("title").value = "";
-    document.getElementById("lat").value = "";
-    document.getElementById("lon").value = "";
-
-    setStatus("Saved ✅");
-    await loadMarkers();
-  } catch (err) {
-    setStatus(`Network error (save): ${err.message || err}`);
+  if (!r.ok) {
+    setStatus(`Error: ${r.error}${r.status ? ` (HTTP ${r.status})` : ""}`);
+    if (r.raw) console.log("Raw response:", r.raw);
+    return;
   }
+
+  document.getElementById("title").value = "";
+  document.getElementById("lat").value = "";
+  document.getElementById("lon").value = "";
+
+  setStatus("Saved ✅");
+  await loadMarkers();
 }
