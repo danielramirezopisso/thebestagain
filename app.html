@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>The Best Again — MVP</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body onload="initApp()">
+  <header class="topbar">
+    <div class="brand">The Best Again</div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a class="active" href="app.html">Add / List</a>
+      <a href="#" aria-disabled="true">Map (soon)</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Add & List markers</h1>
+    <p class="muted">Release 1 MVP — no map yet.</p>
+
+    <section class="card">
+      <h2>Add marker</h2>
+
+      <label>Title</label>
+      <input id="title" placeholder="e.g., Pizza at Da Nino" />
+
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1;">
+          <label>Category</label>
+          <select id="category"></select>
+        </div>
+
+        <div style="flex:1;">
+          <label>Rating (1–5)</label>
+          <select id="rating">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1;">
+          <label>Lat (optional)</label>
+          <input id="lat" placeholder="40.4168" />
+        </div>
+        <div style="flex:1;">
+          <label>Lon (optional)</label>
+          <input id="lon" placeholder="-3.7038" />
+        </div>
+      </div>
+
+      <button onclick="createMarker()">Save marker</button>
+      <span id="status" class="muted" style="margin-left:10px;"></span>
+    </section>
+
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="margin:0;">Markers</h2>
+        <button onclick="loadMarkers()">Refresh</button>
+      </div>
+
+      <div id="markers" class="muted" style="margin-top:12px;">Loading…</div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
