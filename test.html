@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>The Best Again — Test</title>
+</head>
+<body>
+  <h1>The Best Again — API Test</h1>
+
+  <p>
+    API_BASE:
+    <input id="api" style="width:600px" />
+    <button onclick="saveApi()">Save</button>
+  </p>
+
+  <p>
+    <button onclick="testCategories()">1) Test GET categories</button>
+    <button onclick="testCreate()">2) Test POST create marker</button>
+  </p>
+
+  <pre id="out" style="padding:12px; border:1px solid #ddd; background:#fafafa;"></pre>
+
+  <script>
+    // Put your URL here OR paste it into the input on the page
+    const DEFAULT_API_BASE = "PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE"; // must end with /exec
+
+    function out(x) {
+      document.getElementById("out").textContent =
+        typeof x === "string" ? x : JSON.stringify(x, null, 2);
+    }
+
+    function apiBase() {
+      return localStorage.getItem("API_BASE") || DEFAULT_API_BASE;
+    }
+
+    function saveApi() {
+      const v = document.getElementById("api").value.trim();
+      localStorage.setItem("API_BASE", v);
+      out("Saved API_BASE. Now click the test buttons.");
+    }
+
+    window.onload = () => {
+      document.getElementById("api").value = apiBase();
+      out("Ready. Click: 1) Test GET categories");
+    };
+
+    async function testCategories() {
+      const base = apiBase();
+      const url = `${base}?path=categories`;
+      out("Calling: " + url);
+
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        out({ status: res.status, text });
+      } catch (e) {
+        out("GET error: " + (e.message || e));
+      }
+    }
+
+    async function testCreate() {
+      const base = apiBase();
+      const url = `${base}?path=markers/create`;
+
+      // form-encoded payload (very compatible)
+      const params = new URLSearchParams();
+      params.set("payload", JSON.stringify({
+        title: "Test marker " + new Date().toISOString(),
+        category_id: "1",
+        rating_manual: 5,
+        lat: "",
+        lon: ""
+      }));
+
+      out("POSTing to: " + url);
+
+      try {
+        const res = await fetch(url, { method: "POST", body: params });
+        const text = await res.text();
+        out({ status: res.status, text });
+      } catch (e) {
+        out("POST error: " + (e.message || e));
+      }
+    }
+  </script>
+</body>
+</html>
