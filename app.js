@@ -1,12 +1,13 @@
-// The Best Again — Release 1 frontend logic (Add/List)
-// IMPORTANT: set your Apps Script Web App URL here (must end with /exec)
-const API_BASE = "https://script.google.com/macros/s/AKfycbx8v-5H9lV3uVQkqMf_1ZRwgu8SAn4NlyTN-vuZnwavTyWCTV6VVvC5_lgHfCHLvOn8/exec";
+// ✅ Paste these from Supabase: Project Settings → API
+const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let CATEGORIES = [];
 
 function setStatus(msg) {
-  const el = document.getElementById("status");
-  if (el) el.textContent = msg || "";
+  document.getElementById("status").textContent = msg || "";
 }
 
 function escapeHtml(s) {
@@ -18,82 +19,24 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-async function apiGet(path) {
-  const url = `${API_BASE}?path=${encodeURIComponent(path)}`;
-  console.log("[apiGet]", url);
-
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 12000);
-
-  try {
-    const res = await fetch(url, { method: "GET", signal: controller.signal });
-    const text = await res.text();
-    console.log("[apiGet] status:", res.status, "raw:", text);
-
-    try {
-      return JSON.parse(text);
-    } catch {
-      return { ok: false, error: "Non-JSON response", raw: text, status: res.status };
-    }
-  } catch (err) {
-    console.error("[apiGet] error:", err);
-    return { ok: false, error: err.name === "AbortError" ? "timeout" : (err.message || String(err)) };
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-// ROBUST POST for Apps Script + GitHub Pages:
-// We send a form-encoded body: payload=<json string>
-// This avoids CORS preflight issues.
-async function apiPost(path, data) {
-  const url = `${API_BASE}?path=${encodeURIComponent(path)}`;
-  console.log("[apiPost]", url, data);
-
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 12000);
-
-  try {
-    const params = new URLSearchParams();
-    params.set("payload", JSON.stringify(data || {}));
-
-    const res = await fetch(url, {
-      method: "POST",
-      body: params,
-      signal: controller.signal,
-    });
-
-    const text = await res.text();
-    console.log("[apiPost] status:", res.status, "raw:", text);
-
-    try {
-      return JSON.parse(text);
-    } catch {
-      return { ok: false, error: "Non-JSON response", raw: text, status: res.status };
-    }
-  } catch (err) {
-    console.error("[apiPost] error:", err);
-    return { ok: false, error: err.name === "AbortError" ? "timeout" : (err.message || String(err)) };
-  } finally {
-    clearTimeout(t);
-  }
-}
-
 async function initApp() {
   setStatus("Loading categories…");
 
-  const c = await apiGet("categories");
-  if (!c.ok) {
-    setStatus(`Error loading categories: ${c.error}`);
+  const { data, error } = await sb
+    .from("categories")
+    .select("id,name")
+    .eq("is_active", true)
+    .order("id", { ascending: true });
+
+  if (error) {
+    setStatus("Error loading categories: " + error.message);
     return;
   }
 
-  CATEGORIES = c.categories || [];
-
-  const sel = document.getElementById("category");
-  sel.innerHTML = CATEGORIES.map(cat =>
-    `<option value="${escapeHtml(cat.id)}">${escapeHtml(cat.name)}</option>`
-  ).join("");
+  CATEGORIES = data || [];
+  document.getElementById("category").innerHTML = CATEGORIES
+    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
+    .join("");
 
   setStatus("");
   await loadMarkers();
@@ -101,17 +44,20 @@ async function initApp() {
 
 async function loadMarkers() {
   const wrap = document.getElementById("markers");
-  if (!wrap) return;
-
   wrap.textContent = "Loading…";
 
-  const r = await apiGet("markers");
-  if (!r.ok) {
-    wrap.textContent = `Error: ${r.error}`;
+  const { data, error } = await sb
+    .from("markers")
+    .select("id,title,group_type,category_id,rating_manual,created_at")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    wrap.textContent = "Error: " + error.message;
     return;
   }
 
-  const markers = r.markers || [];
+  const markers = data || [];
   if (!markers.length) {
     wrap.textContent = "No markers yet.";
     return;
@@ -124,10 +70,9 @@ async function loadMarkers() {
       <thead>
         <tr>
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Title</th>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Group</th>
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Category</th>
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Rating</th>
-          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lat</th>
-          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lon</th>
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Created</th>
         </tr>
       </thead>
@@ -135,13 +80,10 @@ async function loadMarkers() {
         ${markers.map(m => `
           <tr>
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.title)}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.group_type)}</td>
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(catName(m.category_id))}</td>
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.rating_manual)}</td>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lat ?? ""}</td>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lon ?? ""}</td>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
-              ${escapeHtml((m.created_at || "").replace("T"," ").slice(0,19))}
-            </td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml((m.created_at || "").replace("T"," ").slice(0,19))}</td>
           </tr>
         `).join("")}
       </tbody>
@@ -154,31 +96,24 @@ async function createMarker() {
 
   const title = document.getElementById("title").value.trim();
   const category_id = document.getElementById("category").value;
+  const group_type = document.getElementById("group_type").value;
   const rating_manual = Number(document.getElementById("rating").value);
 
-  const latRaw = document.getElementById("lat").value.trim();
-  const lonRaw = document.getElementById("lon").value.trim();
+  if (!title) {
+    setStatus("Title required");
+    return;
+  }
 
-  const payload = {
-    title,
-    category_id,
-    rating_manual,
-    lat: latRaw === "" ? "" : Number(latRaw),
-    lon: lonRaw === "" ? "" : Number(lonRaw),
-  };
+  const { error } = await sb.from("markers").insert([
+    { title, category_id, group_type, rating_manual, is_active: true }
+  ]);
 
-  const r = await apiPost("markers/create", payload);
-
-  if (!r.ok) {
-    setStatus(`Error: ${r.error}${r.status ? ` (HTTP ${r.status})` : ""}`);
-    if (r.raw) console.log("Raw response:", r.raw);
+  if (error) {
+    setStatus("Error: " + error.message);
     return;
   }
 
   document.getElementById("title").value = "";
-  document.getElementById("lat").value = "";
-  document.getElementById("lon").value = "";
-
   setStatus("Saved ✅");
   await loadMarkers();
 }
