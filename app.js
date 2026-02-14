@@ -19,7 +19,20 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
+function initRatingDropdown() {
+  const ratingSel = document.getElementById("rating");
+  ratingSel.innerHTML = "";
+  for (let i = 1; i <= 10; i++) {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = String(i);
+    if (i === 7) opt.selected = true;
+    ratingSel.appendChild(opt);
+  }
+}
+
 async function initApp() {
+  initRatingDropdown();
   setStatus("Loading categories…");
 
   const { data, error } = await sb
@@ -34,9 +47,16 @@ async function initApp() {
   }
 
   CATEGORIES = data || [];
+
+  // Add-marker category dropdown
   document.getElementById("category").innerHTML = CATEGORIES
     .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
     .join("");
+
+  // Filter category dropdown
+  document.getElementById("filter_category").innerHTML =
+    `<option value="">All</option>` +
+    CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
 
   setStatus("");
   await loadMarkers();
@@ -46,11 +66,19 @@ async function loadMarkers() {
   const wrap = document.getElementById("markers");
   wrap.textContent = "Loading…";
 
-  const { data, error } = await sb
+  const filterGroup = document.getElementById("filter_group").value;
+  const filterCategory = document.getElementById("filter_category").value;
+
+  let q = sb
     .from("markers")
-    .select("id,title,group_type,category_id,rating_manual,created_at")
+    .select("id,title,group_type,category_id,rating_manual,lat,lon,address,created_at")
     .eq("is_active", true)
     .order("created_at", { ascending: false });
+
+  if (filterGroup) q = q.eq("group_type", filterGroup);
+  if (filterCategory) q = q.eq("category_id", filterCategory);
+
+  const { data, error } = await q;
 
   if (error) {
     wrap.textContent = "Error: " + error.message;
@@ -59,7 +87,7 @@ async function loadMarkers() {
 
   const markers = data || [];
   if (!markers.length) {
-    wrap.textContent = "No markers yet.";
+    wrap.textContent = "No markers yet (with current filters).";
     return;
   }
 
@@ -73,6 +101,8 @@ async function loadMarkers() {
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Group</th>
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Category</th>
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Rating</th>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lat</th>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lon</th>
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Created</th>
         </tr>
       </thead>
@@ -83,6 +113,8 @@ async function loadMarkers() {
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.group_type)}</td>
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(catName(m.category_id))}</td>
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.rating_manual)}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lat ?? ""}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lon ?? ""}</td>
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml((m.created_at || "").replace("T"," ").slice(0,19))}</td>
           </tr>
         `).join("")}
@@ -98,15 +130,24 @@ async function createMarker() {
   const category_id = document.getElementById("category").value;
   const group_type = document.getElementById("group_type").value;
   const rating_manual = Number(document.getElementById("rating").value);
+  const address = document.getElementById("address").value.trim();
 
-  if (!title) {
-    setStatus("Title required");
+  const latRaw = document.getElementById("lat").value.trim();
+  const lonRaw = document.getElementById("lon").value.trim();
+
+  const lat = latRaw === "" ? null : Number(latRaw);
+  const lon = lonRaw === "" ? null : Number(lonRaw);
+
+  if (!title) { setStatus("Title required"); return; }
+  if (!(rating_manual >= 1 && rating_manual <= 10)) { setStatus("Rating must be 1–10"); return; }
+  if ((latRaw !== "" && Number.isNaN(lat)) || (lonRaw !== "" && Number.isNaN(lon))) {
+    setStatus("Lat/Lon must be numbers");
     return;
   }
 
-  const { error } = await sb.from("markers").insert([
-    { title, category_id, group_type, rating_manual, is_active: true }
-  ]);
+  const payload = { title, category_id, group_type, rating_manual, is_active: true, address, lat, lon };
+
+  const { error } = await sb.from("markers").insert([payload]);
 
   if (error) {
     setStatus("Error: " + error.message);
@@ -114,6 +155,10 @@ async function createMarker() {
   }
 
   document.getElementById("title").value = "";
+  document.getElementById("address").value = "";
+  document.getElementById("lat").value = "";
+  document.getElementById("lon").value = "";
+
   setStatus("Saved ✅");
   await loadMarkers();
 }
