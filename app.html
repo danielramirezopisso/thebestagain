@@ -11,13 +11,13 @@
     <nav class="nav">
       <a href="index.html">Home</a>
       <a class="active" href="app.html">Add / List</a>
-      <a href="#" aria-disabled="true">Map (soon)</a>
+      <a href="map.html">Map</a>
     </nav>
   </header>
 
   <main class="container">
     <h1>Add & List markers</h1>
-    <p class="muted">Supabase backend — Release 1 (no map, no lat/lon, no votes).</p>
+    <p class="muted">Release 1 — rating 1–10, manual lat/lon, filters.</p>
 
     <section class="card">
       <h2>Add marker</h2>
@@ -40,14 +40,22 @@
         </div>
 
         <div style="flex:1;">
-          <label>Rating (1–5)</label>
-          <select id="rating">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3" selected>3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
+          <label>Rating (1–10)</label>
+          <select id="rating"></select>
+        </div>
+      </div>
+
+      <label>Address (optional)</label>
+      <input id="address" placeholder="e.g., Calle de Atocha 12, Madrid" />
+
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1;">
+          <label>Lat (optional)</label>
+          <input id="lat" placeholder="40.4168" />
+        </div>
+        <div style="flex:1;">
+          <label>Lon (optional)</label>
+          <input id="lon" placeholder="-3.7038" />
         </div>
       </div>
 
@@ -56,15 +64,35 @@
     </section>
 
     <section class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="margin:0;">Markers</h2>
-        <button onclick="loadMarkers()">Refresh</button>
+      <h2 style="margin-top:0;">Markers</h2>
+
+      <!-- Filters -->
+      <div style="display:flex; gap:12px; align-items:end; margin-bottom:12px;">
+        <div style="flex:1;">
+          <label>Filter: Group</label>
+          <select id="filter_group">
+            <option value="">All</option>
+            <option value="place">place</option>
+            <option value="product">product</option>
+          </select>
+        </div>
+
+        <div style="flex:2;">
+          <label>Filter: Category</label>
+          <select id="filter_category">
+            <option value="">All</option>
+          </select>
+        </div>
+
+        <div>
+          <button onclick="loadMarkers()">Apply filters</button>
+        </div>
       </div>
-      <div id="markers" class="muted" style="margin-top:12px;">Loading…</div>
+
+      <div id="markers" class="muted">Loading…</div>
     </section>
   </main>
 
-  <!-- Supabase JS client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
