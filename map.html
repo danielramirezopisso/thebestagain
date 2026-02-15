@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>The Best Again — Map</title>
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    #map { height: 75vh; border-radius: 12px; border: 1px solid #e6e6e6; }
+  </style>
+</head>
+<body onload="initMap()">
+  <header class="topbar">
+    <div class="brand">The Best Again</div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="app.html">Add / List</a>
+      <a class="active" href="map.html">Map</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Map</h1>
+    <p class="muted">Release 2 — showing place markers with lat/lon.</p>
+    <div id="map"></div>
+    <p id="mapStatus" class="muted" style="margin-top:10px;"></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="map.js"></script>
+</body>
+</html>
