@@ -22,27 +22,50 @@
 
 <body onload="initMap()">
   <header class="topbar">
-  <a class="brand" href="index.html">The Best Again</a>
-  <nav class="nav">
-    <a href="index.html">Home</a>
-    <a href="app.html">Add / List</a>
-    <a href="map.html">Map</a>
-  </nav>
-</header>
+    <a class="brand" href="index.html">The Best Again</a>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="app.html">Add / List</a>
+      <a class="active" href="map.html">Map</a>
+    </nav>
+  </header>
 
   <main class="container">
     <h1>Map</h1>
-    <p class="muted">Release 3 — click the map to add a place marker.</p>
+    <p class="muted">Release 4 — filters + add-from-map.</p>
 
+    <!-- Filters -->
+    <section class="panel">
+      <div class="row" style="align-items:end;">
+        <div>
+          <label>Filter: Category</label>
+          <select id="filter_category">
+            <option value="">All</option>
+          </select>
+        </div>
+        <div>
+          <label>Filter: Min rating</label>
+          <select id="filter_min_rating">
+            <option value="">All</option>
+          </select>
+        </div>
+        <div style="flex:0; display:flex; gap:8px;">
+          <button onclick="applyFilters()">Apply</button>
+          <button onclick="clearFilters()">Clear</button>
+        </div>
+        <div style="text-align:right;">
+          <span id="mapStatus" class="muted"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Add mode -->
     <section class="panel">
       <div class="row" style="align-items:center;">
         <div>
           <b>Add mode:</b>
           <button id="toggleAdd" onclick="toggleAddMode()">OFF</button>
-          <span id="addHint" class="small" style="margin-left:10px;">Turn ON to add markers by clicking the map.</span>
-        </div>
-        <div style="text-align:right;">
-          <span id="mapStatus" class="muted"></span>
+          <span class="small" style="margin-left:10px;">Turn ON to add markers by clicking the map.</span>
         </div>
       </div>
 
