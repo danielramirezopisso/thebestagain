@@ -8,7 +8,7 @@ body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: 
   padding: 14px 20px; background: #fff; border-bottom: 1px solid var(--border);
 }
 
-.brand { font-weight: 700; letter-spacing: 0.2px; }
+.brand { text-decoration: none; color: inherit; font-weight: 700; }
 
 .nav a { margin-left: 14px; text-decoration: none; color: #333; }
 .nav a.active { font-weight: 700; }
@@ -27,3 +27,4 @@ body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: 
   margin-top: 40px; padding: 20px; text-align: center;
   background: #fff; border-top: 1px solid var(--border);
 }
+
