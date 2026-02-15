@@ -33,8 +33,6 @@ function toggleAddMode() {
 
   if (!ADD_MODE) {
     LAST_CLICK = null;
-    document.getElementById("m_lat").value = "";
-    document.getElementById("m_lon").value = "";
     if (PREVIEW_MARKER) {
       MAP.removeLayer(PREVIEW_MARKER);
       PREVIEW_MARKER = null;
@@ -90,23 +88,24 @@ async function initMap() {
 
   // Click handler for adding
   MAP.on("click", (e) => {
-    if (!ADD_MODE) return;
+  if (!ADD_MODE) return;
 
-    LAST_CLICK = { lat: e.latlng.lat, lon: e.latlng.lng };
-    document.getElementById("m_lat").value = LAST_CLICK.lat.toFixed(6);
-    document.getElementById("m_lon").value = LAST_CLICK.lon.toFixed(6);
+  LAST_CLICK = { lat: e.latlng.lat, lon: e.latlng.lng };
+  document.getElementById("m_lat").value = LAST_CLICK.lat.toFixed(6);
+  document.getElementById("m_lon").value = LAST_CLICK.lon.toFixed(6);
 
-    // Preview marker at click location
-    if (PREVIEW_MARKER) {
-      PREVIEW_MARKER.setLatLng([LAST_CLICK.lat, LAST_CLICK.lon]);
-    } else {
-      PREVIEW_MARKER = L.marker([LAST_CLICK.lat, LAST_CLICK.lon], {
-        opacity: 0.9
-      }).addTo(MAP);
-    }
+  // Show/Move a preview marker so you see exactly where you clicked
+  if (PREVIEW_MARKER) {
+    PREVIEW_MARKER.setLatLng([LAST_CLICK.lat, LAST_CLICK.lon]);
+  } else {
+    PREVIEW_MARKER = L.marker([LAST_CLICK.lat, LAST_CLICK.lon], { opacity: 0.7 })
+      .addTo(MAP)
+      .bindPopup("New marker location")
+      .openPopup();
+  }
 
-    setSaveStatus("Location selected ✅ Now fill title/category/rating and click Save.");
-  });
+  setSaveStatus("Location selected ✅ Now fill title/category/rating and click Save.");
+});
 }
 
 async function reloadMarkers() {
