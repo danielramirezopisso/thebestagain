@@ -46,7 +46,7 @@ function initRatingDropdown() {
 async function initMap() {
   initRatingDropdown();
 
-  MAP = L.map("map").setView([40.4168, -3.7038], 12);
+  MAP = L.map("map").setView([41.3889, 2.1618], 15);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap"
