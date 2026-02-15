@@ -5,14 +5,21 @@
   <title>The Best Again — Map</title>
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
     #map { height: 75vh; border-radius: 12px; border: 1px solid #e6e6e6; }
+    .panel {
+      background:#fff; border:1px solid #e6e6e6; border-radius:12px;
+      padding:12px; margin:12px 0;
+    }
+    .row { display:flex; gap:12px; }
+    .row > div { flex:1; }
+    .small { font-size: 12px; color:#666; }
   </style>
 </head>
+
 <body onload="initMap()">
   <header class="topbar">
     <div class="brand">The Best Again</div>
@@ -25,9 +32,54 @@
 
   <main class="container">
     <h1>Map</h1>
-    <p class="muted">Release 2 — showing place markers with lat/lon.</p>
+    <p class="muted">Release 3 — click the map to add a place marker.</p>
+
+    <section class="panel">
+      <div class="row" style="align-items:center;">
+        <div>
+          <b>Add mode:</b>
+          <button id="toggleAdd" onclick="toggleAddMode()">OFF</button>
+          <span id="addHint" class="small" style="margin-left:10px;">Turn ON to add markers by clicking the map.</span>
+        </div>
+        <div style="text-align:right;">
+          <span id="mapStatus" class="muted"></span>
+        </div>
+      </div>
+
+      <div id="addForm" style="display:none; margin-top:12px;">
+        <div class="small">Click on the map to pick a location. Lat/Lon will fill automatically.</div>
+
+        <label style="margin-top:8px;">Title</label>
+        <input id="m_title" placeholder="e.g., Best croissant at XYZ" />
+
+        <div class="row">
+          <div>
+            <label>Category</label>
+            <select id="m_category"></select>
+          </div>
+          <div>
+            <label>Rating (1–10)</label>
+            <select id="m_rating"></select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Lat</label>
+            <input id="m_lat" disabled />
+          </div>
+          <div>
+            <label>Lon</label>
+            <input id="m_lon" disabled />
+          </div>
+        </div>
+
+        <button onclick="saveMapMarker()">Save marker</button>
+        <span id="saveStatus" class="muted" style="margin-left:10px;"></span>
+      </div>
+    </section>
+
     <div id="map"></div>
-    <p id="mapStatus" class="muted" style="margin-top:10px;"></p>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
