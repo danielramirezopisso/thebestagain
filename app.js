@@ -1,7 +1,6 @@
-// ✅ Paste these from Supabase: Project Settings → API
+// app.js — Release 5: Add/List markers + filters + redirect to detail page on create
 const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let CATEGORIES = [];
@@ -11,7 +10,7 @@ function setStatus(msg) {
 }
 
 function escapeHtml(s) {
-  return String(s)
+  return String(s ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -48,12 +47,10 @@ async function initApp() {
 
   CATEGORIES = data || [];
 
-  // Add-marker category dropdown
   document.getElementById("category").innerHTML = CATEGORIES
     .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
     .join("");
 
-  // Filter category dropdown
   document.getElementById("filter_category").innerHTML =
     `<option value="">All</option>` +
     CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
@@ -92,6 +89,7 @@ async function loadMarkers() {
   }
 
   const catName = (id) => (CATEGORIES.find(c => c.id === id)?.name || id);
+  const fmt = (iso) => (iso || "").replace("T"," ").slice(0,19);
 
   wrap.innerHTML = `
     <table style="width:100%; border-collapse:collapse;">
@@ -104,6 +102,7 @@ async function loadMarkers() {
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lat</th>
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Lon</th>
           <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Created</th>
+          <th style="text-align:left; border-bottom:1px solid #e6e6e6; padding:8px;">Open</th>
         </tr>
       </thead>
       <tbody>
@@ -115,7 +114,10 @@ async function loadMarkers() {
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(m.rating_manual)}</td>
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lat ?? ""}</td>
             <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${m.lon ?? ""}</td>
-            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml((m.created_at || "").replace("T"," ").slice(0,19))}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">${escapeHtml(fmt(m.created_at))}</td>
+            <td style="padding:8px; border-bottom:1px solid #f0f0f0;">
+              <a href="marker.html?id=${encodeURIComponent(m.id)}">View</a>
+            </td>
           </tr>
         `).join("")}
       </tbody>
@@ -147,18 +149,17 @@ async function createMarker() {
 
   const payload = { title, category_id, group_type, rating_manual, is_active: true, address, lat, lon };
 
-  const { error } = await sb.from("markers").insert([payload]);
+  const { data, error } = await sb
+    .from("markers")
+    .insert([payload])
+    .select("id")
+    .single();
 
   if (error) {
     setStatus("Error: " + error.message);
     return;
   }
 
-  document.getElementById("title").value = "";
-  document.getElementById("address").value = "";
-  document.getElementById("lat").value = "";
-  document.getElementById("lon").value = "";
-
-  setStatus("Saved ✅");
-  await loadMarkers();
+  // Redirect to the marker page
+  window.location.href = `marker.html?id=${encodeURIComponent(data.id)}`;
 }
