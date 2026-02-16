@@ -284,6 +284,7 @@ async function saveMyVote() {
 
   setVoteStatus("Saving…");
 
+  // Upsert: create if missing, otherwise update existing row
   const { error } = await sb
     .from("votes")
     .upsert([{ marker_id: MARKER_ID, vote: v, is_active: true }], { onConflict: "marker_id" });
@@ -302,9 +303,12 @@ async function clearMyVote() {
 
   setVoteStatus("Removing…");
 
+  // Soft delete: keep row, set is_active=false (preserve old vote value if it exists)
+  const existingVote = CURRENT_VOTE_ROW?.vote ?? 1;
+
   const { error } = await sb
     .from("votes")
-    .upsert([{ marker_id: MARKER_ID, vote: 1, is_active: false }], { onConflict: "marker_id" });
+    .upsert([{ marker_id: MARKER_ID, vote: existingVote, is_active: false }], { onConflict: "marker_id" });
 
   if (error) {
     setVoteStatus("Error: " + error.message);
