@@ -30,30 +30,44 @@ body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: 
   background: #fff; border-top: 1px solid var(--border);
 }
 
-/* The Best Again — map marker styles (icon image on color circle) */
+/* Leaflet default divIcon overrides (so our flex centering works) */
+.leaflet-div-icon.tba-marker {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
 .tba-marker {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 2px solid #ffffff;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-sizing: border-box !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 999px !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18) !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  line-height: 0 !important;   /* kills baseline shift */
+  text-align: center !important;
 }
 
 .tba-marker-inner {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 22px !important;
+  height: 22px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  line-height: 0 !important;
 }
 
 .tba-marker-inner img {
-  width: 22px;
-  height: 22px;
-  display: block;
+  width: 22px !important;
+  height: 22px !important;
+  object-fit: contain !important;
+  display: block !important;
 }
 
 /* Rating color buckets */
@@ -62,35 +76,3 @@ body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: 
 .rating-5-6  { background: #f59e0b; }
 .rating-3-4  { background: #fb7185; }
 .rating-1-2  { background: #ef4444; }
-
-/* Leaflet default divIcon overrides (so our flex centering works) */
-.leaflet-div-icon.tba-marker {
-  background: transparent;
-  border: none;
-}
-
-/* Make sure our marker container is the flex box (Leaflet sometimes applies sizing weirdly) */
-.tba-marker {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 2px solid #ffffff;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tba-marker-inner {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tba-marker-inner img {
-  width: 22px;
-  height: 22px;
-  display: block;
-}
