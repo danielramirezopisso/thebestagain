@@ -18,12 +18,72 @@
   </header>
 
   <main class="container">
-    <h1 id="markerTitle">Loading…</h1>
-    <p id="markerSubtitle" class="muted"></p>
+    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+      <div>
+        <h1 id="markerTitle">Loading…</h1>
+        <p id="markerSubtitle" class="muted"></p>
+      </div>
 
-    <section class="card">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <button id="btnEdit" onclick="enterEditMode()">Edit</button>
+        <button id="btnSave" onclick="saveEdits()" style="display:none;">Save</button>
+        <button id="btnCancel" onclick="cancelEdits()" style="display:none;">Cancel</button>
+        <button id="btnDeactivate" onclick="deactivateMarker()" style="border:1px solid #ef4444;">Deactivate</button>
+      </div>
+    </div>
+
+    <p id="pageStatus" class="muted"></p>
+
+    <!-- View mode -->
+    <section class="card" id="viewCard">
       <h2>Details</h2>
       <div id="markerDetails" class="muted">Loading…</div>
+    </section>
+
+    <!-- Edit mode -->
+    <section class="card" id="editCard" style="display:none;">
+      <h2>Edit marker</h2>
+
+      <label>Title</label>
+      <input id="e_title" />
+
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1;">
+          <label>Group</label>
+          <select id="e_group_type">
+            <option value="place">place</option>
+            <option value="product">product</option>
+          </select>
+        </div>
+
+        <div style="flex:1;">
+          <label>Category</label>
+          <select id="e_category"></select>
+        </div>
+
+        <div style="flex:1;">
+          <label>Rating (1–10)</label>
+          <select id="e_rating"></select>
+        </div>
+      </div>
+
+      <label>Address</label>
+      <input id="e_address" placeholder="Optional" />
+
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1;">
+          <label>Lat</label>
+          <input id="e_lat" placeholder="41.3889" />
+        </div>
+        <div style="flex:1;">
+          <label>Lon</label>
+          <input id="e_lon" placeholder="2.1618" />
+        </div>
+      </div>
+
+      <p class="muted" style="margin-top:10px;">
+        Tip: leave Lat/Lon empty for products; use Lat/Lon only for places on the map.
+      </p>
     </section>
 
     <section class="card">
