@@ -14,6 +14,7 @@
       <a href="index.html">Home</a>
       <a href="app.html">Add / List</a>
       <a href="map.html">Map</a>
+      <a href="my-votes.html">My Votes</a>
     </nav>
   </header>
 
@@ -33,6 +34,26 @@
     </div>
 
     <p id="pageStatus" class="muted"></p>
+
+    <!-- My vote -->
+    <section class="card">
+      <h2>My vote</h2>
+      <p class="muted">This is your personal score (Release 7). Stored in the database (decimals supported later).</p>
+
+      <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap;">
+        <div style="min-width:180px;">
+          <label>Vote (1–10)</label>
+          <select id="my_vote"></select>
+        </div>
+
+        <div>
+          <button onclick="saveMyVote()">Save my vote</button>
+          <button onclick="clearMyVote()" style="margin-left:8px;">Remove</button>
+        </div>
+
+        <div class="muted" id="voteStatus" style="margin-left:10px;"></div>
+      </div>
+    </section>
 
     <!-- View mode -->
     <section class="card" id="viewCard">
@@ -92,6 +113,8 @@
         <a href="app.html">← Back to Add / List</a>
         &nbsp;·&nbsp;
         <a href="map.html">Go to Map</a>
+        &nbsp;·&nbsp;
+        <a href="my-votes.html">My Votes</a>
       </p>
     </section>
   </main>
