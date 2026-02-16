@@ -63,5 +63,30 @@ body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: 
 .rating-3-4  { background: #fb7185; }
 .rating-1-2  { background: #ef4444; }
 
+/* Leaflet default divIcon overrides (so our flex centering works) */
+.leaflet-div-icon.tba-marker {
+  background: transparent;
+  border: none;
+}
+
+/* Make sure our marker container is the flex box (Leaflet sometimes applies sizing weirdly) */
+.tba-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure inner box really centers the image */
+.tba-marker-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Prevent baseline/inline quirks */
+.tba-marker-inner img {
+  display: block;
+}
+
 
 
