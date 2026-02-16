@@ -1,4 +1,4 @@
-// marker.js — Release 6 (edit + deactivate) + Release 7 (my vote)
+// marker.js — Release 6 (edit + deactivate) + Release 7 (my vote) + soft delete votes (is_active)
 
 const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
@@ -7,18 +7,20 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let MARKER_ID = null;
 let CURRENT_MARKER = null;
 let CATEGORIES = [];
-let CURRENT_VOTE_ROW = null; // {id, marker_id, vote}
+let CURRENT_VOTE_ROW = null;
 
 function qs(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
 function setStatus(msg) {
-  document.getElementById("pageStatus").textContent = msg || "";
+  const el = document.getElementById("pageStatus");
+  if (el) el.textContent = msg || "";
 }
 
 function setVoteStatus(msg) {
-  document.getElementById("voteStatus").textContent = msg || "";
+  const el = document.getElementById("voteStatus");
+  if (el) el.textContent = msg || "";
 }
 
 function escapeHtml(s) {
@@ -35,8 +37,10 @@ function formatDate(iso) {
   return iso.replace("T", " ").slice(0, 19);
 }
 
-function initRatingDropdown(selId, defaultValue) {
-  const sel = document.getElementById(selId);
+function fillSelect1to10(selectId, defaultValue = 7) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+
   sel.innerHTML = "";
   for (let i = 1; i <= 10; i++) {
     const opt = document.createElement("option");
@@ -59,10 +63,9 @@ async function initMarkerPage() {
   setStatus("Loading…");
   setVoteStatus("");
 
-  // My vote dropdown (integers for now; DB supports decimals later)
-  initRatingDropdown("my_vote", 7);
+  fillSelect1to10("my_vote", 7);
+  fillSelect1to10("e_rating", 7);
 
-  // Load categories for edit dropdown
   const cats = await sb
     .from("categories")
     .select("id,name,icon_url")
@@ -75,7 +78,6 @@ async function initMarkerPage() {
   }
   CATEGORIES = cats.data || [];
 
-  // Load marker
   const { data: marker, error } = await sb
     .from("markers")
     .select("id,title,group_type,category_id,rating_manual,address,lat,lon,is_active,created_at")
@@ -137,15 +139,18 @@ function renderView() {
 function fillEditForm() {
   const m = CURRENT_MARKER;
 
-  document.getElementById("e_category").innerHTML = CATEGORIES
-    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
-    .join("");
+  const catSel = document.getElementById("e_category");
+  if (catSel) {
+    catSel.innerHTML = CATEGORIES
+      .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
+      .join("");
+    catSel.value = m.category_id || "";
+  }
 
-  initRatingDropdown("e_rating", Number(m.rating_manual) || 7);
+  fillSelect1to10("e_rating", Number(m.rating_manual) || 7);
 
   document.getElementById("e_title").value = m.title || "";
   document.getElementById("e_group_type").value = m.group_type || "place";
-  document.getElementById("e_category").value = m.category_id || "";
   document.getElementById("e_address").value = m.address || "";
   document.getElementById("e_lat").value = (m.lat ?? "");
   document.getElementById("e_lon").value = (m.lon ?? "");
@@ -243,14 +248,14 @@ async function deactivateMarker() {
 }
 
 // --------------------
-// Release 7: My vote
+// Release 7: My vote (soft delete)
 // --------------------
 async function loadMyVote() {
   setVoteStatus("Loading your vote…");
 
   const { data, error } = await sb
     .from("votes")
-    .select("id,marker_id,vote")
+    .select("id,marker_id,vote,is_active")
     .eq("marker_id", MARKER_ID)
     .maybeSingle();
 
@@ -261,13 +266,12 @@ async function loadMyVote() {
 
   CURRENT_VOTE_ROW = data || null;
 
-  if (CURRENT_VOTE_ROW) {
+  if (CURRENT_VOTE_ROW && CURRENT_VOTE_ROW.is_active) {
     const v = Number(CURRENT_VOTE_ROW.vote);
-    // since dropdown is 1..10 ints, pick nearest int for display
     document.getElementById("my_vote").value = String(Math.round(v));
     setVoteStatus(`Saved vote: ${CURRENT_VOTE_ROW.vote}`);
   } else {
-    setVoteStatus("No vote yet.");
+    setVoteStatus("No active vote yet.");
   }
 }
 
@@ -282,7 +286,7 @@ async function saveMyVote() {
 
   const { error } = await sb
     .from("votes")
-    .upsert([{ marker_id: MARKER_ID, vote: v }], { onConflict: "marker_id" });
+    .upsert([{ marker_id: MARKER_ID, vote: v, is_active: true }], { onConflict: "marker_id" });
 
   if (error) {
     setVoteStatus("Error: " + error.message);
@@ -300,14 +304,13 @@ async function clearMyVote() {
 
   const { error } = await sb
     .from("votes")
-    .delete()
-    .eq("marker_id", MARKER_ID);
+    .upsert([{ marker_id: MARKER_ID, vote: 1, is_active: false }], { onConflict: "marker_id" });
 
   if (error) {
     setVoteStatus("Error: " + error.message);
     return;
   }
 
-  CURRENT_VOTE_ROW = null;
-  setVoteStatus("Removed ✅");
+  await loadMyVote();
+  setVoteStatus("Removed ✅ (soft delete)");
 }
