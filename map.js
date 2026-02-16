@@ -1,4 +1,4 @@
-// map.js — Release 4 (filters) + Release 3 (add markers from map) + preview marker
+// map.js — Release 4B (icon_url + rating colors) + Release 4A (filters) + Release 3 (add from map)
 const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -6,13 +6,16 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let MAP;
 let ADD_MODE = false;
 let CATEGORIES = [];
-let LAST_CLICK = null;        // { lat, lon }
+let LAST_CLICK = null;
 let LAYER_GROUP;
 let PREVIEW_MARKER = null;
 
 // active filters
-let FILTER_CATEGORY = "";     // category_id or ""
-let FILTER_MIN_RATING = "";   // string "1".."10" or ""
+let FILTER_CATEGORY = "";
+let FILTER_MIN_RATING = "";
+
+// fallback icon
+const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
 
 function setMapStatus(msg) {
   document.getElementById("mapStatus").textContent = msg || "";
@@ -21,7 +24,7 @@ function setSaveStatus(msg) {
   document.getElementById("saveStatus").textContent = msg || "";
 }
 function escapeHtml(s) {
-  return String(s)
+  return String(s ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -29,9 +32,33 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
+function colorClassForRating(r) {
+  const x = Number(r);
+  if (x >= 9) return "rating-9-10";
+  if (x >= 7) return "rating-7-8";
+  if (x >= 5) return "rating-5-6";
+  if (x >= 3) return "rating-3-4";
+  return "rating-1-2";
+}
+
+function makeMarkerIcon(iconUrl, rating) {
+  const cls = colorClassForRating(rating);
+  const url = iconUrl || DEFAULT_ICON_URL;
+
+  return L.divIcon({
+    className: `tba-marker ${cls}`,
+    html: `<div class="tba-marker-inner"><img src="${escapeHtml(url)}" alt="" /></div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -34],
+  });
+}
+
+// -------------------------
+// Add mode toggle
+// -------------------------
 function toggleAddMode() {
   ADD_MODE = !ADD_MODE;
-
   document.getElementById("toggleAdd").textContent = ADD_MODE ? "ON" : "OFF";
   document.getElementById("addForm").style.display = ADD_MODE ? "block" : "none";
   setSaveStatus("");
@@ -60,6 +87,9 @@ function initRatingDropdown(selId, defaultValue) {
   }
 }
 
+// -------------------------
+// Filters
+// -------------------------
 function applyFilters() {
   FILTER_CATEGORY = document.getElementById("filter_category").value;
   FILTER_MIN_RATING = document.getElementById("filter_min_rating").value;
@@ -74,11 +104,13 @@ function clearFilters() {
   reloadMarkers();
 }
 
+// -------------------------
+// Init
+// -------------------------
 async function initMap() {
-  // init dropdowns
   initRatingDropdown("m_rating", 7);
 
-  // Filter min rating: All + 1..10
+  // Filter min rating dropdown
   const fr = document.getElementById("filter_min_rating");
   fr.innerHTML = `<option value="">All</option>`;
   for (let i = 1; i <= 10; i++) {
@@ -93,16 +125,16 @@ async function initMap() {
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
-    attribution: "&copy; OpenStreetMap"
+    attribution: "&copy; OpenStreetMap",
   }).addTo(MAP);
 
   LAYER_GROUP = L.layerGroup().addTo(MAP);
 
-  // Load categories
+  // Load categories (need icon_url)
   setMapStatus("Loading categories…");
   const { data: catData, error: catErr } = await sb
     .from("categories")
-    .select("id,name")
+    .select("id,name,icon_url")
     .eq("is_active", true)
     .order("id", { ascending: true });
 
@@ -115,18 +147,17 @@ async function initMap() {
 
   // Add-form categories
   document.getElementById("m_category").innerHTML = CATEGORIES
-    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
+    .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
     .join("");
 
-  // Filter categories: All + categories
+  // Filter categories
   document.getElementById("filter_category").innerHTML =
     `<option value="">All</option>` +
-    CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
+    CATEGORIES.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
 
-  // Load markers first time
   await reloadMarkers();
 
-  // Click handler for adding (only when Add mode ON)
+  // Click handler for adding
   MAP.on("click", (e) => {
     if (!ADD_MODE) return;
 
@@ -134,7 +165,7 @@ async function initMap() {
     document.getElementById("m_lat").value = LAST_CLICK.lat.toFixed(6);
     document.getElementById("m_lon").value = LAST_CLICK.lon.toFixed(6);
 
-    // Preview marker
+    // Preview marker (default Leaflet marker is fine here)
     if (PREVIEW_MARKER) {
       PREVIEW_MARKER.setLatLng([LAST_CLICK.lat, LAST_CLICK.lon]);
     } else {
@@ -148,17 +179,18 @@ async function initMap() {
   });
 }
 
+// -------------------------
+// Load markers (filtered) + use icon_url + color background
+// -------------------------
 async function reloadMarkers() {
   setMapStatus("Loading markers…");
 
-  // Base query: only active place markers
   let q = sb
     .from("markers")
-    .select("id,title,rating_manual,lat,lon,group_type,is_active,category_id")
+    .select("id,title,rating_manual,lat,lon,group_type,is_active,category_id, categories(icon_url)")
     .eq("is_active", true)
     .eq("group_type", "place");
 
-  // Apply filters
   if (FILTER_CATEGORY) q = q.eq("category_id", FILTER_CATEGORY);
   if (FILTER_MIN_RATING) q = q.gte("rating_manual", Number(FILTER_MIN_RATING));
 
@@ -169,24 +201,25 @@ async function reloadMarkers() {
     return;
   }
 
-  const markers = (data || []).filter(m => m.lat !== null && m.lon !== null);
+  const markers = (data || []).filter((m) => m.lat !== null && m.lon !== null);
 
   LAYER_GROUP.clearLayers();
 
-  markers.forEach(m => {
-    L.marker([m.lat, m.lon])
+  markers.forEach((m) => {
+    const iconUrl = m.categories?.icon_url || DEFAULT_ICON_URL;
+    const icon = makeMarkerIcon(iconUrl, m.rating_manual);
+
+    L.marker([m.lat, m.lon], { icon })
       .addTo(LAYER_GROUP)
       .bindPopup(`<b>${escapeHtml(m.title)}</b><br/>Rating: ${m.rating_manual}/10`);
   });
 
-  const filterText = [
-    FILTER_CATEGORY ? `category=${FILTER_CATEGORY}` : null,
-    FILTER_MIN_RATING ? `min_rating=${FILTER_MIN_RATING}` : null
-  ].filter(Boolean).join(", ");
-
-  setMapStatus(`Loaded ${markers.length} marker(s)${filterText ? ` (${filterText})` : ""}.`);
+  setMapStatus(`Loaded ${markers.length} marker(s).`);
 }
 
+// -------------------------
+// Save marker from map
+// -------------------------
 async function saveMapMarker() {
   setSaveStatus("Saving…");
 
@@ -205,17 +238,15 @@ async function saveMapMarker() {
     group_type: "place",
     is_active: true,
     lat: LAST_CLICK.lat,
-    lon: LAST_CLICK.lon
+    lon: LAST_CLICK.lon,
   };
 
   const { error } = await sb.from("markers").insert([payload]);
-
   if (error) {
     setSaveStatus("Error: " + error.message);
     return;
   }
 
-  // Clear form + selection
   document.getElementById("m_title").value = "";
   document.getElementById("m_lat").value = "";
   document.getElementById("m_lon").value = "";
