@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Best Again — Login</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">The Best Again</a>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Login</h1>
+    <section class="card">
+      <label>Email</label>
+      <input id="email" type="email" placeholder="you@email.com" />
+
+      <label style="margin-top:10px;">Password</label>
+      <input id="password" type="password" placeholder="••••••••" />
+
+      <button style="margin-top:12px;" onclick="doLogin()">Login</button>
+      <span id="status" class="muted" style="margin-left:10px;"></span>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js"></script>
+  <script>
+    async function doLogin() {
+      document.getElementById("status").textContent = "Logging in…";
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        document.getElementById("status").textContent = "Error: " + error.message;
+        return;
+      }
+      window.location.href = "app.html";
+    }
+  </script>
+</body>
+</html>
