@@ -1,4 +1,6 @@
-// map.js — Release 4B (icon_url + rating colors) + Release 4A (filters) + Release 3 (add from map)
+// map.js — Release 5: marker links + redirect after create
+// plus Release 4B (icon_url + rating colors) + Release 4A (filters) + Release 3 (add from map)
+
 const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -10,11 +12,10 @@ let LAST_CLICK = null;
 let LAYER_GROUP;
 let PREVIEW_MARKER = null;
 
-// active filters
 let FILTER_CATEGORY = "";
 let FILTER_MIN_RATING = "";
 
-// fallback icon
+// If you created icons/default.svg, keep this.
 const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
 
 function setMapStatus(msg) {
@@ -54,11 +55,9 @@ function makeMarkerIcon(iconUrl, rating) {
   });
 }
 
-// -------------------------
-// Add mode toggle
-// -------------------------
 function toggleAddMode() {
   ADD_MODE = !ADD_MODE;
+
   document.getElementById("toggleAdd").textContent = ADD_MODE ? "ON" : "OFF";
   document.getElementById("addForm").style.display = ADD_MODE ? "block" : "none";
   setSaveStatus("");
@@ -87,9 +86,6 @@ function initRatingDropdown(selId, defaultValue) {
   }
 }
 
-// -------------------------
-// Filters
-// -------------------------
 function applyFilters() {
   FILTER_CATEGORY = document.getElementById("filter_category").value;
   FILTER_MIN_RATING = document.getElementById("filter_min_rating").value;
@@ -104,13 +100,9 @@ function clearFilters() {
   reloadMarkers();
 }
 
-// -------------------------
-// Init
-// -------------------------
 async function initMap() {
   initRatingDropdown("m_rating", 7);
 
-  // Filter min rating dropdown
   const fr = document.getElementById("filter_min_rating");
   fr.innerHTML = `<option value="">All</option>`;
   for (let i = 1; i <= 10; i++) {
@@ -120,7 +112,6 @@ async function initMap() {
     fr.appendChild(opt);
   }
 
-  // Barcelona — Eixample
   MAP = L.map("map").setView([41.3889, 2.1618], 15);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -130,7 +121,6 @@ async function initMap() {
 
   LAYER_GROUP = L.layerGroup().addTo(MAP);
 
-  // Load categories (need icon_url)
   setMapStatus("Loading categories…");
   const { data: catData, error: catErr } = await sb
     .from("categories")
@@ -145,19 +135,16 @@ async function initMap() {
 
   CATEGORIES = catData || [];
 
-  // Add-form categories
   document.getElementById("m_category").innerHTML = CATEGORIES
     .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
     .join("");
 
-  // Filter categories
   document.getElementById("filter_category").innerHTML =
     `<option value="">All</option>` +
     CATEGORIES.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
 
   await reloadMarkers();
 
-  // Click handler for adding
   MAP.on("click", (e) => {
     if (!ADD_MODE) return;
 
@@ -165,7 +152,6 @@ async function initMap() {
     document.getElementById("m_lat").value = LAST_CLICK.lat.toFixed(6);
     document.getElementById("m_lon").value = LAST_CLICK.lon.toFixed(6);
 
-    // Preview marker (default Leaflet marker is fine here)
     if (PREVIEW_MARKER) {
       PREVIEW_MARKER.setLatLng([LAST_CLICK.lat, LAST_CLICK.lon]);
     } else {
@@ -179,9 +165,6 @@ async function initMap() {
   });
 }
 
-// -------------------------
-// Load markers (filtered) + use icon_url + color background
-// -------------------------
 async function reloadMarkers() {
   setMapStatus("Loading markers…");
 
@@ -209,17 +192,20 @@ async function reloadMarkers() {
     const iconUrl = m.categories?.icon_url || DEFAULT_ICON_URL;
     const icon = makeMarkerIcon(iconUrl, m.rating_manual);
 
+    const link = `marker.html?id=${encodeURIComponent(m.id)}`;
+    const popupHtml = `
+      <b><a href="${link}">${escapeHtml(m.title)}</a></b><br/>
+      Rating: ${m.rating_manual}/10
+    `;
+
     L.marker([m.lat, m.lon], { icon })
       .addTo(LAYER_GROUP)
-      .bindPopup(`<b>${escapeHtml(m.title)}</b><br/>Rating: ${m.rating_manual}/10`);
+      .bindPopup(popupHtml);
   });
 
   setMapStatus(`Loaded ${markers.length} marker(s).`);
 }
 
-// -------------------------
-// Save marker from map
-// -------------------------
 async function saveMapMarker() {
   setSaveStatus("Saving…");
 
@@ -241,22 +227,17 @@ async function saveMapMarker() {
     lon: LAST_CLICK.lon,
   };
 
-  const { error } = await sb.from("markers").insert([payload]);
+  const { data, error } = await sb
+    .from("markers")
+    .insert([payload])
+    .select("id")
+    .single();
+
   if (error) {
     setSaveStatus("Error: " + error.message);
     return;
   }
 
-  document.getElementById("m_title").value = "";
-  document.getElementById("m_lat").value = "";
-  document.getElementById("m_lon").value = "";
-  LAST_CLICK = null;
-
-  if (PREVIEW_MARKER) {
-    MAP.removeLayer(PREVIEW_MARKER);
-    PREVIEW_MARKER = null;
-  }
-
-  setSaveStatus("Saved ✅");
-  await reloadMarkers();
+  // Redirect to marker page after create
+  window.location.href = `marker.html?id=${encodeURIComponent(data.id)}`;
 }
