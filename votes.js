@@ -26,23 +26,26 @@ async function initVotesPage() {
 
   // Join votes -> markers -> categories for display
   const { data, error } = await sb
-    .from("votes")
-    .select(`
+  .from("votes")
+  .select(`
+    id,
+    vote,
+    updated_at,
+    marker_id,
+    is_active,
+    markers (
       id,
-      vote,
-      updated_at,
-      marker_id,
-      markers (
-        id,
-        title,
-        group_type,
-        category_id,
-        is_active,
-        categories ( name )
-      )
-    `)
-    .order("vote", { ascending: false })
-    .order("updated_at", { ascending: false });
+      title,
+      group_type,
+      category_id,
+      is_active,
+      categories ( name )
+    )
+  `)
+  .eq("is_active", true)
+  .order("vote", { ascending: false })
+  .order("updated_at", { ascending: false });
+
 
   if (error) {
     setStatus("Error: " + error.message);
