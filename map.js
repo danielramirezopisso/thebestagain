@@ -1,5 +1,8 @@
-// map.js — Release 5: marker links + redirect after create
-// plus Release 4B (icon_url + rating colors) + Release 4A (filters) + Release 3 (add from map)
+// map.js — Release 6.1: auto-fill address from map click (reverse geocode)
+// plus Release 5: marker links + redirect after create
+// plus Release 4B: icon_url + rating colors
+// plus Release 4A: filters
+// plus Release 3: add from map
 
 const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
@@ -17,6 +20,9 @@ let FILTER_MIN_RATING = "";
 
 // If you created icons/default.svg, keep this.
 const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
+
+// IMPORTANT: identify your app to Nominatim politely (recommended)
+const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/reverse";
 
 function setMapStatus(msg) {
   document.getElementById("mapStatus").textContent = msg || "";
@@ -50,7 +56,7 @@ function makeMarkerIcon(iconUrl, rating) {
     className: `tba-marker ${cls}`,
     html: `<div class="tba-marker-inner"><img src="${escapeHtml(url)}" alt="" /></div>`,
     iconSize: [34, 34],
-    iconAnchor: [17, 17],
+    iconAnchor: [17, 34],
     popupAnchor: [0, -34],
   });
 }
@@ -66,6 +72,7 @@ function toggleAddMode() {
     LAST_CLICK = null;
     document.getElementById("m_lat").value = "";
     document.getElementById("m_lon").value = "";
+    if (document.getElementById("m_address")) document.getElementById("m_address").value = "";
 
     if (PREVIEW_MARKER && MAP) {
       MAP.removeLayer(PREVIEW_MARKER);
@@ -98,6 +105,27 @@ function clearFilters() {
   document.getElementById("filter_category").value = "";
   document.getElementById("filter_min_rating").value = "";
   reloadMarkers();
+}
+
+// Reverse geocoding (address from lat/lon) using Nominatim
+async function reverseGeocodeAddress(lat, lon) {
+  // Nominatim requires you don’t spam; we call only on click, once.
+  const url = `${NOMINATIM_BASE}?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`;
+
+  const res = await fetch(url, {
+    headers: {
+      // Some browsers ignore this, but it’s good practice:
+      "Accept": "application/json",
+      // Optional: Identify app. (User-Agent header is blocked in browsers)
+      "Referer": window.location.origin
+    }
+  });
+
+  if (!res.ok) throw new Error(`Geocode failed: ${res.status}`);
+
+  const json = await res.json();
+  // Best human-readable field:
+  return json.display_name || "";
 }
 
 async function initMap() {
@@ -145,7 +173,7 @@ async function initMap() {
 
   await reloadMarkers();
 
-  MAP.on("click", (e) => {
+  MAP.on("click", async (e) => {
     if (!ADD_MODE) return;
 
     LAST_CLICK = { lat: e.latlng.lat, lon: e.latlng.lng };
@@ -161,7 +189,22 @@ async function initMap() {
         .openPopup();
     }
 
-    setSaveStatus("Location selected ✅ Now fill title/category/rating and click Save.");
+    // Auto-fill address (best effort)
+    const addrInput = document.getElementById("m_address");
+    if (addrInput) {
+      addrInput.value = "";
+      setSaveStatus("Location selected ✅ Looking up address…");
+
+      try {
+        const addr = await reverseGeocodeAddress(LAST_CLICK.lat, LAST_CLICK.lon);
+        addrInput.value = addr;
+        setSaveStatus("Location selected ✅ Address filled. Now click Save.");
+      } catch (err) {
+        setSaveStatus("Location selected ✅ Address lookup failed (you can type it manually).");
+      }
+    } else {
+      setSaveStatus("Location selected ✅ Now fill title/category/rating and click Save.");
+    }
   });
 }
 
@@ -212,6 +255,7 @@ async function saveMapMarker() {
   const title = document.getElementById("m_title").value.trim();
   const category_id = document.getElementById("m_category").value;
   const rating_manual = Number(document.getElementById("m_rating").value);
+  const address = (document.getElementById("m_address")?.value || "").trim();
 
   if (!ADD_MODE) { setSaveStatus("Turn Add mode ON first."); return; }
   if (!LAST_CLICK) { setSaveStatus("Click the map to choose a location first."); return; }
@@ -225,6 +269,7 @@ async function saveMapMarker() {
     is_active: true,
     lat: LAST_CLICK.lat,
     lon: LAST_CLICK.lon,
+    address
   };
 
   const { data, error } = await sb
@@ -238,6 +283,6 @@ async function saveMapMarker() {
     return;
   }
 
-  // Redirect to marker page after create
+  // Redirect to marker page
   window.location.href = `marker.html?id=${encodeURIComponent(data.id)}`;
 }
