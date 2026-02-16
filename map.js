@@ -56,7 +56,7 @@ function makeMarkerIcon(iconUrl, rating) {
     className: `tba-marker ${cls}`,
     html: `<div class="tba-marker-inner"><img src="${escapeHtml(url)}" alt="" /></div>`,
     iconSize: [34, 34],
-    iconAnchor: [17, 34],
+    iconAnchor: [17, 17],
     popupAnchor: [0, -34],
   });
 }
