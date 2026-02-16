@@ -30,4 +30,38 @@ body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: 
   background: #fff; border-top: 1px solid var(--border);
 }
 
+/* The Best Again — map marker styles (icon image on color circle) */
+.tba-marker {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tba-marker-inner {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tba-marker-inner img {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+/* Rating color buckets (background color behind icon) */
+.rating-9-10 { background: #16a34a; }
+.rating-7-8  { background: #22c55e; }
+.rating-5-6  { background: #f59e0b; }
+.rating-3-4  { background: #fb7185; }
+.rating-1-2  { background: #ef4444; }
+
+
 
