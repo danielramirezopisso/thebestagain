@@ -179,6 +179,8 @@ async function initMap() {
   await reloadMarkers();
 
   MAP.on("click", async (e) => {
+    const user = await maybeUser();
+    if (!user) return;  
     if (!ADD_MODE) return;
 
     LAST_CLICK = { lat: e.latlng.lat, lon: e.latlng.lng };
@@ -255,6 +257,8 @@ async function reloadMarkers() {
 }
 
 async function saveMapMarker() {
+  const user = await maybeUser();
+  if (!user) { alert("Please login to add markers."); window.location.href="login.html"; return; }
   setSaveStatus("Saving…");
 
   const title = document.getElementById("m_title").value.trim();
