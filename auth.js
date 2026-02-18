@@ -4,6 +4,20 @@ const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+async function maybeUser() {
+  const { data } = await sb.auth.getSession();
+  return data.session?.user || null;
+}
+
+async function requireAuth() {
+  const user = await maybeUser();
+  if (!user) {
+    window.location.href = "login.html";
+    return null;
+  }
+  return user;
+}
+
 async function logout() {
   await sb.auth.signOut();
   window.location.href = "login.html";
