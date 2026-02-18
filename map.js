@@ -61,20 +61,22 @@ function makeMarkerIcon(iconUrl, rating) {
   });
 }
 
-function toggleAddMode() {
-  ADD_MODE = !ADD_MODE;
+async function toggleAddMode() {
+  const user = await maybeUser();
+  if (!user) {
+    alert("Please login to add markers.");
+    window.location.href = "login.html";
+    return;
+  }
 
+  ADD_MODE = !ADD_MODE;
   document.getElementById("toggleAdd").textContent = ADD_MODE ? "ON" : "OFF";
   document.getElementById("addForm").style.display = ADD_MODE ? "block" : "none";
   setSaveStatus("");
 
   if (!ADD_MODE) {
     LAST_CLICK = null;
-    document.getElementById("m_lat").value = "";
-    document.getElementById("m_lon").value = "";
-    if (document.getElementById("m_address")) document.getElementById("m_address").value = "";
-
-    if (PREVIEW_MARKER && MAP) {
+    if (PREVIEW_MARKER) {
       MAP.removeLayer(PREVIEW_MARKER);
       PREVIEW_MARKER = null;
     }
