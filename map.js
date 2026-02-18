@@ -254,12 +254,13 @@ async function reloadMarkers() {
 
   let q = sb
     .from("markers")
-    .select("id,title,rating_manual,lat,lon,group_type,is_active,category_id")
+    .select("id,title,rating_avg,rating_count,lat,lon,group_type,is_active,category_id")
     .eq("is_active", true)
     .eq("group_type", "place");
 
   if (FILTER_CATEGORY) q = q.eq("category_id", FILTER_CATEGORY);
-  if (FILTER_MIN_RATING) q = q.gte("rating_manual", Number(FILTER_MIN_RATING));
+  if (FILTER_MIN_RATING) q = q.gte("rating_avg", Number(FILTER_MIN_RATING));
+  
 
   const { data, error } = await q;
 
@@ -283,12 +284,16 @@ async function reloadMarkers() {
 
   markers.forEach((m) => {
     const iconUrl = getIconUrlForCategory(m.category_id);
-    const icon = makeMarkerIcon(iconUrl, m.rating_manual);
+    
+    const avg = Number(m.rating_avg ?? 0);
+    const cnt = Number(m.rating_count ?? 0);
+    
+    const icon = makeMarkerIcon(iconUrl, avg);
 
     const link = `marker.html?id=${encodeURIComponent(m.id)}`;
     const popupHtml = `
       <b><a href="${link}">${escapeHtml(m.title)}</a></b><br/>
-      Rating: ${m.rating_manual}/10
+      Overall: ${avg ? avg.toFixed(2) : "—"}/10 (${cnt} vote${cnt === 1 ? "" : "s"})
     `;
 
     L.marker([m.lat, m.lon], { icon })
