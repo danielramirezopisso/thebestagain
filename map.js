@@ -346,6 +346,7 @@ async function saveMapMarker() {
     .from("votes")
     .insert([{
       marker_id: markerRow.id,
+      user_id: user.id,
       vote: rating_manual,
       is_active: true
     }]);
