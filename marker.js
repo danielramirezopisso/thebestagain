@@ -263,10 +263,13 @@ async function deactivateMarker() {
 async function loadMyVote() {
   setVoteStatus("Loading your vote…");
 
+  const user = await requireAuth();
+  
   const { data, error } = await sb
     .from("votes")
-    .select("id,marker_id,vote,is_active")
+    .select("id,vote,is_active")
     .eq("marker_id", MARKER_ID)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (error) {
@@ -294,10 +297,16 @@ async function saveMyVote() {
 
   setVoteStatus("Saving…");
 
-  // Upsert: create if missing, otherwise update existing row
+  const user = await requireAuth();
+  if (!user) return;
+
+  // Upsert per (marker_id, user_id)
   const { error } = await sb
     .from("votes")
-    .upsert([{ marker_id: MARKER_ID, vote: v, is_active: true }], { onConflict: "marker_id" });
+    .upsert(
+      [{ marker_id: MARKER_ID, user_id: user.id, vote: v, is_active: true }],
+      { onConflict: "marker_id,user_id" }
+    );
 
   if (error) {
     setVoteStatus("Error: " + error.message);
@@ -313,12 +322,18 @@ async function clearMyVote() {
 
   setVoteStatus("Removing…");
 
+  const user = await requireAuth();
+  if (!user) return;
+
   // Soft delete: keep row, set is_active=false (preserve old vote value if it exists)
   const existingVote = CURRENT_VOTE_ROW?.vote ?? 1;
 
   const { error } = await sb
     .from("votes")
-    .upsert([{ marker_id: MARKER_ID, vote: existingVote, is_active: false }], { onConflict: "marker_id" });
+    .upsert(
+      [{ marker_id: MARKER_ID, user_id: user.id, vote: existingVote, is_active: false }],
+      { onConflict: "marker_id,user_id" }
+    );
 
   if (error) {
     setVoteStatus("Error: " + error.message);
