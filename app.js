@@ -31,6 +31,9 @@ function initRatingDropdown() {
 }
 
 async function initApp() {
+  const user = await maybeUser();
+  const createCard = document.getElementById("createCard");
+  if (!user && createCard) createCard.style.display = "none";
   initRatingDropdown();
   setStatus("Loading categories…");
 
@@ -163,4 +166,5 @@ async function createMarker() {
   // Redirect to the marker page
   window.location.href = `marker.html?id=${encodeURIComponent(data.id)}`;
 }
+
 
