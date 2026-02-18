@@ -1,12 +1,5 @@
-// map.js — Release 6.1: auto-fill address from map click (reverse geocode)
-// plus Release 5: marker links + redirect after create
-// plus Release 4B: icon_url + rating colors
-// plus Release 4A: filters
-// plus Release 3: add from map
-
-// const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
-// const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
-// const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// map.js — current version + robust icon resolution + login gating for add
+// (uses sb + maybeUser from auth.js)
 
 let MAP;
 let ADD_MODE = false;
@@ -18,11 +11,14 @@ let PREVIEW_MARKER = null;
 let FILTER_CATEGORY = "";
 let FILTER_MIN_RATING = "";
 
-// If you created icons/default.svg, keep this.
+// Default icon (absolute URL)
 const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
 
-// IMPORTANT: identify your app to Nominatim politely (recommended)
+// Nominatim reverse geocode
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/reverse";
+
+// Build a lookup: category_id (string) -> icon_url (string)
+let CAT_ICON = {};
 
 function setMapStatus(msg) {
   document.getElementById("mapStatus").textContent = msg || "";
@@ -48,6 +44,36 @@ function colorClassForRating(r) {
   return "rating-1-2";
 }
 
+// Convert icon_url from DB into a reliable absolute URL
+function normalizeIconUrl(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+
+  // If already absolute http(s), keep it
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+
+  // Otherwise, treat as a path relative to the site root
+  // Examples:
+  //  "icons/pizza.svg"  -> https://<host>/<repo>/icons/pizza.svg
+  //  "/icons/pizza.svg" -> https://<host>/icons/pizza.svg  (usually NOT what you want on GitHub Pages)
+  //
+  // We will resolve relative to the current page URL so GitHub Pages repo paths work.
+  try {
+    return new URL(s, window.location.href).toString();
+  } catch {
+    return "";
+  }
+}
+
+// Best-effort icon getter that works even if ids are numbers/strings
+function getIconUrlForCategory(category_id) {
+  const key = String(category_id ?? "").trim();
+  const raw = CAT_ICON[key] || "";
+
+  const normalized = normalizeIconUrl(raw);
+  return normalized || DEFAULT_ICON_URL;
+}
+
 function makeMarkerIcon(iconUrl, rating) {
   const cls = colorClassForRating(rating);
   const url = iconUrl || DEFAULT_ICON_URL;
@@ -56,7 +82,7 @@ function makeMarkerIcon(iconUrl, rating) {
     className: `tba-marker ${cls}`,
     html: `<div class="tba-marker-inner"><img src="${escapeHtml(url)}" alt="" /></div>`,
     iconSize: [34, 34],
-    iconAnchor: [17, 17],
+    iconAnchor: [17, 17],   // keep your centered anchor
     popupAnchor: [0, -34],
   });
 }
@@ -111,14 +137,11 @@ function clearFilters() {
 
 // Reverse geocoding (address from lat/lon) using Nominatim
 async function reverseGeocodeAddress(lat, lon) {
-  // Nominatim requires you don’t spam; we call only on click, once.
   const url = `${NOMINATIM_BASE}?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`;
 
   const res = await fetch(url, {
     headers: {
-      // Some browsers ignore this, but it’s good practice:
       "Accept": "application/json",
-      // Optional: Identify app. (User-Agent header is blocked in browsers)
       "Referer": window.location.origin
     }
   });
@@ -126,7 +149,6 @@ async function reverseGeocodeAddress(lat, lon) {
   if (!res.ok) throw new Error(`Geocode failed: ${res.status}`);
 
   const json = await res.json();
-  // Best human-readable field:
   return json.display_name || "";
 }
 
@@ -134,6 +156,7 @@ async function initMap() {
   const user = await maybeUser();
   const panel = document.getElementById("addPanel");
   if (!user && panel) panel.style.display = "none";
+
   initRatingDropdown("m_rating", 7);
 
   const fr = document.getElementById("filter_min_rating");
@@ -154,7 +177,9 @@ async function initMap() {
 
   LAYER_GROUP = L.layerGroup().addTo(MAP);
 
+  // ---- Load categories (including icon_url) ----
   setMapStatus("Loading categories…");
+
   const { data: catData, error: catErr } = await sb
     .from("categories")
     .select("id,name,icon_url")
@@ -167,12 +192,14 @@ async function initMap() {
   }
 
   CATEGORIES = catData || [];
-  const CAT_ICON = {};
+
+  // Build icon lookup with normalized string keys
+  CAT_ICON = {};
   CATEGORIES.forEach(c => {
-    CAT_ICON[String(c.id)] = c.icon_url || "";
+    CAT_ICON[String(c.id).trim()] = String(c.icon_url ?? "").trim();
   });
-  window.CAT_ICON = CAT_ICON;
-  
+
+  // Fill dropdowns
   document.getElementById("m_category").innerHTML = CATEGORIES
     .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
     .join("");
@@ -181,11 +208,13 @@ async function initMap() {
     `<option value="">All</option>` +
     CATEGORIES.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
 
+  // ---- Load markers ----
   await reloadMarkers();
 
+  // ---- Click handler for adding ----
   MAP.on("click", async (e) => {
     const user = await maybeUser();
-    if (!user) return;  
+    if (!user) return;
     if (!ADD_MODE) return;
 
     LAST_CLICK = { lat: e.latlng.lat, lon: e.latlng.lng };
@@ -211,7 +240,7 @@ async function initMap() {
         const addr = await reverseGeocodeAddress(LAST_CLICK.lat, LAST_CLICK.lon);
         addrInput.value = addr;
         setSaveStatus("Location selected ✅ Address filled. Now click Save.");
-      } catch (err) {
+      } catch {
         setSaveStatus("Location selected ✅ Address lookup failed (you can type it manually).");
       }
     } else {
@@ -243,10 +272,17 @@ async function reloadMarkers() {
 
   LAYER_GROUP.clearLayers();
 
+  // DEBUG ONCE: show a sample mapping in console
+  if (markers.length) {
+    const sample = markers[0];
+    console.log("[ICON DEBUG] sample marker.category_id =", sample.category_id);
+    console.log("[ICON DEBUG] CAT_ICON keys (first 10) =", Object.keys(CAT_ICON).slice(0, 10));
+    console.log("[ICON DEBUG] raw icon_url =", CAT_ICON[String(sample.category_id).trim()]);
+    console.log("[ICON DEBUG] normalized icon_url =", getIconUrlForCategory(sample.category_id));
+  }
+
   markers.forEach((m) => {
-    const iconUrl =
-      (window.CAT_ICON?.[String(m.category_id)] || "") ||
-      DEFAULT_ICON_URL;
+    const iconUrl = getIconUrlForCategory(m.category_id);
     const icon = makeMarkerIcon(iconUrl, m.rating_manual);
 
     const link = `marker.html?id=${encodeURIComponent(m.id)}`;
@@ -265,7 +301,8 @@ async function reloadMarkers() {
 
 async function saveMapMarker() {
   const user = await maybeUser();
-  if (!user) { alert("Please login to add markers."); window.location.href="login.html"; return; }
+  if (!user) { alert("Please login to add markers."); window.location.href = "login.html"; return; }
+
   setSaveStatus("Saving…");
 
   const title = document.getElementById("m_title").value.trim();
@@ -299,6 +336,5 @@ async function saveMapMarker() {
     return;
   }
 
-  // Redirect to marker page
   window.location.href = `marker.html?id=${encodeURIComponent(data.id)}`;
 }
