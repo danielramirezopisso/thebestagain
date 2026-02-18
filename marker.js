@@ -325,15 +325,11 @@ async function clearMyVote() {
   const user = await requireAuth();
   if (!user) return;
 
-  // Soft delete: keep row, set is_active=false (preserve old vote value if it exists)
-  const existingVote = CURRENT_VOTE_ROW?.vote ?? 1;
-
   const { error } = await sb
     .from("votes")
-    .upsert(
-      [{ marker_id: MARKER_ID, user_id: user.id, vote: existingVote, is_active: false }],
-      { onConflict: "marker_id,user_id" }
-    );
+    .update({ is_active: false })
+    .eq("marker_id", MARKER_ID)
+    .eq("user_id", user.id);
 
   if (error) {
     setVoteStatus("Error: " + error.message);
@@ -343,3 +339,4 @@ async function clearMyVote() {
   await loadMyVote();
   setVoteStatus("Removed ✅ (soft delete)");
 }
+
