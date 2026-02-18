@@ -301,7 +301,11 @@ async function reloadMarkers() {
 
 async function saveMapMarker() {
   const user = await maybeUser();
-  if (!user) { alert("Please login to add markers."); window.location.href="login.html"; return; }
+  if (!user) {
+    alert("Please login to add markers.");
+    window.location.href = "login.html";
+    return;
+  }
 
   setSaveStatus("Saving…");
 
@@ -318,7 +322,7 @@ async function saveMapMarker() {
   const payload = {
     title,
     category_id,
-    rating_manual,          // keep for now (legacy display)
+    rating_manual,
     group_type: "place",
     is_active: true,
     lat: LAST_CLICK.lat,
@@ -337,25 +341,24 @@ async function saveMapMarker() {
     return;
   }
 
-  // 2) Create YOUR vote for this marker
-  const votePayload = {
-    marker_id: markerRow.id,
-    vote: rating_manual,
-    is_active: true
-  };
-
+  // 2) Create YOUR vote for that marker (same number as you selected)
   const { error: vErr } = await sb
     .from("votes")
-    .insert([votePayload]);
+    .insert([{
+      marker_id: markerRow.id,
+      vote: rating_manual,
+      is_active: true
+    }]);
 
   if (vErr) {
-    setSaveStatus("Marker saved, but vote failed: " + vErr.message);
-    // still redirect so you can manually vote if needed
+    // Marker is created, but vote failed (usually RLS). Still redirect.
+    setSaveStatus("Marker saved ✅ but vote failed: " + vErr.message);
     window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
     return;
   }
 
-  // 3) Redirect
+  // 3) Redirect to marker page
   window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
 }
+
 
