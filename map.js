@@ -168,9 +168,11 @@ async function initMap() {
 
   CATEGORIES = catData || [];
   const CAT_ICON = {};
-  CATEGORIES.forEach(c => { CAT_ICON[c.id] = c.icon_url || ""; });
+  CATEGORIES.forEach(c => {
+    CAT_ICON[String(c.id)] = c.icon_url || "";
+  });
   window.CAT_ICON = CAT_ICON;
-
+  
   document.getElementById("m_category").innerHTML = CATEGORIES
     .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
     .join("");
@@ -242,7 +244,9 @@ async function reloadMarkers() {
   LAYER_GROUP.clearLayers();
 
   markers.forEach((m) => {
-    const iconUrl = (window.CAT_ICON?.[m.category_id] || "") || DEFAULT_ICON_URL;
+    const iconUrl =
+      (window.CAT_ICON?.[String(m.category_id)] || "") ||
+      DEFAULT_ICON_URL;
     const icon = makeMarkerIcon(iconUrl, m.rating_manual);
 
     const link = `marker.html?id=${encodeURIComponent(m.id)}`;
