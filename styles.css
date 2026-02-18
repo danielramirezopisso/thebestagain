@@ -70,9 +70,16 @@ body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: 
   display: block !important;
 }
 
+.tba-marker.rating-none .tba-marker-inner {
+  background: #ffffff;
+  border: 2px solid #d0d0d0;
+}
+
+
 /* Rating color buckets */
 .rating-9-10 { background: #16a34a; }
 .rating-7-8  { background: #22c55e; }
 .rating-5-6  { background: #f59e0b; }
 .rating-3-4  { background: #fb7185; }
 .rating-1-2  { background: #ef4444; }
+
