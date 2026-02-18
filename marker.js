@@ -1,8 +1,8 @@
 // marker.js — Release 6 (edit + deactivate) + Release 7 (my vote) + soft delete votes (is_active)
 
-const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
+// const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
+// const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let MARKER_ID = null;
 let CURRENT_MARKER = null;
