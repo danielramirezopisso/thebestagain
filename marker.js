@@ -90,7 +90,7 @@ async function initMarkerPage() {
 
   const { data: marker, error } = await sb
     .from("markers")
-    .select("id,title,group_type,category_id,rating_manual,address,lat,lon,is_active,created_at")
+    .select("id,title,group_type,category_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
     .eq("id", MARKER_ID)
     .single();
 
@@ -119,8 +119,13 @@ function renderView() {
   const iconUrl = cat ? (cat.icon_url || "") : "";
 
   document.getElementById("markerTitle").textContent = m.title;
+
+  const avg = Number(m.rating_avg ?? 0);
+  const cnt = Number(m.rating_count ?? 0);
+  const overallText = avg ? `${avg.toFixed(2)}/10 (${cnt} vote${cnt === 1 ? "" : "s"})` : `—/10 (0 votes)`;
+  
   document.getElementById("markerSubtitle").textContent =
-    `${m.group_type} · ${categoryName} · ${m.rating_manual}/10`;
+    `${m.group_type} · ${categoryName} · ${overallText}`;
 
   const latLon =
     (m.lat !== null && m.lon !== null) ? `${m.lat}, ${m.lon}` : "";
@@ -132,7 +137,8 @@ function renderView() {
   document.getElementById("markerDetails").innerHTML = `
     <p><b>Category:</b> ${iconHtml}${escapeHtml(categoryName)}</p>
     <p><b>Group:</b> ${escapeHtml(m.group_type)}</p>
-    <p><b>Rating:</b> ${escapeHtml(String(m.rating_manual))}/10</p>
+    <p><b>Overall rating:</b> ${escapeHtml(overallText)}</p>
+    <p><b>Manual rating (legacy):</b> ${escapeHtml(String(m.rating_manual ?? ""))}/10</p>
     <p><b>Address:</b> ${escapeHtml(m.address || "")}</p>
     <p><b>Lat/Lon:</b> ${escapeHtml(latLon)}</p>
     <p><b>Active:</b> ${escapeHtml(String(m.is_active))}</p>
@@ -219,7 +225,7 @@ async function saveEdits() {
     .from("markers")
     .update(patch)
     .eq("id", MARKER_ID)
-    .select("id,title,group_type,category_id,rating_manual,address,lat,lon,is_active,created_at")
+    .select("id,title,group_type,category_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
     .single();
 
   if (error) {
@@ -243,7 +249,7 @@ async function deactivateMarker() {
     .from("markers")
     .update({ is_active: false })
     .eq("id", MARKER_ID)
-    .select("id,title,group_type,category_id,rating_manual,address,lat,lon,is_active,created_at")
+    .select("id,title,group_type,category_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
     .single();
 
   if (error) {
