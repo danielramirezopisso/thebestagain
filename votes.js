@@ -22,6 +22,7 @@ function fmt(iso) {
 }
 
 async function initVotesPage() {
+  await requireAuth();
   setStatus("Loading…");
 
   // Join votes -> markers -> categories for display
