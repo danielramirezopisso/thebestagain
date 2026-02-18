@@ -264,7 +264,8 @@ async function loadMyVote() {
   setVoteStatus("Loading your vote…");
 
   const user = await requireAuth();
-  
+  if (!user) return;
+
   const { data, error } = await sb
     .from("votes")
     .select("id,vote,is_active")
@@ -280,8 +281,7 @@ async function loadMyVote() {
   CURRENT_VOTE_ROW = data || null;
 
   if (CURRENT_VOTE_ROW && CURRENT_VOTE_ROW.is_active) {
-    const v = Number(CURRENT_VOTE_ROW.vote);
-    document.getElementById("my_vote").value = String(Math.round(v));
+    document.getElementById("my_vote").value = String(Math.round(Number(CURRENT_VOTE_ROW.vote)));
     setVoteStatus(`Saved vote: ${CURRENT_VOTE_ROW.vote}`);
   } else {
     setVoteStatus("No active vote yet.");
@@ -300,7 +300,7 @@ async function saveMyVote() {
   const user = await requireAuth();
   if (!user) return;
 
-  // Upsert per (marker_id, user_id)
+  // Save must "reactivate" too
   const { error } = await sb
     .from("votes")
     .upsert(
@@ -325,6 +325,7 @@ async function clearMyVote() {
   const user = await requireAuth();
   if (!user) return;
 
+  // Remove must ONLY soft delete (never insert)
   const { error } = await sb
     .from("votes")
     .update({ is_active: false })
@@ -339,4 +340,5 @@ async function clearMyVote() {
   await loadMyVote();
   setVoteStatus("Removed ✅ (soft delete)");
 }
+
 
