@@ -9,13 +9,11 @@
 <body>
   <header class="topbar">
     <a class="brand" href="index.html">The Best Again</a>
-    <nav class="nav">
-      <a href="index.html">Home</a>
-    </nav>
   </header>
 
   <main class="container">
     <h1>Login</h1>
+
     <section class="card">
       <label>Email</label>
       <input id="email" type="email" placeholder="you@email.com" />
@@ -30,6 +28,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="auth.js"></script>
+
   <script>
     async function doLogin() {
       document.getElementById("status").textContent = "Logging in…";
@@ -37,10 +36,13 @@
       const password = document.getElementById("password").value;
 
       const { error } = await sb.auth.signInWithPassword({ email, password });
+
       if (error) {
         document.getElementById("status").textContent = "Error: " + error.message;
         return;
       }
+
+      document.getElementById("status").textContent = "Logged in ✅ Redirecting…";
       window.location.href = "app.html";
     }
   </script>
