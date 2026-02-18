@@ -35,7 +35,10 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-function colorClassForRating(r) {
+function colorClassForRating(r, count = 0) {
+  const cnt = Number(count || 0);
+  if (cnt <= 0) return "rating-none";  // ✅ special case: no votes
+
   const x = Number(r);
   if (x >= 9) return "rating-9-10";
   if (x >= 7) return "rating-7-8";
@@ -74,8 +77,8 @@ function getIconUrlForCategory(category_id) {
   return normalized || DEFAULT_ICON_URL;
 }
 
-function makeMarkerIcon(iconUrl, rating) {
-  const cls = colorClassForRating(rating);
+function makeMarkerIcon(iconUrl, rating, count = 0) {
+  const cls = colorClassForRating(rating, count);
   const url = iconUrl || DEFAULT_ICON_URL;
 
   return L.divIcon({
@@ -288,7 +291,8 @@ async function reloadMarkers() {
     const avg = Number(m.rating_avg ?? 0);
     const cnt = Number(m.rating_count ?? 0);
     
-    const icon = makeMarkerIcon(iconUrl, avg);
+    const icon = makeMarkerIcon(iconUrl, avg, cnt);
+
 
     const link = `marker.html?id=${encodeURIComponent(m.id)}`;
     const popupHtml = `
