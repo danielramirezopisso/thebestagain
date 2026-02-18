@@ -129,6 +129,10 @@ async function reverseGeocodeAddress(lat, lon) {
 }
 
 async function initMap() {
+  const user = await maybeUser();
+  if (!user) {
+    document.getElementById("addPanel").style.display = "none";
+  }
   initRatingDropdown("m_rating", 7);
 
   const fr = document.getElementById("filter_min_rating");
