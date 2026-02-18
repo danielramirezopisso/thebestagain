@@ -52,6 +52,16 @@ function fillSelect1to10(selectId, defaultValue = 7) {
 }
 
 async function initMarkerPage() {
+  const user = await maybeUser();
+  if (!user) {
+    const v = document.getElementById("voteSection");
+    if (v) v.style.display = "none";
+  
+    const b1 = document.getElementById("btnEdit");
+    const b2 = document.getElementById("btnDeactivate");
+    if (b1) b1.style.display = "none";
+    if (b2) b2.style.display = "none";
+  }
   MARKER_ID = qs("id");
   if (!MARKER_ID) {
     document.getElementById("markerTitle").textContent = "Missing marker id";
