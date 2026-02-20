@@ -209,16 +209,16 @@ input:focus, select:focus{
    Activate by: <body class="home-bg">
 ------------------------------ */
 body.home-bg{
-  background:
-    radial-gradient(900px 500px at 15% 10%, rgba(255, 80, 80, 0.18) 0%, rgba(255, 80, 80, 0) 60%),
-    radial-gradient(800px 520px at 85% 15%, rgba(0, 140, 255, 0.16) 0%, rgba(0, 140, 255, 0) 58%),
-    radial-gradient(900px 600px at 45% 95%, rgba(0, 200, 120, 0.14) 0%, rgba(0, 200, 120, 0) 55%),
-    linear-gradient(180deg, #f6f7fb 0%, #ffffff 55%, #ffffff 100%);
+  background:#0b1220; /* deep ink */
 }
 
 body.home-bg .topbar-sticky{
-  background:rgba(255,255,255,0.90);
-  border-bottom:1px solid rgba(0,0,0,0.10);
+  background:rgba(255,255,255,0.92);
+  border-bottom:1px solid rgba(255,255,255,0.18);
+}
+
+body.home-bg .card{
+  background:#fff;
 }
 
 .home{ padding-top:18px; }
@@ -555,3 +555,4 @@ body.home-bg .topbar-sticky{
 .rating-9-10 img{
   filter: brightness(0) invert(1);
 }
+
