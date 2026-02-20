@@ -317,14 +317,6 @@ body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: 
 /* Neutral (no votes) */
 .rating-none { background: #fff; }
 
-/* Rating colors: reuse your existing classes if they exist;
-   if not, these still work for Home mini markers/badges */
-.rating-9-10 { background: #dcfce7; border-color: #86efac; }
-.rating-7-8  { background: #dbeafe; border-color: #93c5fd; }
-.rating-5-6  { background: #fef9c3; border-color: #fde047; }
-.rating-3-4  { background: #ffedd5; border-color: #fdba74; }
-.rating-1-2  { background: #fee2e2; border-color: #fca5a5; }
-
 /* -----------------------------
    HOME background: warm gradient vibe (desktop-first)
 ------------------------------ */
@@ -362,4 +354,46 @@ body.home-bg .spotlight-dice {
 
 body.home-bg .chip:hover {
   box-shadow: 0 14px 30px rgba(0,0,0,0.07);
+}
+
+/* -----------------------------
+   SEMAFORIC rating colors (override)
+   0 votes -> neutral
+   1–2 red, 3–4 orange, 5–6 yellow, 7–8 light green, 9–10 dark green
+------------------------------ */
+
+/* No votes */
+.rating-none {
+  background: #fff !important;
+  border-color: rgba(0,0,0,0.12) !important;
+}
+
+/* 1–2: red */
+.rating-1-2 {
+  background: #fee2e2 !important;      /* light red */
+  border-color: #fca5a5 !important;    /* red border */
+}
+
+/* 3–4: orange */
+.rating-3-4 {
+  background: #ffedd5 !important;      /* light orange */
+  border-color: #fdba74 !important;    /* orange border */
+}
+
+/* 5–6: yellow */
+.rating-5-6 {
+  background: #fef9c3 !important;      /* light yellow */
+  border-color: #fde047 !important;    /* yellow border */
+}
+
+/* 7–8: light green */
+.rating-7-8 {
+  background: #dcfce7 !important;      /* light green */
+  border-color: #86efac !important;    /* green border */
+}
+
+/* 9–10: dark green */
+.rating-9-10 {
+  background: #bbf7d0 !important;      /* richer green */
+  border-color: #22c55e !important;    /* strong green border */
 }
