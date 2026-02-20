@@ -1,4 +1,5 @@
 // marker.js — supports places + products (brand for products), voting, edit/deactivate
+// Product title is AUTO: "Category · Brand" and is read-only for products.
 // Uses sb + maybeUser/requireAuth from auth.js
 
 let MARKER_ID = null;
@@ -80,7 +81,7 @@ function renderCategoryOptions(group_type, selectedId) {
     .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
     .join("");
 
-  if (selectedId) sel.value = String(selectedId);
+  if (selectedId != null) sel.value = String(selectedId);
 }
 
 function renderBrandOptions(selectedId) {
@@ -92,7 +93,7 @@ function renderBrandOptions(selectedId) {
     .map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`)
     .join("");
 
-  if (selectedId) sel.value = String(selectedId);
+  if (selectedId != null) sel.value = String(selectedId);
 }
 
 function showBrandRow(shouldShow) {
@@ -100,10 +101,70 @@ function showBrandRow(shouldShow) {
   if (row) row.style.display = shouldShow ? "block" : "none";
 }
 
+function categoryNameById(id) {
+  return getCategoryById(id)?.name || "";
+}
+function brandNameById(id) {
+  return getBrandById(id)?.name || "";
+}
+
+function computeProductTitle(category_id, brand_id) {
+  const c = categoryNameById(category_id);
+  const b = brandNameById(brand_id);
+  return `${c} · ${b}`.trim();
+}
+
+function setTitleReadonlyForGroup(group_type) {
+  const titleEl = document.getElementById("e_title");
+  if (!titleEl) return;
+
+  if (group_type === "product") {
+    titleEl.disabled = true;
+    titleEl.style.opacity = "0.8";
+  } else {
+    titleEl.disabled = false;
+    titleEl.style.opacity = "1";
+  }
+}
+
+// Called when group changes in edit mode
 function onEditGroupChanged() {
   const g = document.getElementById("e_group_type").value;
+
   showBrandRow(g === "product");
+
+  // Re-render categories for that group
   renderCategoryOptions(g, null);
+
+  // Toggle title editability
+  setTitleReadonlyForGroup(g);
+
+  // If switching to product, auto-fill title from current selections
+  if (g === "product") {
+    const category_id = document.getElementById("e_category").value;
+    const brand_id = document.getElementById("e_brand").value;
+    document.getElementById("e_title").value = computeProductTitle(category_id, brand_id);
+  }
+}
+
+// When category changes, update product title if product
+function onEditCategoryChanged() {
+  const g = document.getElementById("e_group_type").value;
+  if (g !== "product") return;
+
+  const category_id = document.getElementById("e_category").value;
+  const brand_id = document.getElementById("e_brand").value;
+  document.getElementById("e_title").value = computeProductTitle(category_id, brand_id);
+}
+
+// When brand changes, update product title if product
+function onEditBrandChanged() {
+  const g = document.getElementById("e_group_type").value;
+  if (g !== "product") return;
+
+  const category_id = document.getElementById("e_category").value;
+  const brand_id = document.getElementById("e_brand").value;
+  document.getElementById("e_title").value = computeProductTitle(category_id, brand_id);
 }
 
 async function initMarkerPage() {
@@ -197,12 +258,9 @@ function renderView() {
 
   document.getElementById("markerTitle").textContent = m.title;
 
-  const subtitleBits = [
-    m.group_type,
-    categoryName,
-    over
-  ];
-  if (m.group_type === "product" && brandName) subtitleBits.splice(2, 0, `Brand: ${brandName}`);
+  const subtitleBits = [m.group_type, categoryName];
+  if (m.group_type === "product" && brandName) subtitleBits.push(`Brand: ${brandName}`);
+  subtitleBits.push(over);
 
   document.getElementById("markerSubtitle").textContent = subtitleBits.join(" · ");
 
@@ -241,22 +299,39 @@ function fillEditForm() {
   document.getElementById("e_title").value = m.title || "";
   document.getElementById("e_group_type").value = m.group_type || "place";
 
+  // render brand options always (we just hide/show)
+  renderBrandOptions(m.brand_id || "");
+
   // categories filtered by group
   renderCategoryOptions(m.group_type || "place", m.category_id || "");
 
   fillSelect1to10("e_rating", Number(m.rating_manual) || 7);
 
-  // brand handling
-  renderBrandOptions(m.brand_id || "");
+  // brand row visibility + title editability
   showBrandRow((m.group_type || "place") === "product");
-  if (m.group_type === "product") {
-    const sel = document.getElementById("e_brand");
-    if (sel) sel.value = String(m.brand_id || "");
-  }
+  setTitleReadonlyForGroup(m.group_type || "place");
 
   document.getElementById("e_address").value = m.address || "";
   document.getElementById("e_lat").value = (m.lat ?? "");
   document.getElementById("e_lon").value = (m.lon ?? "");
+
+  // Hook change listeners once (safe to call multiple times)
+  const catSel = document.getElementById("e_category");
+  if (catSel && !catSel.dataset.bound) {
+    catSel.addEventListener("change", onEditCategoryChanged);
+    catSel.dataset.bound = "1";
+  }
+
+  const brandSel = document.getElementById("e_brand");
+  if (brandSel && !brandSel.dataset.bound) {
+    brandSel.addEventListener("change", onEditBrandChanged);
+    brandSel.dataset.bound = "1";
+  }
+
+  // If product, enforce title format immediately
+  if ((m.group_type || "place") === "product") {
+    document.getElementById("e_title").value = computeProductTitle(m.category_id, m.brand_id);
+  }
 }
 
 function enterEditMode() {
@@ -288,7 +363,7 @@ function cancelEdits() {
 async function saveEdits() {
   setStatus("Saving changes…");
 
-  const title = document.getElementById("e_title").value.trim();
+  const titleEl = document.getElementById("e_title");
   const group_type = document.getElementById("e_group_type").value;
   const category_id = document.getElementById("e_category").value;
   const rating_manual = Number(document.getElementById("e_rating").value);
@@ -301,19 +376,21 @@ async function saveEdits() {
 
   const brand_id = (group_type === "product") ? document.getElementById("e_brand").value : null;
 
+  // Title rules
+  let title = titleEl.value.trim();
+  if (group_type === "product") {
+    if (!brand_id) { setStatus("Brand is required for products."); return; }
+    // Force computed title
+    title = computeProductTitle(category_id, brand_id);
+    titleEl.value = title;
+  }
+
   if (!title) { setStatus("Title required."); return; }
   if (!(rating_manual >= 1 && rating_manual <= 10)) { setStatus("Rating must be 1–10."); return; }
   if ((latRaw !== "" && Number.isNaN(lat)) || (lonRaw !== "" && Number.isNaN(lon))) {
     setStatus("Lat/Lon must be numbers (or empty).");
     return;
   }
-  if (group_type === "product" && !brand_id) {
-    setStatus("Brand is required for products.");
-    return;
-  }
-
-  // Optional: enforce product has no lat/lon
-  // if (group_type === "product" && (lat !== null || lon !== null)) { setStatus("Products should not have lat/lon."); return; }
 
   const patch = { title, group_type, category_id, rating_manual, address, lat, lon, brand_id };
 
@@ -390,6 +467,20 @@ async function loadMyVote() {
   }
 }
 
+async function refreshMarkerAfterVote() {
+  const { data: marker, error: mErr } = await sb
+    .from("markers")
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
+    .eq("id", MARKER_ID)
+    .single();
+
+  if (!mErr && marker) {
+    CURRENT_MARKER = marker;
+    renderView();
+    fillEditForm();
+  }
+}
+
 async function saveMyVote() {
   const v = Number(document.getElementById("my_vote").value);
   if (!(v >= 1 && v <= 10)) {
@@ -416,19 +507,7 @@ async function saveMyVote() {
 
   await loadMyVote();
   setVoteStatus("Saved ✅");
-
-  // Refresh marker to show updated avg/count
-  const { data: marker, error: mErr } = await sb
-    .from("markers")
-    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
-    .eq("id", MARKER_ID)
-    .single();
-
-  if (!mErr && marker) {
-    CURRENT_MARKER = marker;
-    renderView();
-    fillEditForm();
-  }
+  await refreshMarkerAfterVote();
 }
 
 async function clearMyVote() {
@@ -452,17 +531,5 @@ async function clearMyVote() {
 
   await loadMyVote();
   setVoteStatus("Removed ✅ (soft delete)");
-
-  // Refresh marker to show updated avg/count
-  const { data: marker, error: mErr } = await sb
-    .from("markers")
-    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
-    .eq("id", MARKER_ID)
-    .single();
-
-  if (!mErr && marker) {
-    CURRENT_MARKER = marker;
-    renderView();
-    fillEditForm();
-  }
+  await refreshMarkerAfterVote();
 }
