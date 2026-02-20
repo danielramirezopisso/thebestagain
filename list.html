@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>The Best Again — List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body onload="initListPage()">
+  <header class="topbar">
+    <a class="brand" href="index.html">The Best Again</a>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a class="active" href="list.html">List</a>
+      <a href="map.html">Map</a>
+      <a href="products.html">Products</a>
+      <a href="my-votes.html">My Votes</a>
+      <span id="authStatus" style="margin-left:12px;"></span>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>List</h1>
+    <p class="muted">All markers (Places + Products). Read-only.</p>
+
+    <section class="card">
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <div>
+          <label>Type</label>
+          <select id="filter_type" onchange="applyListFilters()">
+            <option value="">All</option>
+            <option value="place">Places</option>
+            <option value="product">Products</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Category</label>
+          <select id="filter_category" onchange="applyListFilters()">
+            <option value="">All</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Min rating</label>
+          <select id="filter_min_rating" onchange="applyListFilters()">
+            <option value="">All</option>
+          </select>
+        </div>
+
+        <div style="margin-top:22px;">
+          <button onclick="clearListFilters()">Clear</button>
+        </div>
+
+        <div style="margin-left:auto;">
+          <span id="listStatus" class="muted"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div id="listWrap"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js"></script>
+  <script src="header-auth.js"></script>
+  <script>renderAuthHeader();</script>
+
+  <script src="list.js?v=1"></script>
+</body>
+</html>
