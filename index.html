@@ -6,59 +6,90 @@
   <title>The Best Again</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <header class="topbar">
-  <a class="brand" href="index.html">The Best Again</a>
-  <nav class="nav">
+
+<body onload="initHomePage()">
+  <header class="topbar topbar-sticky">
+    <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav">
       <a class="active" href="index.html">Home</a>
       <a href="list.html">List</a>
       <a href="map.html">Map</a>
       <a href="products.html">Products</a>
       <a href="my-votes.html">My Votes</a>
-      <span id="authStatus" style="margin-left:12px;"></span>
+      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
     </nav>
-  </nav>
-</header>
-  
+  </header>
 
-  <main class="container">
-    <h1>The Best Again</h1>
-    <p class="muted">A personal map of the best food & drinks — starting simple.</p>
+  <main class="container home">
+    <!-- HERO -->
+    <section class="home-hero">
+      <div>
+        <h1 class="home-title">The Best Again</h1>
+        <p class="home-tagline muted">
+          A playful hunt for the best bites & products — one surprise at a time.
+        </p>
+        <p class="muted home-hint">
+          Shortcuts: <b>M</b> Map · <b>L</b> List · <b>P</b> Products · <b>R</b> Surprise
+        </p>
+      </div>
 
-    <section class="card">
-      <h2>Status</h2>
-      <ul>
-        <li>Release 0: website online ✅</li>
-        <li>Release 1: create + list markers (no map) ⏳</li>
-        <li>Release 2: map view ⏳</li>
-      </ul>
+      <div class="home-actions">
+        <a class="tba-btn tba-btn-primary" href="map.html">🗺️ Map</a>
+        <a class="tba-btn" href="list.html">📋 List</a>
+        <a class="tba-btn" href="products.html">🛒 Products</a>
+      </div>
     </section>
 
-    <section class="card">
-      <h2>Coming soon</h2>
-      <p class="muted">
-        Create entries for Pizza Margherita, Croissant de chocolate, Cocktail Margarita, Tortilla de patatas —
-        then display them on a Leaflet map with category icons and rating colors.
-      </p>
+    <!-- GRID: Spotlight + Recent -->
+    <section class="home-grid">
+      <!-- Spotlight -->
+      <section class="card spotlight">
+        <div class="spotlight-header">
+          <div class="spotlight-title">
+            <span class="spotlight-dice">🎲</span>
+            <div>
+              <div class="spotlight-kicker">Spotlight Surprise</div>
+              <div class="spotlight-sub muted" id="spotSub">Loading something tasty…</div>
+            </div>
+          </div>
+
+          <button class="tba-btn tba-btn-ghost" id="btnSurprise" onclick="surpriseMe()">🔁 Surprise me again</button>
+        </div>
+
+        <div id="spotBody" class="spotlight-body">
+          <!-- Filled by home.js -->
+        </div>
+
+        <div class="spotlight-footer">
+          <span class="muted" id="spotStatus"></span>
+        </div>
+      </section>
+
+      <!-- Recent -->
+      <section class="card recent">
+        <div class="recent-header">
+          <h2 style="margin:0;">Recently added</h2>
+          <span class="muted" id="recentStatus"></span>
+        </div>
+        <div id="recentList" class="recent-list"></div>
+      </section>
+    </section>
+
+    <!-- Chips -->
+    <section class="card cravings">
+      <div class="cravings-header">
+        <h2 style="margin:0;">Explore by craving</h2>
+        <span class="muted">Click a category to jump into the list</span>
+      </div>
+      <div id="chipRow" class="chip-row"></div>
     </section>
   </main>
-
-  <footer class="footer">
-    <span class="muted">© The Best Again</span>
-  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
 
+  <script src="home.js?v=1"></script>
 </body>
 </html>
-
-
-
-
-
-
-
