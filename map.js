@@ -187,6 +187,7 @@ async function initMap() {
     .from("categories")
     .select("id,name,icon_url")
     .eq("is_active", true)
+    .eq("for_places", true)
     .order("id", { ascending: true });
 
   if (catErr) {
