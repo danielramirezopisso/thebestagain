@@ -1,4 +1,5 @@
 // map.js — current version + robust icon resolution + login gating for add
+// + supports focus marker via: map.html?focus=<marker_id>
 // (uses sb + maybeUser from auth.js)
 
 let MAP;
@@ -20,6 +21,11 @@ const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/reverse";
 // Build a lookup: category_id (string) -> icon_url (string)
 let CAT_ICON = {};
 
+// Focus support
+const FOCUS_ID = new URLSearchParams(window.location.search).get("focus");
+let DID_FOCUS = false;
+let LEAFLET_MARKERS_BY_ID = {}; // marker_id -> Leaflet marker instance
+
 function setMapStatus(msg) {
   document.getElementById("mapStatus").textContent = msg || "";
 }
@@ -35,11 +41,10 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-function colorClassForRating(r, count = 0) {
-  const cnt = Number(count || 0);
-  if (cnt <= 0) return "rating-none";  // ✅ special case: no votes
-
+function colorClassForRating(r) {
   const x = Number(r);
+  // if avg is 0 and you want neutral, treat as no votes in map popups
+  if (!x) return "rating-none";
   if (x >= 9) return "rating-9-10";
   if (x >= 7) return "rating-7-8";
   if (x >= 5) return "rating-5-6";
@@ -51,41 +56,27 @@ function colorClassForRating(r, count = 0) {
 function normalizeIconUrl(raw) {
   const s = String(raw ?? "").trim();
   if (!s) return "";
-
-  // If already absolute http(s), keep it
   if (s.startsWith("http://") || s.startsWith("https://")) return s;
-
-  // Otherwise, treat as a path relative to the site root
-  // Examples:
-  //  "icons/pizza.svg"  -> https://<host>/<repo>/icons/pizza.svg
-  //  "/icons/pizza.svg" -> https://<host>/icons/pizza.svg  (usually NOT what you want on GitHub Pages)
-  //
-  // We will resolve relative to the current page URL so GitHub Pages repo paths work.
-  try {
-    return new URL(s, window.location.href).toString();
-  } catch {
-    return "";
-  }
+  try { return new URL(s, window.location.href).toString(); } catch { return ""; }
 }
 
 // Best-effort icon getter that works even if ids are numbers/strings
 function getIconUrlForCategory(category_id) {
   const key = String(category_id ?? "").trim();
   const raw = CAT_ICON[key] || "";
-
   const normalized = normalizeIconUrl(raw);
   return normalized || DEFAULT_ICON_URL;
 }
 
-function makeMarkerIcon(iconUrl, rating, count = 0) {
-  const cls = colorClassForRating(rating, count);
+function makeMarkerIcon(iconUrl, rating) {
+  const cls = colorClassForRating(rating);
   const url = iconUrl || DEFAULT_ICON_URL;
 
   return L.divIcon({
     className: `tba-marker ${cls}`,
     html: `<div class="tba-marker-inner"><img src="${escapeHtml(url)}" alt="" /></div>`,
     iconSize: [34, 34],
-    iconAnchor: [17, 17],   // keep your centered anchor
+    iconAnchor: [17, 17],
     popupAnchor: [0, -34],
   });
 }
@@ -187,7 +178,6 @@ async function initMap() {
     .from("categories")
     .select("id,name,icon_url")
     .eq("is_active", true)
-    .eq("for_places", true)
     .order("id", { ascending: true });
 
   if (catErr) {
@@ -253,6 +243,17 @@ async function initMap() {
   });
 }
 
+function tryFocusMarker() {
+  if (!FOCUS_ID || DID_FOCUS) return;
+  const mk = LEAFLET_MARKERS_BY_ID[FOCUS_ID];
+  if (!mk) return;
+
+  DID_FOCUS = true;
+  const ll = mk.getLatLng();
+  MAP.flyTo(ll, Math.max(MAP.getZoom(), 17), { duration: 0.8 });
+  setTimeout(() => mk.openPopup(), 400);
+}
+
 async function reloadMarkers() {
   setMapStatus("Loading markers…");
 
@@ -264,7 +265,6 @@ async function reloadMarkers() {
 
   if (FILTER_CATEGORY) q = q.eq("category_id", FILTER_CATEGORY);
   if (FILTER_MIN_RATING) q = q.gte("rating_avg", Number(FILTER_MIN_RATING));
-  
 
   const { data, error } = await q;
 
@@ -276,37 +276,32 @@ async function reloadMarkers() {
   const markers = (data || []).filter((m) => m.lat !== null && m.lon !== null);
 
   LAYER_GROUP.clearLayers();
-
-  // DEBUG ONCE: show a sample mapping in console
-  if (markers.length) {
-    const sample = markers[0];
-    console.log("[ICON DEBUG] sample marker.category_id =", sample.category_id);
-    console.log("[ICON DEBUG] CAT_ICON keys (first 10) =", Object.keys(CAT_ICON).slice(0, 10));
-    console.log("[ICON DEBUG] raw icon_url =", CAT_ICON[String(sample.category_id).trim()]);
-    console.log("[ICON DEBUG] normalized icon_url =", getIconUrlForCategory(sample.category_id));
-  }
+  LEAFLET_MARKERS_BY_ID = {};
 
   markers.forEach((m) => {
     const iconUrl = getIconUrlForCategory(m.category_id);
-    
     const avg = Number(m.rating_avg ?? 0);
     const cnt = Number(m.rating_count ?? 0);
-    
-    const icon = makeMarkerIcon(iconUrl, avg, cnt);
 
+    const icon = makeMarkerIcon(iconUrl, avg);
 
     const link = `marker.html?id=${encodeURIComponent(m.id)}`;
     const popupHtml = `
       <b><a href="${link}">${escapeHtml(m.title)}</a></b><br/>
-      Overall: ${avg ? avg.toFixed(2) : "—"}/10 (${cnt} vote${cnt === 1 ? "" : "s"})
+      Overall: ${cnt ? avg.toFixed(2) : "—"}/10 (${cnt} vote${cnt === 1 ? "" : "s"})
     `;
 
-    L.marker([m.lat, m.lon], { icon })
+    const leafletMarker = L.marker([m.lat, m.lon], { icon })
       .addTo(LAYER_GROUP)
       .bindPopup(popupHtml);
+
+    LEAFLET_MARKERS_BY_ID[m.id] = leafletMarker;
   });
 
   setMapStatus(`Loaded ${markers.length} marker(s).`);
+
+  // If Home sent a focus marker, fly to it now
+  tryFocusMarker();
 }
 
 async function saveMapMarker() {
@@ -351,7 +346,7 @@ async function saveMapMarker() {
     return;
   }
 
-  // 2) Create YOUR vote for that marker (same number as you selected)
+  // 2) Create YOUR vote for that marker
   const { error: vErr } = await sb
     .from("votes")
     .insert([{
@@ -362,14 +357,11 @@ async function saveMapMarker() {
     }]);
 
   if (vErr) {
-    // Marker is created, but vote failed (usually RLS). Still redirect.
     setSaveStatus("Marker saved ✅ but vote failed: " + vErr.message);
     window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
     return;
   }
 
-  // 3) Redirect to marker page
+  // 3) Redirect
   window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
 }
-
-
