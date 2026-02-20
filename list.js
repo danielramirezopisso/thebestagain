@@ -1,4 +1,6 @@
 // list.js — Read-only list of all markers (places + products)
+// + URL params support: ?type=place|product & ?category=<id> & ?min_rating=1..10
+// uses sb from auth.js
 
 let CATEGORIES = [];
 let BRANDS = [];
@@ -27,6 +29,10 @@ function applyListFilters() {
   FILTER_TYPE = document.getElementById("filter_type").value;
   FILTER_CATEGORY = document.getElementById("filter_category").value;
   FILTER_MIN_RATING = document.getElementById("filter_min_rating").value;
+
+  // Optional: keep URL in sync (nice for sharing/bookmarking)
+  updateUrlFromFilters();
+
   reloadList();
 }
 
@@ -34,10 +40,56 @@ function clearListFilters() {
   FILTER_TYPE = "";
   FILTER_CATEGORY = "";
   FILTER_MIN_RATING = "";
+
   document.getElementById("filter_type").value = "";
   document.getElementById("filter_category").value = "";
   document.getElementById("filter_min_rating").value = "";
+
+  updateUrlFromFilters();
   reloadList();
+}
+
+function updateUrlFromFilters() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("type");
+  url.searchParams.delete("category");
+  url.searchParams.delete("min_rating");
+
+  if (FILTER_TYPE) url.searchParams.set("type", FILTER_TYPE);
+  if (FILTER_CATEGORY) url.searchParams.set("category", FILTER_CATEGORY);
+  if (FILTER_MIN_RATING) url.searchParams.set("min_rating", FILTER_MIN_RATING);
+
+  window.history.replaceState({}, "", url.toString());
+}
+
+function initFiltersFromUrl() {
+  const sp = new URLSearchParams(window.location.search);
+
+  const type = (sp.get("type") || "").trim();
+  const category = (sp.get("category") || "").trim();
+  const minRating = (sp.get("min_rating") || "").trim();
+
+  // Validate type
+  if (type === "place" || type === "product") {
+    FILTER_TYPE = type;
+    document.getElementById("filter_type").value = type;
+  }
+
+  // Validate category exists (after categories loaded)
+  if (category && CAT_NAME[String(category)]) {
+    FILTER_CATEGORY = category;
+    document.getElementById("filter_category").value = category;
+  }
+
+  // Validate rating
+  const n = Number(minRating);
+  if (minRating && n >= 1 && n <= 10) {
+    FILTER_MIN_RATING = String(n);
+    document.getElementById("filter_min_rating").value = String(n);
+  }
+
+  // Keep URL clean/normalized
+  updateUrlFromFilters();
 }
 
 function overallText(avg, cnt) {
@@ -121,14 +173,14 @@ async function initListPage() {
 
   CATEGORIES = catData || [];
   CAT_NAME = {};
-  CATEGORIES.forEach(c => CAT_NAME[String(c.id)] = c.name);
+  CATEGORIES.forEach(c => (CAT_NAME[String(c.id)] = c.name));
 
   const catSel = document.getElementById("filter_category");
-  catSel.innerHTML = `<option value="">All</option>` + CATEGORIES
-    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
-    .join("");
+  catSel.innerHTML =
+    `<option value="">All</option>` +
+    CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
 
-  // Brands
+  // Brands (for Info column)
   const { data: brandData, error: brandErr } = await sb
     .from("brands")
     .select("id,name,is_active")
@@ -142,7 +194,10 @@ async function initListPage() {
 
   BRANDS = brandData || [];
   BRAND_NAME = {};
-  BRANDS.forEach(b => BRAND_NAME[String(b.id)] = b.name);
+  BRANDS.forEach(b => (BRAND_NAME[String(b.id)] = b.name));
+
+  // ✅ NEW: apply URL params now that dropdowns are populated
+  initFiltersFromUrl();
 
   await reloadList();
 }
