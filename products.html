@@ -22,14 +22,11 @@
 
   <main class="container">
     <h1>Products</h1>
-    <p class="muted">Create and manage product markers (requires login).</p>
+    <p class="muted">A product is defined by <b>Category + Brand</b>. No title needed.</p>
 
     <section class="card" id="productCreateCard">
       <h2>Add product</h2>
       <p class="muted">Creating a product also creates your vote and updates the overall average automatically.</p>
-
-      <label>Title</label>
-      <input id="p_title" placeholder="e.g., Best frozen nuggets" />
 
       <div style="display:flex; gap:12px; flex-wrap:wrap;">
         <div style="flex:1; min-width:220px;">
@@ -70,6 +67,6 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
 
-  <script src="products.js?v=1"></script>
+  <script src="products.js?v=2"></script>
 </body>
 </html>
