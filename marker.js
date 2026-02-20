@@ -1,12 +1,12 @@
-// marker.js — Release 6 (edit + deactivate) + Release 7 (my vote) + soft delete votes (is_active)
-
-// const SUPABASE_URL = "https://pwlskdjmgqxikbamfshj.supabase.co";
-// const SUPABASE_ANON_KEY = "sb_publishable_OIK8RJ8IZgHY0MW6FKqD6Q_yOm4YcmA";
-// const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// marker.js — supports places + products (brand for products), voting, edit/deactivate
+// Uses sb + maybeUser/requireAuth from auth.js
 
 let MARKER_ID = null;
 let CURRENT_MARKER = null;
-let CATEGORIES = [];
+
+let CATEGORIES_ALL = [];
+let BRANDS = [];
+
 let CURRENT_VOTE_ROW = null;
 
 function qs(name) {
@@ -51,17 +51,73 @@ function fillSelect1to10(selectId, defaultValue = 7) {
   }
 }
 
+function overallText(avg, cnt) {
+  const a = Number(avg ?? 0);
+  const c = Number(cnt ?? 0);
+  if (!c) return "—/10 (0 votes)";
+  return `${a.toFixed(2)}/10 (${c} vote${c === 1 ? "" : "s"})`;
+}
+
+function getCategoryById(id) {
+  return CATEGORIES_ALL.find(c => String(c.id) === String(id)) || null;
+}
+
+function getBrandById(id) {
+  return BRANDS.find(b => String(b.id) === String(id)) || null;
+}
+
+function categoriesForGroup(group_type) {
+  if (group_type === "product") return CATEGORIES_ALL.filter(c => c.for_products);
+  return CATEGORIES_ALL.filter(c => c.for_places);
+}
+
+function renderCategoryOptions(group_type, selectedId) {
+  const list = categoriesForGroup(group_type);
+  const sel = document.getElementById("e_category");
+  if (!sel) return;
+
+  sel.innerHTML = list
+    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
+    .join("");
+
+  if (selectedId) sel.value = String(selectedId);
+}
+
+function renderBrandOptions(selectedId) {
+  const sel = document.getElementById("e_brand");
+  if (!sel) return;
+
+  sel.innerHTML = BRANDS
+    .filter(b => b.is_active)
+    .map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`)
+    .join("");
+
+  if (selectedId) sel.value = String(selectedId);
+}
+
+function showBrandRow(shouldShow) {
+  const row = document.getElementById("brandRow");
+  if (row) row.style.display = shouldShow ? "block" : "none";
+}
+
+function onEditGroupChanged() {
+  const g = document.getElementById("e_group_type").value;
+  showBrandRow(g === "product");
+  renderCategoryOptions(g, null);
+}
+
 async function initMarkerPage() {
   const user = await maybeUser();
   if (!user) {
     const v = document.getElementById("voteSection");
     if (v) v.style.display = "none";
-  
+
     const b1 = document.getElementById("btnEdit");
     const b2 = document.getElementById("btnDeactivate");
     if (b1) b1.style.display = "none";
     if (b2) b2.style.display = "none";
   }
+
   MARKER_ID = qs("id");
   if (!MARKER_ID) {
     document.getElementById("markerTitle").textContent = "Missing marker id";
@@ -76,9 +132,10 @@ async function initMarkerPage() {
   fillSelect1to10("my_vote", 7);
   fillSelect1to10("e_rating", 7);
 
+  // Load categories (with scope flags)
   const cats = await sb
     .from("categories")
-    .select("id,name,icon_url")
+    .select("id,name,icon_url,is_active,for_places,for_products")
     .eq("is_active", true)
     .order("id", { ascending: true });
 
@@ -86,11 +143,25 @@ async function initMarkerPage() {
     setStatus("Error loading categories: " + cats.error.message);
     return;
   }
-  CATEGORIES = cats.data || [];
+  CATEGORIES_ALL = cats.data || [];
 
+  // Load brands
+  const brands = await sb
+    .from("brands")
+    .select("id,name,is_active")
+    .eq("is_active", true)
+    .order("id", { ascending: true });
+
+  if (brands.error) {
+    setStatus("Error loading brands: " + brands.error.message);
+    return;
+  }
+  BRANDS = brands.data || [];
+
+  // Load marker (includes averages + brand_id)
   const { data: marker, error } = await sb
     .from("markers")
-    .select("id,title,group_type,category_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
     .eq("id", MARKER_ID)
     .single();
 
@@ -102,43 +173,55 @@ async function initMarkerPage() {
   }
 
   CURRENT_MARKER = marker;
+
   renderView();
   fillEditForm();
-  await loadMyVote();
-  setStatus("");
-}
 
-function getCategoryById(id) {
-  return CATEGORIES.find(c => c.id === id) || null;
+  // load vote only if logged in
+  if (user) await loadMyVote();
+
+  setStatus("");
 }
 
 function renderView() {
   const m = CURRENT_MARKER;
+
   const cat = getCategoryById(m.category_id);
-  const categoryName = cat ? cat.name : m.category_id;
+  const categoryName = cat ? cat.name : (m.category_id || "");
   const iconUrl = cat ? (cat.icon_url || "") : "";
+
+  const b = m.group_type === "product" ? getBrandById(m.brand_id) : null;
+  const brandName = b ? b.name : (m.brand_id || "");
+
+  const over = overallText(m.rating_avg, m.rating_count);
 
   document.getElementById("markerTitle").textContent = m.title;
 
-  const avg = Number(m.rating_avg ?? 0);
-  const cnt = Number(m.rating_count ?? 0);
-  const overallText = avg ? `${avg.toFixed(2)}/10 (${cnt} vote${cnt === 1 ? "" : "s"})` : `—/10 (0 votes)`;
-  
-  document.getElementById("markerSubtitle").textContent =
-    `${m.group_type} · ${categoryName} · ${overallText}`;
+  const subtitleBits = [
+    m.group_type,
+    categoryName,
+    over
+  ];
+  if (m.group_type === "product" && brandName) subtitleBits.splice(2, 0, `Brand: ${brandName}`);
 
-  const latLon =
-    (m.lat !== null && m.lon !== null) ? `${m.lat}, ${m.lon}` : "";
+  document.getElementById("markerSubtitle").textContent = subtitleBits.join(" · ");
+
+  const latLon = (m.lat !== null && m.lon !== null) ? `${m.lat}, ${m.lon}` : "";
 
   const iconHtml = iconUrl
     ? `<img src="${escapeHtml(iconUrl)}" alt="" style="width:22px;height:22px;vertical-align:middle;margin-right:6px;" />`
     : "";
 
+  const brandLine = (m.group_type === "product")
+    ? `<p><b>Brand:</b> ${escapeHtml(brandName)}</p>`
+    : "";
+
   document.getElementById("markerDetails").innerHTML = `
     <p><b>Category:</b> ${iconHtml}${escapeHtml(categoryName)}</p>
     <p><b>Group:</b> ${escapeHtml(m.group_type)}</p>
-    <p><b>Overall rating:</b> ${escapeHtml(overallText)}</p>
-    <p><b>Manual rating (legacy):</b> ${escapeHtml(String(m.rating_manual ?? ""))}/10</p>
+    ${brandLine}
+    <p><b>Overall rating:</b> ${escapeHtml(over)}</p>
+    <p class="muted"><b>Manual rating (legacy):</b> ${escapeHtml(String(m.rating_manual ?? ""))}/10</p>
     <p><b>Address:</b> ${escapeHtml(m.address || "")}</p>
     <p><b>Lat/Lon:</b> ${escapeHtml(latLon)}</p>
     <p><b>Active:</b> ${escapeHtml(String(m.is_active))}</p>
@@ -155,18 +238,22 @@ function renderView() {
 function fillEditForm() {
   const m = CURRENT_MARKER;
 
-  const catSel = document.getElementById("e_category");
-  if (catSel) {
-    catSel.innerHTML = CATEGORIES
-      .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
-      .join("");
-    catSel.value = m.category_id || "";
-  }
+  document.getElementById("e_title").value = m.title || "";
+  document.getElementById("e_group_type").value = m.group_type || "place";
+
+  // categories filtered by group
+  renderCategoryOptions(m.group_type || "place", m.category_id || "");
 
   fillSelect1to10("e_rating", Number(m.rating_manual) || 7);
 
-  document.getElementById("e_title").value = m.title || "";
-  document.getElementById("e_group_type").value = m.group_type || "place";
+  // brand handling
+  renderBrandOptions(m.brand_id || "");
+  showBrandRow((m.group_type || "place") === "product");
+  if (m.group_type === "product") {
+    const sel = document.getElementById("e_brand");
+    if (sel) sel.value = String(m.brand_id || "");
+  }
+
   document.getElementById("e_address").value = m.address || "";
   document.getElementById("e_lat").value = (m.lat ?? "");
   document.getElementById("e_lon").value = (m.lon ?? "");
@@ -186,6 +273,7 @@ function enterEditMode() {
 
 function cancelEdits() {
   fillEditForm();
+
   document.getElementById("viewCard").style.display = "block";
   document.getElementById("editCard").style.display = "none";
 
@@ -208,9 +296,10 @@ async function saveEdits() {
 
   const latRaw = document.getElementById("e_lat").value.trim();
   const lonRaw = document.getElementById("e_lon").value.trim();
-
   const lat = latRaw === "" ? null : Number(latRaw);
   const lon = lonRaw === "" ? null : Number(lonRaw);
+
+  const brand_id = (group_type === "product") ? document.getElementById("e_brand").value : null;
 
   if (!title) { setStatus("Title required."); return; }
   if (!(rating_manual >= 1 && rating_manual <= 10)) { setStatus("Rating must be 1–10."); return; }
@@ -218,14 +307,21 @@ async function saveEdits() {
     setStatus("Lat/Lon must be numbers (or empty).");
     return;
   }
+  if (group_type === "product" && !brand_id) {
+    setStatus("Brand is required for products.");
+    return;
+  }
 
-  const patch = { title, group_type, category_id, rating_manual, address, lat, lon };
+  // Optional: enforce product has no lat/lon
+  // if (group_type === "product" && (lat !== null || lon !== null)) { setStatus("Products should not have lat/lon."); return; }
+
+  const patch = { title, group_type, category_id, rating_manual, address, lat, lon, brand_id };
 
   const { data, error } = await sb
     .from("markers")
     .update(patch)
     .eq("id", MARKER_ID)
-    .select("id,title,group_type,category_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
     .single();
 
   if (error) {
@@ -249,7 +345,7 @@ async function deactivateMarker() {
     .from("markers")
     .update({ is_active: false })
     .eq("id", MARKER_ID)
-    .select("id,title,group_type,category_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
     .single();
 
   if (error) {
@@ -264,7 +360,7 @@ async function deactivateMarker() {
 }
 
 // --------------------
-// Release 7: My vote (soft delete)
+// My vote (soft delete)
 // --------------------
 async function loadMyVote() {
   setVoteStatus("Loading your vote…");
@@ -306,7 +402,6 @@ async function saveMyVote() {
   const user = await requireAuth();
   if (!user) return;
 
-  // Save must "reactivate" too
   const { error } = await sb
     .from("votes")
     .upsert(
@@ -321,6 +416,19 @@ async function saveMyVote() {
 
   await loadMyVote();
   setVoteStatus("Saved ✅");
+
+  // Refresh marker to show updated avg/count
+  const { data: marker, error: mErr } = await sb
+    .from("markers")
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
+    .eq("id", MARKER_ID)
+    .single();
+
+  if (!mErr && marker) {
+    CURRENT_MARKER = marker;
+    renderView();
+    fillEditForm();
+  }
 }
 
 async function clearMyVote() {
@@ -331,7 +439,6 @@ async function clearMyVote() {
   const user = await requireAuth();
   if (!user) return;
 
-  // Remove must ONLY soft delete (never insert)
   const { error } = await sb
     .from("votes")
     .update({ is_active: false })
@@ -345,6 +452,17 @@ async function clearMyVote() {
 
   await loadMyVote();
   setVoteStatus("Removed ✅ (soft delete)");
+
+  // Refresh marker to show updated avg/count
+  const { data: marker, error: mErr } = await sb
+    .from("markers")
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
+    .eq("id", MARKER_ID)
+    .single();
+
+  if (!mErr && marker) {
+    CURRENT_MARKER = marker;
+    renderView();
+    fillEditForm();
+  }
 }
-
-
