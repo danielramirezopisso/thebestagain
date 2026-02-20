@@ -11,14 +11,12 @@
   <header class="topbar">
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav">
-      <nav class="nav">
-        <a href="index.html">Home</a>
-        <a href="list.html">List</a>
-        <a href="map.html">Map</a>
-        <a href="products.html">Products</a>
-        <a href="my-votes.html">My Votes</a>
-        <span id="authStatus" style="margin-left:12px;"></span>
-      </nav>
+      <a href="index.html">Home</a>
+      <a href="list.html">List</a>
+      <a href="map.html">Map</a>
+      <a href="products.html">Products</a>
+      <a href="my-votes.html">My Votes</a>
+      <span id="authStatus" style="margin-left:12px;"></span>
     </nav>
   </header>
 
@@ -42,7 +40,7 @@
     <!-- My vote -->
     <section class="card" id="voteSection">
       <h2>My vote</h2>
-      <p class="muted">This is your personal score (Release 7). Stored in the database (decimals supported later).</p>
+      <p class="muted">Your personal score. Removing does a soft delete (is_active=false).</p>
 
       <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap;">
         <div style="min-width:180px;">
@@ -72,51 +70,59 @@
       <label>Title</label>
       <input id="e_title" />
 
-      <div style="display:flex; gap:12px;">
-        <div style="flex:1;">
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
           <label>Group</label>
-          <select id="e_group_type">
+          <select id="e_group_type" onchange="onEditGroupChanged()">
             <option value="place">place</option>
             <option value="product">product</option>
           </select>
         </div>
 
-        <div style="flex:1;">
+        <div style="flex:1; min-width:220px;">
           <label>Category</label>
           <select id="e_category"></select>
         </div>
 
-        <div style="flex:1;">
-          <label>Rating (1–10)</label>
+        <div style="width:180px;">
+          <label>Rating (legacy manual)</label>
           <select id="e_rating"></select>
         </div>
       </div>
 
-      <label>Address</label>
-      <input id="e_address" placeholder="Optional" />
+      <!-- Brand: only for products -->
+      <div id="brandRow" style="margin-top:12px; display:none;">
+        <label>Brand (required for products)</label>
+        <select id="e_brand"></select>
+      </div>
 
-      <div style="display:flex; gap:12px;">
-        <div style="flex:1;">
+      <label style="margin-top:12px;">Address</label>
+      <input id="e_address" placeholder="Optional (usually for places)" />
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
           <label>Lat</label>
           <input id="e_lat" placeholder="41.3889" />
         </div>
-        <div style="flex:1;">
+        <div style="flex:1; min-width:220px;">
           <label>Lon</label>
           <input id="e_lon" placeholder="2.1618" />
         </div>
       </div>
 
       <p class="muted" style="margin-top:10px;">
-        Tip: leave Lat/Lon empty for products; use Lat/Lon only for places on the map.
+        Tip: leave Lat/Lon empty for products; use Lat/Lon only for places shown on the map.
       </p>
     </section>
 
     <section class="card">
       <h2>Quick links</h2>
       <p class="muted">
-        <a href="app.html">← Back to Add / List</a>
+        <a href="list.html">← Back to List</a>
         &nbsp;·&nbsp;
         <a href="map.html">Go to Map</a>
+        &nbsp;·&nbsp;
+        <a href="products.html">Products</a>
         &nbsp;·&nbsp;
         <a href="my-votes.html">My Votes</a>
       </p>
@@ -127,7 +133,6 @@
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
-  <script src="marker.js?v=2"></script>
-
+  <script src="marker.js?v=3"></script>
 </body>
 </html>
