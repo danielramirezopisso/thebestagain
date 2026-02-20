@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>The Best Again — Products</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body onload="initProductsPage()">
+  <header class="topbar">
+    <a class="brand" href="index.html">The Best Again</a>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="list.html">List</a>
+      <a href="map.html">Map</a>
+      <a class="active" href="products.html">Products</a>
+      <a href="my-votes.html">My Votes</a>
+      <span id="authStatus" style="margin-left:12px;"></span>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Products</h1>
+    <p class="muted">Create and manage product markers (requires login).</p>
+
+    <section class="card" id="productCreateCard">
+      <h2>Add product</h2>
+      <p class="muted">Creating a product also creates your vote and updates the overall average automatically.</p>
+
+      <label>Title</label>
+      <input id="p_title" placeholder="e.g., Best frozen nuggets" />
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
+          <label>Category (product categories only)</label>
+          <select id="p_category"></select>
+        </div>
+
+        <div style="flex:1; min-width:220px;">
+          <label>Brand (required)</label>
+          <select id="p_brand"></select>
+        </div>
+
+        <div style="width:160px;">
+          <label>My vote (1–10)</label>
+          <select id="p_vote"></select>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button onclick="saveProduct()">Save product</button>
+        <span id="p_status" class="muted" style="margin-left:10px;"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Products list</h2>
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <div style="margin-left:auto;">
+          <span id="productsStatus" class="muted"></span>
+        </div>
+      </div>
+      <div id="productsWrap" style="margin-top:12px;"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js"></script>
+  <script src="header-auth.js"></script>
+  <script>renderAuthHeader();</script>
+
+  <script src="products.js?v=1"></script>
+</body>
+</html>
