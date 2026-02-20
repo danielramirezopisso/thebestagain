@@ -324,3 +324,42 @@ body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: 
 .rating-5-6  { background: #fef9c3; border-color: #fde047; }
 .rating-3-4  { background: #ffedd5; border-color: #fdba74; }
 .rating-1-2  { background: #fee2e2; border-color: #fca5a5; }
+
+/* -----------------------------
+   HOME background: warm gradient vibe (desktop-first)
+------------------------------ */
+
+body.home-bg {
+  background:
+    radial-gradient(900px 500px at 15% 10%, rgba(255, 226, 200, 0.75) 0%, rgba(255, 226, 200, 0) 60%),
+    radial-gradient(800px 520px at 85% 15%, rgba(214, 234, 255, 0.70) 0%, rgba(214, 234, 255, 0) 58%),
+    radial-gradient(900px 600px at 45% 95%, rgba(255, 210, 238, 0.55) 0%, rgba(255, 210, 238, 0) 55%),
+    linear-gradient(180deg, #fff7ed 0%, #ffffff 55%, #ffffff 100%);
+}
+
+body.home-bg .topbar-sticky {
+  background: rgba(255, 255, 255, 0.78);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+body.home-bg .card {
+  background: rgba(255,255,255,0.92);
+}
+
+body.home-bg .tba-btn-primary {
+  background: linear-gradient(180deg, #fff1e6 0%, #ffe4d6 100%);
+  border-color: rgba(251, 146, 60, 0.25);
+}
+
+body.home-bg .tba-btn-primary:hover {
+  box-shadow: 0 14px 30px rgba(251, 146, 60, 0.16);
+}
+
+body.home-bg .spotlight-dice {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: #fed7aa;
+}
+
+body.home-bg .chip:hover {
+  box-shadow: 0 14px 30px rgba(0,0,0,0.07);
+}
