@@ -1,11 +1,12 @@
-// home.js — Playful Home: Spotlight Surprise + Recent + Category chips (desktop-first)
+// home.js — Home: Spotlight Surprise + Recent + Cravings split (Places/Products)
 // uses sb from auth.js
 
 let ALL_MARKERS = [];
 let CAT = {};      // id -> {name, icon_url, for_places, for_products}
 let BRAND = {};    // id -> name
-
 let LAST_SPOT_ID = null;
+
+const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
 
 function escapeHtml(s) {
   return String(s ?? "")
@@ -16,17 +17,6 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-function colorClassForRating(r, count) {
-  const cnt = Number(count ?? 0);
-  if (!cnt) return "rating-none"; // no votes -> neutral
-  const x = Number(r ?? 0);
-  if (x >= 9) return "rating-9-10";
-  if (x >= 7) return "rating-7-8";
-  if (x >= 5) return "rating-5-6";
-  if (x >= 3) return "rating-3-4";
-  return "rating-1-2";
-}
-
 function normalizeIconUrl(raw) {
   const s = String(raw ?? "").trim();
   if (!s) return "";
@@ -34,12 +24,21 @@ function normalizeIconUrl(raw) {
   try { return new URL(s, window.location.href).toString(); } catch { return ""; }
 }
 
-const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
-
 function iconForCategory(category_id) {
   const c = CAT[String(category_id)];
   const raw = c?.icon_url || "";
   return normalizeIconUrl(raw) || DEFAULT_ICON_URL;
+}
+
+function colorClassForRating(avg, count) {
+  const cnt = Number(count ?? 0);
+  if (!cnt) return "rating-none";
+  const x = Number(avg ?? 0);
+  if (x >= 9) return "rating-9-10";
+  if (x >= 7) return "rating-7-8";
+  if (x >= 5) return "rating-5-6";
+  if (x >= 3) return "rating-3-4";
+  return "rating-1-2";
 }
 
 function fmtOverall(avg, cnt) {
@@ -53,6 +52,7 @@ function markerLabel(m) {
   const catName = CAT[String(m.category_id)]?.name || m.category_id || "";
   if (m.group_type === "product") {
     const brandName = BRAND[String(m.brand_id)] || "";
+    // product title is category + brand
     return `${catName} · ${brandName}`.trim();
   }
   return m.title || catName;
@@ -65,7 +65,7 @@ function isTypingTarget(el) {
 }
 
 async function initHomePage() {
-  // Keyboard shortcuts
+  // Keyboard shortcuts (desktop)
   document.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (isTypingTarget(document.activeElement)) return;
@@ -79,7 +79,8 @@ async function initHomePage() {
 
   await loadLookups();
   await loadMarkers();
-  renderChips();
+
+  renderCravingsSplit();
   renderRecent();
   surpriseMe();
 }
@@ -111,42 +112,67 @@ async function loadLookups() {
 }
 
 async function loadMarkers() {
-  // Keep it simple: fetch active markers (small app, ok to fetch all)
   const { data, error } = await sb
     .from("markers")
     .select("id,title,group_type,category_id,brand_id,address,rating_avg,rating_count,is_active,created_at,lat,lon")
     .eq("is_active", true);
 
   if (error) {
-    document.getElementById("spotStatus").textContent = "Error loading markers: " + error.message;
+    const st = document.getElementById("spotStatus");
+    if (st) st.textContent = "Error loading markers: " + error.message;
     ALL_MARKERS = [];
     return;
   }
 
   ALL_MARKERS = (data || []).slice();
-  // sort newest for recent
+  // newest for recent
   ALL_MARKERS.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 }
 
-function renderChips() {
-  const row = document.getElementById("chipRow");
+function renderCravingsSplit() {
+  const allCats = Object.values(CAT);
+
+  const placeCats = allCats
+    .filter(c => c.for_places)
+    .sort((a,b) => String(a.name).localeCompare(String(b.name)))
+    .slice(0, 5);
+
+  const productCats = allCats
+    .filter(c => c.for_products)
+    .sort((a,b) => String(a.name).localeCompare(String(b.name)))
+    .slice(0, 5);
+
+  renderChipRow("chipRowPlaces", placeCats, "map.html");        // "..." -> map (no filters)
+  renderChipRow("chipRowProducts", productCats, "products.html"); // "..." -> products (no filters)
+}
+
+function renderChipRow(containerId, cats, moreHref) {
+  const row = document.getElementById(containerId);
   if (!row) return;
 
-  const cats = Object.values(CAT);
   if (!cats.length) {
     row.innerHTML = `<span class="muted">No categories yet.</span>`;
     return;
   }
 
-  row.innerHTML = cats.map(c => {
+  const chips = cats.map(c => {
     const icon = iconForCategory(c.id);
     return `
-      <a class="chip" href="list.html?category=${encodeURIComponent(c.id)}" title="View ${escapeHtml(c.name)} in list">
+      <a class="chip" href="list.html?category=${encodeURIComponent(c.id)}" title="Open list filtered by ${escapeHtml(c.name)}">
         <img class="chip-ic" src="${escapeHtml(icon)}" alt="" />
         <span>${escapeHtml(c.name)}</span>
       </a>
     `;
-  }).join("");
+  });
+
+  // Add "..." chip
+  chips.push(`
+    <a class="chip chip-more" href="${escapeHtml(moreHref)}" title="Open without filters">
+      <span>…</span>
+    </a>
+  `);
+
+  row.innerHTML = chips.join("");
 }
 
 function renderRecent() {
@@ -200,7 +226,7 @@ function renderRecent() {
 function pickRandomMarker() {
   if (!ALL_MARKERS.length) return null;
 
-  // Prefer items that have votes, but still allow no-vote items sometimes
+  // Prefer items with votes, but allow no-vote items if none have votes
   const withVotes = ALL_MARKERS.filter(m => Number(m.rating_count ?? 0) > 0);
   const pool = withVotes.length ? withVotes : ALL_MARKERS;
 
@@ -216,7 +242,6 @@ function renderSpotlight(m) {
   const body = document.getElementById("spotBody");
   const sub = document.getElementById("spotSub");
   const status = document.getElementById("spotStatus");
-
   if (!body || !sub) return;
 
   if (!m) {
@@ -234,7 +259,6 @@ function renderSpotlight(m) {
 
   const cls = colorClassForRating(m.rating_avg, m.rating_count);
   const icon = iconForCategory(m.category_id);
-
   const over = fmtOverall(m.rating_avg, m.rating_count);
 
   const isPlace = m.group_type === "place";
@@ -242,21 +266,19 @@ function renderSpotlight(m) {
   const secondaryLink = isPlace
     ? `map.html?focus=${encodeURIComponent(m.id)}`
     : `products.html`;
-
   const secondaryLabel = isPlace ? "Open on Map" : "Open Products";
 
   const line2 = isPlace
     ? (m.address ? `📍 ${m.address}` : "📍 No address yet")
     : `🏷️ ${BRAND[String(m.brand_id)] || "Unknown brand"}`;
 
-  sub.textContent = isPlace ? "A random place from your world." : "A random product from your stash.";
+  sub.textContent = isPlace ? "Random place from your world." : "Random product from your stash.";
 
-  // little playful messages
-  const quips = ["Again? Respect.", "Ok ok, one more.", "This one slaps.", "Chef’s choice.", "Lucky find."];
+  const quips = ["Again? Respect.", "Ok. One more.", "Chef’s pick.", "Lucky find.", "This one slaps."];
   const quip = quips[Math.floor(Math.random() * quips.length)];
 
   body.classList.remove("fade-in");
-  void body.offsetWidth; // restart animation
+  void body.offsetWidth;
   body.classList.add("fade-in");
 
   body.innerHTML = `
@@ -282,7 +304,7 @@ function renderSpotlight(m) {
     </div>
   `;
 
-  if (status) status.textContent = `Tip: press R for another surprise.`;
+  if (status) status.textContent = "Tip: press R for another surprise.";
 }
 
 function surpriseMe() {
