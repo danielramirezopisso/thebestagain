@@ -6,23 +6,41 @@
   <title>The Best Again — Login</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
-  <header class="topbar">
+  <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="list.html">List</a>
+      <a href="map.html">Map</a>
+      <a href="products.html">Products</a>
+      <a href="my-votes.html">My Votes</a>
+      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
+    </nav>
   </header>
 
-  <main class="container">
-    <h1>Login</h1>
+  <main class="container" style="max-width:560px;">
+    <h1 style="margin:0 0 10px;">Login</h1>
+    <p class="muted" style="margin:0 0 16px;">
+      Sign in to add places/products and save your votes.
+    </p>
 
     <section class="card">
       <label>Email</label>
-      <input id="email" type="email" placeholder="you@email.com" />
+      <input id="email" type="email" placeholder="you@email.com" autocomplete="email" />
 
-      <label style="margin-top:10px;">Password</label>
-      <input id="password" type="password" placeholder="••••••••" />
+      <label style="margin-top:12px;">Password</label>
+      <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
 
-      <button style="margin-top:12px;" onclick="doLogin()">Login</button>
-      <span id="status" class="muted" style="margin-left:10px;"></span>
+      <div style="display:flex; gap:10px; align-items:center; margin-top:14px;">
+        <button class="tba-btn tba-btn-primary" onclick="doLogin()">Login</button>
+        <span id="status" class="muted"></span>
+      </div>
+
+      <p class="muted" style="margin:14px 0 0; font-size:13px;">
+        Tip: Press <b>Enter</b> to login.
+      </p>
     </section>
   </main>
 
@@ -33,20 +51,32 @@
 
   <script>
     async function doLogin() {
-      document.getElementById("status").textContent = "Logging in…";
+      const status = document.getElementById("status");
+      status.textContent = "Logging in…";
+
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+
+      if (!email || !password) {
+        status.textContent = "Email and password required.";
+        return;
+      }
 
       const { error } = await sb.auth.signInWithPassword({ email, password });
 
       if (error) {
-        document.getElementById("status").textContent = "Error: " + error.message;
+        status.textContent = "Error: " + error.message;
         return;
       }
 
-      document.getElementById("status").textContent = "Logged in ✅ Redirecting…";
+      status.textContent = "Logged in ✅ Redirecting…";
       window.location.href = "list.html";
     }
+
+    // Enter-to-login
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doLogin();
+    });
   </script>
 </body>
 </html>
