@@ -26,7 +26,7 @@
       <div>
         <h1 class="home-title">The Best Again</h1>
         <p class="home-tagline muted">
-          A playful hunt for the best bites & products — one surprise at a time.
+          A personal hunt for the best bites & products — one surprise at a time.
         </p>
         <p class="muted home-hint">
           Shortcuts: <b>M</b> Map · <b>L</b> List · <b>P</b> Products · <b>R</b> Surprise
@@ -37,6 +37,26 @@
         <a class="tba-btn tba-btn-primary" href="map.html">🗺️ Map</a>
         <a class="tba-btn" href="list.html">📋 List</a>
         <a class="tba-btn" href="products.html">🛒 Products</a>
+      </div>
+    </section>
+
+    <!-- Explore by craving (MOVED TO TOP) -->
+    <section class="card cravings">
+      <div class="cravings-header">
+        <h2 style="margin:0;">Explore by craving</h2>
+        <span class="muted">Quick category shortcuts</span>
+      </div>
+
+      <div class="cravings-split">
+        <div class="cravings-block">
+          <div class="cravings-block-title">Places</div>
+          <div id="chipRowPlaces" class="chip-row"></div>
+        </div>
+
+        <div class="cravings-block">
+          <div class="cravings-block-title">Products</div>
+          <div id="chipRowProducts" class="chip-row"></div>
+        </div>
       </div>
     </section>
 
@@ -53,12 +73,10 @@
             </div>
           </div>
 
-          <button class="tba-btn tba-btn-ghost" id="btnSurprise" onclick="surpriseMe()">🔁 Surprise me again</button>
+          <button class="tba-btn tba-btn-ghost" id="btnSurprise" onclick="surpriseMe()">🔁 Surprise</button>
         </div>
 
-        <div id="spotBody" class="spotlight-body">
-          <!-- Filled by home.js -->
-        </div>
+        <div id="spotBody" class="spotlight-body"></div>
 
         <div class="spotlight-footer">
           <span class="muted" id="spotStatus"></span>
@@ -74,15 +92,6 @@
         <div id="recentList" class="recent-list"></div>
       </section>
     </section>
-
-    <!-- Chips -->
-    <section class="card cravings">
-      <div class="cravings-header">
-        <h2 style="margin:0;">Explore by craving</h2>
-        <span class="muted">Click a category to jump into the list</span>
-      </div>
-      <div id="chipRow" class="chip-row"></div>
-    </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -90,7 +99,6 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
 
-  <script src="home.js?v=1"></script>
+  <script src="home.js?v=2"></script>
 </body>
 </html>
-
