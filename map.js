@@ -1,37 +1,38 @@
-// map.js — current version + robust icon resolution + login gating for add
-// + supports focus marker via: map.html?focus=<marker_id>
-// (uses sb + maybeUser from auth.js)
+// map.js — Map UX v1 (desktop)
+// - One-screen layout
+// - Filters as buttons (no Apply)
+// - Quick 4 categories + "More" dropdown
+// - Rating as semaforic range buttons
+// - Only Places shown/created
+// - Focus marker supported: map.html?focus=<marker_id>
 
 let MAP;
 let ADD_MODE = false;
-let CATEGORIES = [];
 let LAST_CLICK = null;
 let LAYER_GROUP;
 let PREVIEW_MARKER = null;
 
-let FILTER_CATEGORY = "";
-let FILTER_MIN_RATING = "";
-
-// Default icon (absolute URL)
 const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
-
-// Nominatim reverse geocode
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/reverse";
 
-// Build a lookup: category_id (string) -> icon_url (string)
-let CAT_ICON = {};
-
-// Focus support
+// focus from Home
 const FOCUS_ID = new URLSearchParams(window.location.search).get("focus");
 let DID_FOCUS = false;
-let LEAFLET_MARKERS_BY_ID = {}; // marker_id -> Leaflet marker instance
+let LEAFLET_MARKERS_BY_ID = {};
 
-function setMapStatus(msg) {
-  document.getElementById("mapStatus").textContent = msg || "";
-}
-function setSaveStatus(msg) {
-  document.getElementById("saveStatus").textContent = msg || "";
-}
+let CATEGORIES = [];      // all categories (places only for filters)
+let CAT_ICON = {};        // id -> icon_url
+let CAT_NAME = {};        // id -> name
+
+// Filters
+let FILTER_CATEGORY = ""; // category_id
+let FILTER_RATING_BUCKET = ""; // "", "9-10","7-8","5-6","3-4","1-2"
+
+function qs(id){ return document.getElementById(id); }
+
+function setMapStatus(msg) { qs("mapStatus").textContent = msg || ""; }
+function setSaveStatus(msg) { qs("saveStatus").textContent = msg || ""; }
+
 function escapeHtml(s) {
   return String(s ?? "")
     .replaceAll("&", "&amp;")
@@ -41,18 +42,6 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-function colorClassForRating(r) {
-  const x = Number(r);
-  // if avg is 0 and you want neutral, treat as no votes in map popups
-  if (!x) return "rating-none";
-  if (x >= 9) return "rating-9-10";
-  if (x >= 7) return "rating-7-8";
-  if (x >= 5) return "rating-5-6";
-  if (x >= 3) return "rating-3-4";
-  return "rating-1-2";
-}
-
-// Convert icon_url from DB into a reliable absolute URL
 function normalizeIconUrl(raw) {
   const s = String(raw ?? "").trim();
   if (!s) return "";
@@ -60,16 +49,24 @@ function normalizeIconUrl(raw) {
   try { return new URL(s, window.location.href).toString(); } catch { return ""; }
 }
 
-// Best-effort icon getter that works even if ids are numbers/strings
 function getIconUrlForCategory(category_id) {
-  const key = String(category_id ?? "").trim();
-  const raw = CAT_ICON[key] || "";
-  const normalized = normalizeIconUrl(raw);
-  return normalized || DEFAULT_ICON_URL;
+  const raw = CAT_ICON[String(category_id)] || "";
+  return normalizeIconUrl(raw) || DEFAULT_ICON_URL;
 }
 
-function makeMarkerIcon(iconUrl, rating) {
-  const cls = colorClassForRating(rating);
+function colorClassForRating(avg, count) {
+  const cnt = Number(count ?? 0);
+  if (!cnt) return "rating-none";
+  const x = Number(avg ?? 0);
+  if (x >= 9) return "rating-9-10";
+  if (x >= 7) return "rating-7-8";
+  if (x >= 5) return "rating-5-6";
+  if (x >= 3) return "rating-3-4";
+  return "rating-1-2";
+}
+
+function makeMarkerIcon(iconUrl, avg, count) {
+  const cls = colorClassForRating(avg, count);
   const url = iconUrl || DEFAULT_ICON_URL;
 
   return L.divIcon({
@@ -81,30 +78,8 @@ function makeMarkerIcon(iconUrl, rating) {
   });
 }
 
-async function toggleAddMode() {
-  const user = await maybeUser();
-  if (!user) {
-    alert("Please login to add markers.");
-    window.location.href = "login.html";
-    return;
-  }
-
-  ADD_MODE = !ADD_MODE;
-  document.getElementById("toggleAdd").textContent = ADD_MODE ? "ON" : "OFF";
-  document.getElementById("addForm").style.display = ADD_MODE ? "block" : "none";
-  setSaveStatus("");
-
-  if (!ADD_MODE) {
-    LAST_CLICK = null;
-    if (PREVIEW_MARKER) {
-      MAP.removeLayer(PREVIEW_MARKER);
-      PREVIEW_MARKER = null;
-    }
-  }
-}
-
 function initRatingDropdown(selId, defaultValue) {
-  const sel = document.getElementById(selId);
+  const sel = qs(selId);
   sel.innerHTML = "";
   for (let i = 1; i <= 10; i++) {
     const opt = document.createElement("option");
@@ -115,132 +90,150 @@ function initRatingDropdown(selId, defaultValue) {
   }
 }
 
-function applyFilters() {
-  FILTER_CATEGORY = document.getElementById("filter_category").value;
-  FILTER_MIN_RATING = document.getElementById("filter_min_rating").value;
-  reloadMarkers();
+function showClearIfNeeded() {
+  const any = !!FILTER_CATEGORY || !!FILTER_RATING_BUCKET;
+  qs("btnClearFilters").style.display = any ? "inline-flex" : "none";
 }
 
 function clearFilters() {
   FILTER_CATEGORY = "";
-  FILTER_MIN_RATING = "";
-  document.getElementById("filter_category").value = "";
-  document.getElementById("filter_min_rating").value = "";
+  FILTER_RATING_BUCKET = "";
+
+  // reset UI
+  renderCategoryQuickChips();
+  qs("catMore").value = "";
+  setActiveRatingBtn("");
+
+  showClearIfNeeded();
   reloadMarkers();
 }
 
-// Reverse geocoding (address from lat/lon) using Nominatim
+function onCategoryMoreChanged() {
+  const v = qs("catMore").value;
+  if (!v) return;
+
+  FILTER_CATEGORY = v;
+  renderCategoryQuickChips(); // updates active state
+  showClearIfNeeded();
+  reloadMarkers();
+}
+
+// Rating bucket buttons
+function renderRatingButtons() {
+  const host = qs("ratingSeg");
+  host.innerHTML = "";
+
+  const buttons = [
+    { key:"", label:"Any", cls:"" },
+    { key:"9-10", label:"9–10", cls:"rating-9-10" },
+    { key:"7-8",  label:"7–8",  cls:"rating-7-8" },
+    { key:"5-6",  label:"5–6",  cls:"rating-5-6" },
+    { key:"3-4",  label:"3–4",  cls:"rating-3-4" },
+    { key:"1-2",  label:"1–2",  cls:"rating-1-2" },
+  ];
+
+  buttons.forEach(b => {
+    const btn = document.createElement("button");
+    btn.className = `seg-btn ${b.cls}`.trim();
+    btn.dataset.key = b.key;
+    btn.textContent = b.label;
+    btn.onclick = () => {
+      FILTER_RATING_BUCKET = b.key;
+      setActiveRatingBtn(b.key);
+      showClearIfNeeded();
+      reloadMarkers();
+    };
+    host.appendChild(btn);
+  });
+
+  setActiveRatingBtn("");
+}
+
+function setActiveRatingBtn(key) {
+  [...document.querySelectorAll(".seg-btn")].forEach(el => {
+    el.classList.toggle("active", el.dataset.key === key);
+  });
+}
+
+function renderCategoryQuickChips() {
+  const host = qs("catQuick");
+  host.innerHTML = "";
+
+  // top 4 categories by usage among place markers (computed from CURRENT counts stored in data attr)
+  // We'll compute counts from ALL markers once during init.
+  const top4 = CATEGORIES.slice(0, 4); // already sorted by count in init
+
+  top4.forEach(c => {
+    const a = document.createElement("a");
+    a.href = "#";
+    a.className = "chip";
+    a.onclick = (e) => {
+      e.preventDefault();
+      // toggle
+      FILTER_CATEGORY = (FILTER_CATEGORY === String(c.id)) ? "" : String(c.id);
+      // keep "More" in sync
+      qs("catMore").value = FILTER_CATEGORY ? FILTER_CATEGORY : "";
+      renderCategoryQuickChips();
+      showClearIfNeeded();
+      reloadMarkers();
+    };
+
+    if (FILTER_CATEGORY === String(c.id)) a.classList.add("active");
+
+    const icon = getIconUrlForCategory(c.id);
+    a.innerHTML = `<img class="chip-ic" src="${escapeHtml(icon)}" alt=""/> <span>${escapeHtml(c.name)}</span>`;
+    host.appendChild(a);
+  });
+
+  // Add "All" as small chip
+  const all = document.createElement("a");
+  all.href = "#";
+  all.className = "chip chip-more";
+  all.textContent = "All";
+  all.onclick = (e) => {
+    e.preventDefault();
+    FILTER_CATEGORY = "";
+    qs("catMore").value = "";
+    renderCategoryQuickChips();
+    showClearIfNeeded();
+    reloadMarkers();
+  };
+  if (!FILTER_CATEGORY) all.classList.add("active");
+  host.appendChild(all);
+}
+
 async function reverseGeocodeAddress(lat, lon) {
   const url = `${NOMINATIM_BASE}?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`;
 
   const res = await fetch(url, {
-    headers: {
-      "Accept": "application/json",
-      "Referer": window.location.origin
-    }
+    headers: { "Accept": "application/json", "Referer": window.location.origin }
   });
 
   if (!res.ok) throw new Error(`Geocode failed: ${res.status}`);
-
   const json = await res.json();
   return json.display_name || "";
 }
 
-async function initMap() {
+async function toggleAddMode() {
   const user = await maybeUser();
-  const panel = document.getElementById("addPanel");
-  if (!user && panel) panel.style.display = "none";
-
-  initRatingDropdown("m_rating", 7);
-
-  const fr = document.getElementById("filter_min_rating");
-  fr.innerHTML = `<option value="">All</option>`;
-  for (let i = 1; i <= 10; i++) {
-    const opt = document.createElement("option");
-    opt.value = String(i);
-    opt.textContent = String(i);
-    fr.appendChild(opt);
-  }
-
-  MAP = L.map("map").setView([41.3889, 2.1618], 15);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "&copy; OpenStreetMap",
-  }).addTo(MAP);
-
-  LAYER_GROUP = L.layerGroup().addTo(MAP);
-
-  // ---- Load categories (including icon_url) ----
-  setMapStatus("Loading categories…");
-
-  const { data: catData, error: catErr } = await sb
-    .from("categories")
-    .select("id,name,icon_url")
-    .eq("is_active", true)
-    .order("id", { ascending: true });
-
-  if (catErr) {
-    setMapStatus("Error loading categories: " + catErr.message);
+  if (!user) {
+    alert("Please login to add places.");
+    window.location.href = "login.html";
     return;
   }
 
-  CATEGORIES = catData || [];
+  ADD_MODE = !ADD_MODE;
+  qs("toggleAdd").textContent = ADD_MODE ? "ON" : "OFF";
+  qs("addForm").style.display = ADD_MODE ? "block" : "none";
+  setSaveStatus("");
 
-  // Build icon lookup with normalized string keys
-  CAT_ICON = {};
-  CATEGORIES.forEach(c => {
-    CAT_ICON[String(c.id).trim()] = String(c.icon_url ?? "").trim();
-  });
-
-  // Fill dropdowns
-  document.getElementById("m_category").innerHTML = CATEGORIES
-    .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
-    .join("");
-
-  document.getElementById("filter_category").innerHTML =
-    `<option value="">All</option>` +
-    CATEGORIES.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
-
-  // ---- Load markers ----
-  await reloadMarkers();
-
-  // ---- Click handler for adding ----
-  MAP.on("click", async (e) => {
-    const user = await maybeUser();
-    if (!user) return;
-    if (!ADD_MODE) return;
-
-    LAST_CLICK = { lat: e.latlng.lat, lon: e.latlng.lng };
-    document.getElementById("m_lat").value = LAST_CLICK.lat.toFixed(6);
-    document.getElementById("m_lon").value = LAST_CLICK.lon.toFixed(6);
-
+  if (!ADD_MODE) {
+    LAST_CLICK = null;
     if (PREVIEW_MARKER) {
-      PREVIEW_MARKER.setLatLng([LAST_CLICK.lat, LAST_CLICK.lon]);
-    } else {
-      PREVIEW_MARKER = L.marker([LAST_CLICK.lat, LAST_CLICK.lon], { opacity: 0.7 })
-        .addTo(MAP)
-        .bindPopup("New marker location")
-        .openPopup();
+      MAP.removeLayer(PREVIEW_MARKER);
+      PREVIEW_MARKER = null;
     }
-
-    // Auto-fill address (best effort)
-    const addrInput = document.getElementById("m_address");
-    if (addrInput) {
-      addrInput.value = "";
-      setSaveStatus("Location selected ✅ Looking up address…");
-
-      try {
-        const addr = await reverseGeocodeAddress(LAST_CLICK.lat, LAST_CLICK.lon);
-        addrInput.value = addr;
-        setSaveStatus("Location selected ✅ Address filled. Now click Save.");
-      } catch {
-        setSaveStatus("Location selected ✅ Address lookup failed (you can type it manually).");
-      }
-    } else {
-      setSaveStatus("Location selected ✅ Now fill title/category/rating and click Save.");
-    }
-  });
+  }
 }
 
 function tryFocusMarker() {
@@ -254,6 +247,124 @@ function tryFocusMarker() {
   setTimeout(() => mk.openPopup(), 400);
 }
 
+async function initMap() {
+  // Hide add panel if logged out (but map still visible)
+  const user = await maybeUser();
+  if (!user) {
+    qs("addPanel").style.display = "none";
+  }
+
+  initRatingDropdown("m_rating", 7);
+  renderRatingButtons();
+
+  MAP = L.map("map").setView([41.3889, 2.1618], 15);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap",
+  }).addTo(MAP);
+
+  LAYER_GROUP = L.layerGroup().addTo(MAP);
+
+  setMapStatus("Loading categories…");
+
+  // categories for places only
+  const { data: catData, error: catErr } = await sb
+    .from("categories")
+    .select("id,name,icon_url,is_active,for_places")
+    .eq("is_active", true)
+    .eq("for_places", true)
+    .order("id", { ascending: true });
+
+  if (catErr) {
+    setMapStatus("Error loading categories: " + catErr.message);
+    return;
+  }
+
+  CATEGORIES = catData || [];
+  CAT_ICON = {};
+  CAT_NAME = {};
+  CATEGORIES.forEach(c => {
+    CAT_ICON[String(c.id)] = String(c.icon_url ?? "").trim();
+    CAT_NAME[String(c.id)] = c.name;
+  });
+
+  // fill add form category dropdown
+  qs("m_category").innerHTML = CATEGORIES
+    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
+    .join("");
+
+  // fill More dropdown
+  const more = qs("catMore");
+  more.innerHTML = `<option value="">More…</option>` + CATEGORIES
+    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
+    .join("");
+
+  // Compute top 4 categories by usage (places only)
+  const { data: placeCats, error: cntErr } = await sb
+    .from("markers")
+    .select("category_id")
+    .eq("is_active", true)
+    .eq("group_type", "place");
+
+  if (!cntErr && placeCats) {
+    const counts = {};
+    placeCats.forEach(r => {
+      const k = String(r.category_id ?? "");
+      if (!k) return;
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    CATEGORIES.sort((a, b) => (counts[String(b.id)] || 0) - (counts[String(a.id)] || 0));
+  }
+
+  renderCategoryQuickChips();
+  showClearIfNeeded();
+
+  await reloadMarkers();
+
+  // Map click handler for add mode
+  MAP.on("click", async (e) => {
+    const user = await maybeUser();
+    if (!user) return;
+    if (!ADD_MODE) return;
+
+    LAST_CLICK = { lat: e.latlng.lat, lon: e.latlng.lng };
+    qs("m_lat").value = LAST_CLICK.lat.toFixed(6);
+    qs("m_lon").value = LAST_CLICK.lon.toFixed(6);
+
+    if (PREVIEW_MARKER) {
+      PREVIEW_MARKER.setLatLng([LAST_CLICK.lat, LAST_CLICK.lon]);
+    } else {
+      PREVIEW_MARKER = L.marker([LAST_CLICK.lat, LAST_CLICK.lon], { opacity: 0.7 })
+        .addTo(MAP)
+        .bindPopup("New place location")
+        .openPopup();
+    }
+
+    // auto address
+    qs("m_address").value = "";
+    setSaveStatus("Location selected ✅ Looking up address…");
+    try {
+      const addr = await reverseGeocodeAddress(LAST_CLICK.lat, LAST_CLICK.lon);
+      qs("m_address").value = addr;
+      setSaveStatus("Address filled ✅ Now click Save.");
+    } catch {
+      setSaveStatus("Address lookup failed (you can type it manually).");
+    }
+  });
+}
+
+function applyRatingBucket(q) {
+  if (!FILTER_RATING_BUCKET) return q;
+
+  const [a, b] = FILTER_RATING_BUCKET.split("-").map(Number);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return q;
+
+  // apply inclusive bounds on rating_avg
+  q = q.gte("rating_avg", a).lte("rating_avg", b);
+  return q;
+}
+
 async function reloadMarkers() {
   setMapStatus("Loading markers…");
 
@@ -264,7 +375,7 @@ async function reloadMarkers() {
     .eq("group_type", "place");
 
   if (FILTER_CATEGORY) q = q.eq("category_id", FILTER_CATEGORY);
-  if (FILTER_MIN_RATING) q = q.gte("rating_avg", Number(FILTER_MIN_RATING));
+  q = applyRatingBucket(q);
 
   const { data, error } = await q;
 
@@ -273,17 +384,16 @@ async function reloadMarkers() {
     return;
   }
 
-  const markers = (data || []).filter((m) => m.lat !== null && m.lon !== null);
+  const markers = (data || []).filter(m => m.lat !== null && m.lon !== null);
 
   LAYER_GROUP.clearLayers();
   LEAFLET_MARKERS_BY_ID = {};
 
-  markers.forEach((m) => {
+  markers.forEach(m => {
     const iconUrl = getIconUrlForCategory(m.category_id);
     const avg = Number(m.rating_avg ?? 0);
     const cnt = Number(m.rating_count ?? 0);
-
-    const icon = makeMarkerIcon(iconUrl, avg);
+    const icon = makeMarkerIcon(iconUrl, avg, cnt);
 
     const link = `marker.html?id=${encodeURIComponent(m.id)}`;
     const popupHtml = `
@@ -291,39 +401,32 @@ async function reloadMarkers() {
       Overall: ${cnt ? avg.toFixed(2) : "—"}/10 (${cnt} vote${cnt === 1 ? "" : "s"})
     `;
 
-    const leafletMarker = L.marker([m.lat, m.lon], { icon })
+    const mk = L.marker([m.lat, m.lon], { icon })
       .addTo(LAYER_GROUP)
       .bindPopup(popupHtml);
 
-    LEAFLET_MARKERS_BY_ID[m.id] = leafletMarker;
+    LEAFLET_MARKERS_BY_ID[m.id] = mk;
   });
 
-  setMapStatus(`Loaded ${markers.length} marker(s).`);
-
-  // If Home sent a focus marker, fly to it now
+  setMapStatus(`Loaded ${markers.length} place(s).`);
   tryFocusMarker();
 }
 
 async function saveMapMarker() {
   const user = await maybeUser();
-  if (!user) {
-    alert("Please login to add markers.");
-    window.location.href = "login.html";
-    return;
-  }
+  if (!user) { alert("Please login to add places."); window.location.href="login.html"; return; }
 
   setSaveStatus("Saving…");
 
-  const title = document.getElementById("m_title").value.trim();
-  const category_id = document.getElementById("m_category").value;
-  const rating_manual = Number(document.getElementById("m_rating").value);
-  const address = (document.getElementById("m_address")?.value || "").trim();
+  const title = qs("m_title").value.trim();
+  const category_id = qs("m_category").value;
+  const rating_manual = Number(qs("m_rating").value);
+  const address = (qs("m_address")?.value || "").trim();
 
   if (!ADD_MODE) { setSaveStatus("Turn Add mode ON first."); return; }
-  if (!LAST_CLICK) { setSaveStatus("Click the map to choose a location first."); return; }
+  if (!LAST_CLICK) { setSaveStatus("Click the map first to pick a location."); return; }
   if (!title) { setSaveStatus("Title required."); return; }
 
-  // 1) Create marker
   const payload = {
     title,
     category_id,
@@ -342,11 +445,11 @@ async function saveMapMarker() {
     .single();
 
   if (mErr) {
-    setSaveStatus("Error creating marker: " + mErr.message);
+    setSaveStatus("Error creating place: " + mErr.message);
     return;
   }
 
-  // 2) Create YOUR vote for that marker
+  // Create your vote
   const { error: vErr } = await sb
     .from("votes")
     .insert([{
@@ -357,11 +460,10 @@ async function saveMapMarker() {
     }]);
 
   if (vErr) {
-    setSaveStatus("Marker saved ✅ but vote failed: " + vErr.message);
+    setSaveStatus("Place saved ✅ but vote failed: " + vErr.message);
     window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
     return;
   }
 
-  // 3) Redirect
   window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
 }
