@@ -24,15 +24,20 @@
   </header>
 
   <main class="map-shell">
-    <!-- TOOLBAR (no Apply button) -->
-    <section class="map-toolbar">
+    <!-- TOOLBAR (compact, no Apply) -->
+    <section class="map-toolbar map-toolbar-compact">
       <div class="toolbar-left">
         <div class="toolbar-block">
           <div class="toolbar-label">Category</div>
-          <div id="catQuick" class="chip-row"></div>
-          <select id="catMore" class="select-compact" onchange="onCategoryMoreChanged()">
-            <option value="">More…</option>
-          </select>
+          <div class="toolbar-inline">
+            <div id="catQuick" class="chip-row"></div>
+            <select id="catMore" class="select-compact" onchange="onCategoryMoreChanged()">
+              <option value="">More…</option>
+            </select>
+
+            <!-- Clear chip appears only when a filter is active -->
+            <button id="btnClearFilters" class="chip chip-clear" style="display:none;" onclick="clearFilters()">✕ Clear</button>
+          </div>
         </div>
 
         <div class="toolbar-block">
@@ -43,21 +48,20 @@
 
       <div class="toolbar-right">
         <div class="toolbar-block right">
-          <div class="toolbar-label">Add mode</div>
+          <div class="toolbar-label">Add</div>
           <button id="toggleAdd" onclick="toggleAddMode()">OFF</button>
         </div>
 
-        <button id="btnClearFilters" class="tba-btn" style="display:none;" onclick="clearFilters()">✕ Clear</button>
         <span id="mapStatus" class="muted"></span>
       </div>
     </section>
 
     <!-- MAP AREA -->
     <section class="map-area">
-      <!-- Add panel (compact overlay) -->
-      <div class="map-panel" id="addPanel">
+      <!-- Add panel (moved to RIGHT) -->
+      <div class="map-panel map-panel-add" id="addPanel">
         <div class="panel-title">Add a place</div>
-        <div class="panel-sub muted">Turn Add mode ON, then click the map.</div>
+        <div class="panel-sub muted">Turn Add ON, then click the map.</div>
 
         <div id="addForm" style="display:none; margin-top:10px;">
           <label>Title</label>
@@ -69,13 +73,13 @@
               <select id="m_category"></select>
             </div>
             <div>
-              <label>My vote (1–10)</label>
+              <label>My vote</label>
               <select id="m_rating"></select>
             </div>
           </div>
 
-          <label style="margin-top:10px;">Address (auto-filled)</label>
-          <input id="m_address" placeholder="Optional" />
+          <label style="margin-top:10px;">Address</label>
+          <input id="m_address" placeholder="Auto-filled (optional)" />
 
           <div class="row2">
             <div>
@@ -95,6 +99,27 @@
         </div>
       </div>
 
+      <!-- Selected marker panel (new) -->
+      <div class="map-panel map-panel-selected" id="selPanel" style="display:none;">
+        <div class="panel-title">Selected</div>
+        <div class="panel-sub muted" id="selSub"></div>
+
+        <div class="sel-main">
+          <div id="selIcon" class="mini-marker rating-none">
+            <img src="icons/default.svg" alt="" />
+          </div>
+          <div class="sel-text">
+            <div id="selTitle" class="sel-title">—</div>
+            <div id="selMeta" class="muted sel-meta">—</div>
+          </div>
+        </div>
+
+        <div class="sel-actions">
+          <a id="selOpen" class="tba-btn tba-btn-primary" href="#">Open</a>
+          <button class="tba-btn" onclick="clearSelection()">Close</button>
+        </div>
+      </div>
+
       <div id="map"></div>
     </section>
   </main>
@@ -104,6 +129,6 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
 
-  <script src="map.js?v=10"></script>
+  <script src="map.js?v=11"></script>
 </body>
 </html>
