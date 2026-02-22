@@ -1,10 +1,10 @@
-// map.js — Map UX v1 (desktop)
-// - One-screen layout
-// - Filters as buttons (no Apply)
-// - Quick 4 categories + "More" dropdown
-// - Rating as semaforic range buttons
-// - Only Places shown/created
-// - Focus marker supported: map.html?focus=<marker_id>
+// map.js — Map UX v1.1 (desktop)
+// Improvements:
+// 1) Compact toolbar
+// 2) Clear is a chip near filters
+// 3) Add panel moved right
+// 4) Hover animation for markers
+// 5) Selected panel (no need for popup)
 
 let MAP;
 let ADD_MODE = false;
@@ -18,20 +18,24 @@ const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/reverse";
 // focus from Home
 const FOCUS_ID = new URLSearchParams(window.location.search).get("focus");
 let DID_FOCUS = false;
-let LEAFLET_MARKERS_BY_ID = {};
+let LEAFLET_MARKERS_BY_ID = {}; // marker_id -> Leaflet marker instance
+let MARKER_DATA_BY_ID = {};     // marker_id -> marker row
 
-let CATEGORIES = [];      // all categories (places only for filters)
-let CAT_ICON = {};        // id -> icon_url
-let CAT_NAME = {};        // id -> name
+let CATEGORIES = [];
+let CAT_ICON = {}; // id -> icon_url
+let CAT_NAME = {}; // id -> name
 
 // Filters
-let FILTER_CATEGORY = ""; // category_id
-let FILTER_RATING_BUCKET = ""; // "", "9-10","7-8","5-6","3-4","1-2"
+let FILTER_CATEGORY = "";
+let FILTER_RATING_BUCKET = "";
+
+// Selection
+let SELECTED_ID = null;
 
 function qs(id){ return document.getElementById(id); }
 
 function setMapStatus(msg) { qs("mapStatus").textContent = msg || ""; }
-function setSaveStatus(msg) { qs("saveStatus").textContent = msg || ""; }
+function setSaveStatus(msg) { const el = qs("saveStatus"); if (el) el.textContent = msg || ""; }
 
 function escapeHtml(s) {
   return String(s ?? "")
@@ -99,9 +103,8 @@ function clearFilters() {
   FILTER_CATEGORY = "";
   FILTER_RATING_BUCKET = "";
 
-  // reset UI
-  renderCategoryQuickChips();
   qs("catMore").value = "";
+  renderCategoryQuickChips();
   setActiveRatingBtn("");
 
   showClearIfNeeded();
@@ -111,9 +114,8 @@ function clearFilters() {
 function onCategoryMoreChanged() {
   const v = qs("catMore").value;
   if (!v) return;
-
   FILTER_CATEGORY = v;
-  renderCategoryQuickChips(); // updates active state
+  renderCategoryQuickChips();
   showClearIfNeeded();
   reloadMarkers();
 }
@@ -159,9 +161,7 @@ function renderCategoryQuickChips() {
   const host = qs("catQuick");
   host.innerHTML = "";
 
-  // top 4 categories by usage among place markers (computed from CURRENT counts stored in data attr)
-  // We'll compute counts from ALL markers once during init.
-  const top4 = CATEGORIES.slice(0, 4); // already sorted by count in init
+  const top4 = CATEGORIES.slice(0, 4);
 
   top4.forEach(c => {
     const a = document.createElement("a");
@@ -169,15 +169,12 @@ function renderCategoryQuickChips() {
     a.className = "chip";
     a.onclick = (e) => {
       e.preventDefault();
-      // toggle
       FILTER_CATEGORY = (FILTER_CATEGORY === String(c.id)) ? "" : String(c.id);
-      // keep "More" in sync
       qs("catMore").value = FILTER_CATEGORY ? FILTER_CATEGORY : "";
       renderCategoryQuickChips();
       showClearIfNeeded();
       reloadMarkers();
     };
-
     if (FILTER_CATEGORY === String(c.id)) a.classList.add("active");
 
     const icon = getIconUrlForCategory(c.id);
@@ -185,7 +182,7 @@ function renderCategoryQuickChips() {
     host.appendChild(a);
   });
 
-  // Add "All" as small chip
+  // All chip
   const all = document.createElement("a");
   all.href = "#";
   all.className = "chip chip-more";
@@ -204,11 +201,7 @@ function renderCategoryQuickChips() {
 
 async function reverseGeocodeAddress(lat, lon) {
   const url = `${NOMINATIM_BASE}?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`;
-
-  const res = await fetch(url, {
-    headers: { "Accept": "application/json", "Referer": window.location.origin }
-  });
-
+  const res = await fetch(url, { headers: { "Accept": "application/json", "Referer": window.location.origin } });
   if (!res.ok) throw new Error(`Geocode failed: ${res.status}`);
   const json = await res.json();
   return json.display_name || "";
@@ -242,17 +235,81 @@ function tryFocusMarker() {
   if (!mk) return;
 
   DID_FOCUS = true;
-  const ll = mk.getLatLng();
-  MAP.flyTo(ll, Math.max(MAP.getZoom(), 17), { duration: 0.8 });
-  setTimeout(() => mk.openPopup(), 400);
+  selectMarkerById(FOCUS_ID, true);
+}
+
+function applyRatingBucket(q) {
+  if (!FILTER_RATING_BUCKET) return q;
+  const [a, b] = FILTER_RATING_BUCKET.split("-").map(Number);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return q;
+  return q.gte("rating_avg", a).lte("rating_avg", b);
+}
+
+function fmtOverall(avg, cnt) {
+  const c = Number(cnt ?? 0);
+  if (!c) return "—/10 (0 votes)";
+  return `${Number(avg ?? 0).toFixed(2)}/10 (${c} vote${c === 1 ? "" : "s"})`;
+}
+
+/* -------------------------
+   SELECTED PANEL
+------------------------- */
+function clearSelection() {
+  SELECTED_ID = null;
+  qs("selPanel").style.display = "none";
+}
+
+function selectMarkerById(id, fly = false) {
+  const mk = LEAFLET_MARKERS_BY_ID[id];
+  const m = MARKER_DATA_BY_ID[id];
+  if (!mk || !m) return;
+
+  SELECTED_ID = id;
+
+  const avg = Number(m.rating_avg ?? 0);
+  const cnt = Number(m.rating_count ?? 0);
+  const cls = colorClassForRating(avg, cnt);
+
+  // icon
+  const iconUrl = getIconUrlForCategory(m.category_id);
+  qs("selIcon").className = `mini-marker ${cls}`;
+  qs("selIcon").innerHTML = `<img src="${escapeHtml(iconUrl)}" alt="" />`;
+
+  // text
+  qs("selTitle").textContent = m.title || "—";
+  qs("selMeta").textContent = `Overall: ${fmtOverall(avg, cnt)}`;
+  qs("selSub").textContent = CAT_NAME[String(m.category_id)] || "";
+
+  // link
+  qs("selOpen").href = `marker.html?id=${encodeURIComponent(m.id)}`;
+
+  // show
+  qs("selPanel").style.display = "block";
+
+  if (fly) {
+    MAP.flyTo(mk.getLatLng(), Math.max(MAP.getZoom(), 17), { duration: 0.8 });
+  }
+}
+
+function attachMarkerHoverAndClick(mk, id) {
+  mk.on("mouseover", () => {
+    const el = mk.getElement();
+    if (el) el.classList.add("tba-hover");
+  });
+  mk.on("mouseout", () => {
+    const el = mk.getElement();
+    if (el) el.classList.remove("tba-hover");
+  });
+
+  mk.on("click", () => {
+    selectMarkerById(id, false);
+  });
 }
 
 async function initMap() {
-  // Hide add panel if logged out (but map still visible)
+  // Hide add panel if logged out
   const user = await maybeUser();
-  if (!user) {
-    qs("addPanel").style.display = "none";
-  }
+  if (!user) qs("addPanel").style.display = "none";
 
   initRatingDropdown("m_rating", 7);
   renderRatingButtons();
@@ -268,7 +325,6 @@ async function initMap() {
 
   setMapStatus("Loading categories…");
 
-  // categories for places only
   const { data: catData, error: catErr } = await sb
     .from("categories")
     .select("id,name,icon_url,is_active,for_places")
@@ -289,18 +345,13 @@ async function initMap() {
     CAT_NAME[String(c.id)] = c.name;
   });
 
-  // fill add form category dropdown
-  qs("m_category").innerHTML = CATEGORIES
-    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
-    .join("");
+  // Add form categories
+  qs("m_category").innerHTML = CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
 
-  // fill More dropdown
-  const more = qs("catMore");
-  more.innerHTML = `<option value="">More…</option>` + CATEGORIES
-    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
-    .join("");
+  // More dropdown
+  qs("catMore").innerHTML = `<option value="">More…</option>` + CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
 
-  // Compute top 4 categories by usage (places only)
+  // top4 by usage
   const { data: placeCats, error: cntErr } = await sb
     .from("markers")
     .select("category_id")
@@ -322,7 +373,7 @@ async function initMap() {
 
   await reloadMarkers();
 
-  // Map click handler for add mode
+  // Add marker via click
   MAP.on("click", async (e) => {
     const user = await maybeUser();
     if (!user) return;
@@ -341,7 +392,6 @@ async function initMap() {
         .openPopup();
     }
 
-    // auto address
     qs("m_address").value = "";
     setSaveStatus("Location selected ✅ Looking up address…");
     try {
@@ -354,19 +404,8 @@ async function initMap() {
   });
 }
 
-function applyRatingBucket(q) {
-  if (!FILTER_RATING_BUCKET) return q;
-
-  const [a, b] = FILTER_RATING_BUCKET.split("-").map(Number);
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return q;
-
-  // apply inclusive bounds on rating_avg
-  q = q.gte("rating_avg", a).lte("rating_avg", b);
-  return q;
-}
-
 async function reloadMarkers() {
-  setMapStatus("Loading markers…");
+  setMapStatus("Loading places…");
 
   let q = sb
     .from("markers")
@@ -388,6 +427,7 @@ async function reloadMarkers() {
 
   LAYER_GROUP.clearLayers();
   LEAFLET_MARKERS_BY_ID = {};
+  MARKER_DATA_BY_ID = {};
 
   markers.forEach(m => {
     const iconUrl = getIconUrlForCategory(m.category_id);
@@ -395,20 +435,17 @@ async function reloadMarkers() {
     const cnt = Number(m.rating_count ?? 0);
     const icon = makeMarkerIcon(iconUrl, avg, cnt);
 
-    const link = `marker.html?id=${encodeURIComponent(m.id)}`;
-    const popupHtml = `
-      <b><a href="${link}">${escapeHtml(m.title)}</a></b><br/>
-      Overall: ${cnt ? avg.toFixed(2) : "—"}/10 (${cnt} vote${cnt === 1 ? "" : "s"})
-    `;
-
-    const mk = L.marker([m.lat, m.lon], { icon })
-      .addTo(LAYER_GROUP)
-      .bindPopup(popupHtml);
+    const mk = L.marker([m.lat, m.lon], { icon }).addTo(LAYER_GROUP);
 
     LEAFLET_MARKERS_BY_ID[m.id] = mk;
+    MARKER_DATA_BY_ID[m.id] = m;
+
+    attachMarkerHoverAndClick(mk, m.id);
   });
 
   setMapStatus(`Loaded ${markers.length} place(s).`);
+
+  // focus support (select + fly)
   tryFocusMarker();
 }
 
@@ -423,7 +460,7 @@ async function saveMapMarker() {
   const rating_manual = Number(qs("m_rating").value);
   const address = (qs("m_address")?.value || "").trim();
 
-  if (!ADD_MODE) { setSaveStatus("Turn Add mode ON first."); return; }
+  if (!ADD_MODE) { setSaveStatus("Turn Add ON first."); return; }
   if (!LAST_CLICK) { setSaveStatus("Click the map first to pick a location."); return; }
   if (!title) { setSaveStatus("Title required."); return; }
 
@@ -449,7 +486,6 @@ async function saveMapMarker() {
     return;
   }
 
-  // Create your vote
   const { error: vErr } = await sb
     .from("votes")
     .insert([{
