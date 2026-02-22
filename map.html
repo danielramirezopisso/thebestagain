@@ -3,25 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <title>The Best Again — Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="styles.css" />
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <style>
-    #map { height: 75vh; border-radius: 12px; border: 1px solid #e6e6e6; }
-    .panel {
-      background:#fff; border:1px solid #e6e6e6; border-radius:12px;
-      padding:12px; margin:12px 0;
-    }
-    .row { display:flex; gap:12px; }
-    .row > div { flex:1; }
-    .small { font-size: 12px; color:#666; }
-  </style>
 </head>
 
-<body onload="initMap()">
-  <header class="topbar">
+<body class="map-page" onload="initMap()">
+  <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav">
       <a href="index.html">Home</a>
@@ -29,93 +19,91 @@
       <a class="active" href="map.html">Map</a>
       <a href="products.html">Products</a>
       <a href="my-votes.html">My Votes</a>
-      <span id="authStatus" style="margin-left:12px;"></span>
+      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
     </nav>
   </header>
 
-  <main class="container">
-    <h1>Map</h1>
-    <p class="muted">Release 4 — filters + add-from-map.</p>
+  <main class="map-shell">
+    <!-- TOOLBAR (no Apply button) -->
+    <section class="map-toolbar">
+      <div class="toolbar-left">
+        <div class="toolbar-block">
+          <div class="toolbar-label">Category</div>
+          <div id="catQuick" class="chip-row"></div>
+          <select id="catMore" class="select-compact" onchange="onCategoryMoreChanged()">
+            <option value="">More…</option>
+          </select>
+        </div>
 
-    <!-- Filters -->
-    <section class="panel" id="addPanel">
-      <div class="row" style="align-items:end;">
-        <div>
-          <label>Filter: Category</label>
-          <select id="filter_category">
-            <option value="">All</option>
-          </select>
-        </div>
-        <div>
-          <label>Filter: Min rating</label>
-          <select id="filter_min_rating">
-            <option value="">All</option>
-          </select>
-        </div>
-        <div style="flex:0; display:flex; gap:8px;">
-          <button onclick="applyFilters()">Apply</button>
-          <button onclick="clearFilters()">Clear</button>
-        </div>
-        <div style="text-align:right;">
-          <span id="mapStatus" class="muted"></span>
+        <div class="toolbar-block">
+          <div class="toolbar-label">Rating</div>
+          <div class="seg-row" id="ratingSeg"></div>
         </div>
       </div>
-    </section>
 
-    <!-- Add mode -->
-    <section class="panel">
-      <div class="row" style="align-items:center;">
-        <div>
-          <b>Add mode:</b>
+      <div class="toolbar-right">
+        <div class="toolbar-block right">
+          <div class="toolbar-label">Add mode</div>
           <button id="toggleAdd" onclick="toggleAddMode()">OFF</button>
-          <span class="small" style="margin-left:10px;">Turn ON to add markers by clicking the map.</span>
-        </div>
-      </div>
-
-      <div id="addForm" style="display:none; margin-top:12px;">
-        <div class="small">Click on the map to pick a location. Lat/Lon will fill automatically.</div>
-
-        <label style="margin-top:8px;">Title</label>
-        <input id="m_title" placeholder="e.g., Best croissant at XYZ" />
-
-        <div class="row">
-          <div>
-            <label>Category</label>
-            <select id="m_category"></select>
-          </div>
-          <div>
-            <label>Rating (1–10)</label>
-            <select id="m_rating"></select>
-          </div>
         </div>
 
-        <label style="margin-top:8px;">Address</label>
-        <input id="m_address" placeholder="Will auto-fill after map click (or type manually)" />
-
-        <div class="row">
-          <div>
-            <label>Lat</label>
-            <input id="m_lat" disabled />
-          </div>
-          <div>
-            <label>Lon</label>
-            <input id="m_lon" disabled />
-          </div>
-        </div>
-
-        <button onclick="saveMapMarker()">Save marker</button>
-        <span id="saveStatus" class="muted" style="margin-left:10px;"></span>
+        <button id="btnClearFilters" class="tba-btn" style="display:none;" onclick="clearFilters()">✕ Clear</button>
+        <span id="mapStatus" class="muted"></span>
       </div>
     </section>
 
-    <div id="map"></div>
+    <!-- MAP AREA -->
+    <section class="map-area">
+      <!-- Add panel (compact overlay) -->
+      <div class="map-panel" id="addPanel">
+        <div class="panel-title">Add a place</div>
+        <div class="panel-sub muted">Turn Add mode ON, then click the map.</div>
+
+        <div id="addForm" style="display:none; margin-top:10px;">
+          <label>Title</label>
+          <input id="m_title" placeholder="e.g., Best croissant at XYZ" />
+
+          <div class="row2">
+            <div>
+              <label>Category</label>
+              <select id="m_category"></select>
+            </div>
+            <div>
+              <label>My vote (1–10)</label>
+              <select id="m_rating"></select>
+            </div>
+          </div>
+
+          <label style="margin-top:10px;">Address (auto-filled)</label>
+          <input id="m_address" placeholder="Optional" />
+
+          <div class="row2">
+            <div>
+              <label>Lat</label>
+              <input id="m_lat" disabled />
+            </div>
+            <div>
+              <label>Lon</label>
+              <input id="m_lon" disabled />
+            </div>
+          </div>
+
+          <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+            <button class="tba-btn tba-btn-primary" onclick="saveMapMarker()">Save</button>
+            <span id="saveStatus" class="muted"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="map"></div>
+    </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
-  <script src="map.js?v=3"></script>
 
+  <script src="map.js?v=10"></script>
 </body>
 </html>
