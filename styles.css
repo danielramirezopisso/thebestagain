@@ -1,8 +1,13 @@
 :root{
   --text:#0b1220;
   --muted:rgba(11,18,32,0.70);
-  --border:rgba(0,0,0,0.18);
 
+  /* default page theme (works for ALL pages without changing HTML) */
+  --page-bg:#e7f2ee;     /* very light green tint */
+  --header-bg:#f3faf7;   /* lighter than page */
+  --line:#000000;        /* thick black separator */
+
+  --border:rgba(0,0,0,0.18);
   --card:#ffffff;
   --shadow:0 12px 30px rgba(0,0,0,0.12);
 
@@ -19,23 +24,23 @@ body{
   margin:0;
   font-family: Arial, sans-serif;
   color:var(--text);
-  background:#f6f7fb;
+  background:var(--page-bg);
 }
 
 a{ color:inherit; }
 .muted{ color:var(--muted); }
 
 /* -----------------------------
-   HEADER (NO BLACK RIBBON)
-   Blends with green theme on Home
+   HEADER (same color as background but lighter)
 ------------------------------ */
-.topbar{
+.topbar, .topbar-sticky{
   display:flex;
   align-items:center;
   justify-content:space-between;
   padding:12px 20px;
-  background:#fff;
-  border-bottom:1px solid var(--border);
+
+  background:var(--header-bg);
+  border-bottom:3px solid var(--line); /* thicker black line */
 }
 
 .topbar-sticky{
@@ -44,7 +49,6 @@ a{ color:inherit; }
   z-index:50;
 }
 
-/* Brand + nav */
 .brand{
   text-decoration:none;
   color:inherit;
@@ -68,9 +72,9 @@ a{ color:inherit; }
 /* Auth pill */
 .auth-pill{
   padding:6px 10px;
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid rgba(0,0,0,0.22);
   border-radius:999px;
-  background:rgba(255,255,255,0.70);
+  background:rgba(255,255,255,0.60);
   font-size:13px;
   color:rgba(11,18,32,0.82);
 }
@@ -89,7 +93,7 @@ a{ color:inherit; }
 ------------------------------ */
 .card{
   background:var(--card);
-  border:1px solid var(--border);
+  border:1px solid rgba(0,0,0,0.20);
   border-radius:var(--radius);
   padding:14px;
   box-shadow:var(--shadow);
@@ -135,7 +139,6 @@ button:active{ transform:translateY(0); }
   color:#fff;
   border-color:rgba(0,0,0,0.22);
 }
-
 .tba-btn-ghost{
   background:transparent;
   box-shadow:none;
@@ -179,39 +182,17 @@ input, select{
 .table tbody tr:last-child td{ border-bottom:none; }
 
 /* -----------------------------
-   HOME: FITS IN ONE PAGE
+   HOME (one-page layout)
 ------------------------------ */
 body.home-bg{
-  background:#40826D; /* green */
+  --page-bg:#40826D;
+  --header-bg:#52a089; /* lighter green */
   height:100vh;
-  overflow:hidden;    /* prevents page scroll */
+  overflow:hidden;
 }
 
-/* black frame edges */
-body.home-bg::before{
-  content:none;
-}
-body.home-bg > *{ position:relative; z-index:1; }
-
-/* Make header blend (no ribbon look) */
-body.home-bg .topbar,
-body.home-bg .topbar-sticky{
-  background: rgba(64, 130, 109, 0.94);
-  border-bottom: 1px solid rgba(0,0,0,0.20);
-}
-body.home-bg .brand{ color:#fff; }
-body.home-bg .nav a{ color:rgba(255,255,255,0.85); }
-body.home-bg .nav a:hover{ color:#fff; }
-body.home-bg .nav a.active{ color:#fff; }
-body.home-bg .auth-pill{
-  border-color: rgba(255,255,255,0.25);
-  background: rgba(0,0,0,0.15);
-  color: rgba(255,255,255,0.92);
-}
-
-/* Main area takes exactly remaining height (desktop) */
 .home{
-  height: calc(100vh - 54px); /* header height approx */
+  height: calc(100vh - 54px);
   display:grid;
   grid-template-rows: auto auto 1fr;
   gap:12px;
@@ -219,7 +200,6 @@ body.home-bg .auth-pill{
   padding-bottom:12px;
 }
 
-/* hero */
 .home-hero{
   display:flex;
   align-items:flex-end;
@@ -234,12 +214,12 @@ body.home-bg .auth-pill{
 }
 .home-tagline{
   margin:6px 0 0;
-  color:rgba(255,255,255,0.86);
+  color:rgba(255,255,255,0.90);
 }
 .home-hint{
   margin:8px 0 0;
   font-size:13px;
-  color:rgba(255,255,255,0.78);
+  color:rgba(255,255,255,0.80);
 }
 .home-actions{
   display:flex;
@@ -248,13 +228,13 @@ body.home-bg .auth-pill{
   align-items:center;
 }
 
-/* cards on green should stay crisp */
-body.home-bg .card{
-  background:#fff;
-  border-color:rgba(0,0,0,0.22);
+.home-grid{
+  display:grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap:12px;
+  min-height:0;
 }
 
-/* cravings */
 .cravings-header{
   display:flex;
   align-items:baseline;
@@ -295,15 +275,6 @@ body.home-bg .card{
 .chip-ic{ width:18px; height:18px; }
 .chip-more{ justify-content:center; min-width:44px; }
 
-/* grid area: takes remaining space */
-.home-grid{
-  display:grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap:12px;
-  min-height:0; /* important for overflow children */
-}
-
-/* Spotlight */
 .spotlight{ min-height:0; display:flex; flex-direction:column; }
 .spotlight-header{
   display:flex;
@@ -328,7 +299,6 @@ body.home-bg .card{
 }
 .spotlight-kicker{ font-weight:1000; }
 .spotlight-sub{ font-size:13px; }
-
 .spotlight-body{ margin-top:12px; flex:1; display:flex; align-items:center; }
 .spotlight-footer{ margin-top:8px; font-size:13px; }
 
@@ -369,7 +339,6 @@ body.home-bg .card{
 .badge-ghost{ opacity:0.75; }
 .spot-actions{ margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; }
 
-/* Recent */
 .recent{ min-height:0; display:flex; flex-direction:column; }
 .recent-header{
   display:flex;
@@ -377,8 +346,6 @@ body.home-bg .card{
   justify-content:space-between;
   gap:10px;
 }
-
-/* THIS makes home fit one page: recent list scrolls inside its card */
 .recent-list{
   margin-top:10px;
   display:flex;
@@ -388,7 +355,6 @@ body.home-bg .card{
   min-height:0;
   padding-right:4px;
 }
-
 .recent-item{
   display:flex;
   align-items:center;
@@ -403,7 +369,6 @@ body.home-bg .card{
   transition:transform .10s ease, box-shadow .10s ease;
 }
 .recent-item:hover{ transform:translateY(-1px); box-shadow:0 16px 34px rgba(0,0,0,0.14); }
-
 .recent-left{ display:flex; align-items:center; gap:10px; min-width:0; }
 .recent-title{
   font-weight:1000;
@@ -413,7 +378,6 @@ body.home-bg .card{
   max-width:320px;
 }
 .recent-sub{ font-size:12px; margin-top:2px; }
-
 .recent-tag{
   font-size:12px;
   border:1px solid rgba(0,0,0,0.18);
@@ -423,7 +387,6 @@ body.home-bg .card{
   color:rgba(11,18,32,0.78);
 }
 
-/* Mini marker */
 .mini-marker{
   width:34px;
   height:34px;
@@ -444,7 +407,7 @@ body.home-bg .card{
 }
 
 /* -----------------------------
-   Leaflet marker centering fixes (map page)
+   Leaflet marker centering fixes (map)
 ------------------------------ */
 .leaflet-div-icon.tba-marker{
   background:transparent !important;
@@ -452,7 +415,6 @@ body.home-bg .card{
   padding:0 !important;
   margin:0 !important;
 }
-
 .tba-marker{
   box-sizing:border-box !important;
   width:34px !important;
@@ -465,7 +427,6 @@ body.home-bg .card{
   line-height:0 !important;
   text-align:center !important;
 }
-
 .tba-marker-inner{
   width:22px !important;
   height:22px !important;
@@ -473,7 +434,6 @@ body.home-bg .card{
   place-items:center !important;
   line-height:0 !important;
 }
-
 .tba-marker-inner img{
   width:22px !important;
   height:22px !important;
@@ -482,7 +442,7 @@ body.home-bg .card{
 }
 
 /* -----------------------------
-   SEMAFORIC rating colors (strong)
+   SEMAFORIC rating colors
 ------------------------------ */
 .rating-none{
   background:#ffffff !important;
@@ -514,11 +474,17 @@ body.home-bg .card{
   border-color:#0b5f36 !important;
   color:#fff;
 }
-
-/* Make icons readable on dark rating backgrounds */
 .rating-1-2 img,
 .rating-7-8 img,
 .rating-9-10 img{
   filter: brightness(0) invert(1);
 }
 
+/* -----------------------------
+   LOGIN page theme (optional blue)
+   Add class="login-bg" on body to enable.
+------------------------------ */
+body.login-bg{
+  --page-bg:#dbeafe;     /* light blue */
+  --header-bg:#eef2ff;   /* lighter blue */
+}
