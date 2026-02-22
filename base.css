@@ -1,0 +1,224 @@
+:root{
+  --text:#0b1220;
+  --muted:rgba(11,18,32,0.70);
+
+  /* default page theme */
+  --page-bg:#e7f2ee;      /* light green tint */
+  --header-bg:#f3faf7;    /* lighter header */
+  --line:#000000;         /* header separator */
+
+  --border:rgba(0,0,0,0.18);
+  --card:#ffffff;
+  --shadow:0 12px 30px rgba(0,0,0,0.12);
+
+  --accent:#0b5cff;
+  --accent2:#0048d8;
+
+  --radius:6px;
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  color:var(--text);
+  background:var(--page-bg);
+}
+
+a{ color:inherit; }
+.muted{ color:var(--muted); }
+
+/* HEADER (same bg as page but lighter via variables) */
+.topbar, .topbar-sticky{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 20px;
+  background:var(--header-bg);
+  border-bottom:3px solid var(--line);
+}
+
+.topbar-sticky{
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+
+.brand{
+  text-decoration:none;
+  color:inherit;
+  font-weight:900;
+  letter-spacing:-0.3px;
+}
+.brand:hover{ text-decoration:underline; }
+
+.nav a{
+  margin-left:14px;
+  text-decoration:none;
+  color:rgba(11,18,32,0.82);
+  font-weight:800;
+}
+.nav a:hover{ color:#000; }
+.nav a.active{
+  text-decoration:underline;
+  text-underline-offset:6px;
+}
+
+.auth-pill{
+  padding:6px 10px;
+  border:1px solid rgba(0,0,0,0.22);
+  border-radius:999px;
+  background:rgba(255,255,255,0.60);
+  font-size:13px;
+  color:rgba(11,18,32,0.82);
+}
+
+/* LAYOUT */
+.container{
+  max-width:980px;
+  margin:0 auto;
+  padding:14px 20px;
+}
+
+/* CARDS */
+.card{
+  background:var(--card);
+  border:1px solid rgba(0,0,0,0.20);
+  border-radius:var(--radius);
+  padding:14px;
+  box-shadow:var(--shadow);
+}
+
+/* BUTTONS / INPUTS */
+button, .tba-btn{ font:inherit; }
+
+button{
+  cursor:pointer;
+  padding:10px 12px;
+  border:1px solid rgba(0,0,0,0.20);
+  border-radius:var(--radius);
+  background:#fff;
+  color:var(--text);
+  font-weight:900;
+  transition:transform .10s ease, box-shadow .10s ease;
+  box-shadow:0 10px 22px rgba(0,0,0,0.12);
+}
+button:hover{ transform:translateY(-1px); box-shadow:0 16px 34px rgba(0,0,0,0.14); }
+button:active{ transform:translateY(0); }
+
+.tba-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  border:1px solid rgba(0,0,0,0.20);
+  border-radius:var(--radius);
+  background:#fff;
+  text-decoration:none;
+  color:var(--text);
+  font-weight:1000;
+  transition:transform .10s ease, box-shadow .10s ease;
+  box-shadow:0 10px 22px rgba(0,0,0,0.12);
+}
+.tba-btn:hover{ transform:translateY(-1px); box-shadow:0 16px 34px rgba(0,0,0,0.14); }
+
+.tba-btn-primary{
+  background:linear-gradient(180deg, var(--accent) 0%, var(--accent2) 100%);
+  color:#fff;
+  border-color:rgba(0,0,0,0.22);
+}
+
+.tba-btn-ghost{
+  background:transparent;
+  box-shadow:none;
+}
+
+input, select{
+  width:100%;
+  padding:10px 12px;
+  border:1px solid rgba(0,0,0,0.18);
+  border-radius:var(--radius);
+  background:#fff;
+  color:var(--text);
+  outline:none;
+}
+
+/* TABLE */
+.table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border:1px solid rgba(0,0,0,0.18);
+  border-radius:var(--radius);
+  background:#fff;
+}
+.table th, .table td{
+  padding:12px 12px;
+  border-bottom:1px solid rgba(0,0,0,0.10);
+  text-align:left;
+  vertical-align:top;
+}
+.table th{
+  font-size:13px;
+  color:rgba(11,18,32,0.76);
+  background:rgba(0,0,0,0.04);
+  font-weight:900;
+}
+.table tr:hover td{ background:rgba(11,92,255,0.06); }
+.table tbody tr:last-child td{ border-bottom:none; }
+
+/* SEMAFORIC rating colors (shared everywhere) */
+.rating-none{ background:#ffffff !important; border-color:rgba(0,0,0,0.20) !important; color:var(--text); }
+.rating-1-2{ background:#ff3b30 !important; border-color:#b42318 !important; color:#fff; }
+.rating-3-4{ background:#ff8a00 !important; border-color:#b45309 !important; color:#111; }
+.rating-5-6{ background:#ffd60a !important; border-color:#b08200 !important; color:#111; }
+.rating-7-8{ background:#34c759 !important; border-color:#167a2f !important; color:#fff; }
+.rating-9-10{ background:#0f9d58 !important; border-color:#0b5f36 !important; color:#fff; }
+
+.rating-1-2 img,
+.rating-7-8 img,
+.rating-9-10 img{
+  filter: brightness(0) invert(1);
+}
+
+/* Leaflet marker centering base (safe everywhere) */
+.leaflet-div-icon.tba-marker{
+  background:transparent !important;
+  border:none !important;
+  padding:0 !important;
+  margin:0 !important;
+}
+.tba-marker{
+  box-sizing:border-box !important;
+  width:34px !important;
+  height:34px !important;
+  border-radius:8px !important;
+  border:2px solid rgba(255,255,255,0.92) !important;
+  box-shadow:0 10px 22px rgba(0,0,0,0.18) !important;
+  display:grid !important;
+  place-items:center !important;
+  line-height:0 !important;
+  text-align:center !important;
+}
+.tba-marker-inner{
+  width:22px !important;
+  height:22px !important;
+  display:grid !important;
+  place-items:center !important;
+  line-height:0 !important;
+}
+.tba-marker-inner img{
+  width:22px !important;
+  height:22px !important;
+  object-fit:contain !important;
+  display:block !important;
+}
+
+/* Simple animation helper */
+.fade-in{ animation:fadeIn .18s ease; }
+@keyframes fadeIn{
+  from{ opacity:0; transform:translateY(4px); }
+  to{ opacity:1; transform:translateY(0); }
+}
