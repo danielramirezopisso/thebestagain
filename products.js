@@ -1,12 +1,10 @@
-// products.js — Masonry lanes + drawer + filters (Products only) + Add Product panel
-// Cards show BRAND (category is the lane header)
-// Optional brand icon (brands.icon_url) reserved
+// products.js — Products UX v2 (grid lanes + add panel + overlay drawer)
+// Products are unique by (category_id, brand_id). No variants.
 
 let CATS = [];
 let CAT_BY_ID = {};
 let BRANDS = [];
 let BRAND_BY_ID = {};
-
 let MARKERS = [];
 
 // filters
@@ -15,7 +13,7 @@ let FILTER_BUCKET = "";
 
 // lane sort
 let TOP_CATS = [];
-let LANE_SORT = {};
+let LANE_SORT = {}; // catId -> "desc" | "asc"
 let DRAWER_CAT = null;
 let DRAWER_SORT = "desc";
 
@@ -45,7 +43,7 @@ function iconForCategory(id){
 }
 function iconForBrand(id){
   const raw = BRAND_BY_ID[String(id)]?.icon_url || "";
-  return normalizeUrl(raw);
+  return normalizeUrl(raw); // can be empty
 }
 
 function setStatus(msg){ qs("pageStatus").textContent = msg || ""; }
@@ -195,8 +193,8 @@ function renderCatQuick(){
   host.appendChild(all);
 }
 
-/* Lanes + Drawer */
-function laneSortLabel(dir){ return dir === "asc" ? "Bottom ↑" : "Top ↓"; }
+/* Sorting */
+function arrowFor(dir){ return dir === "asc" ? "↑" : "↓"; }
 
 function toggleLaneSort(catId){
   const cur = LANE_SORT[catId] || "desc";
@@ -208,21 +206,24 @@ function openDrawer(catId){
   DRAWER_CAT = String(catId);
   DRAWER_SORT = LANE_SORT[DRAWER_CAT] || "desc";
 
+  qs("drawerOverlay").style.display = "block";
   qs("drawer").style.display = "flex";
+
   qs("drawerCatName").textContent = CAT_BY_ID[DRAWER_CAT]?.name || DRAWER_CAT;
-  qs("drawerSortBtn").textContent = laneSortLabel(DRAWER_SORT);
+  qs("drawerSortBtn").textContent = arrowFor(DRAWER_SORT);
 
   renderDrawer();
 }
 
 function closeDrawer(){
+  qs("drawerOverlay").style.display = "none";
   qs("drawer").style.display = "none";
   DRAWER_CAT = null;
 }
 
 function toggleDrawerSort(){
   DRAWER_SORT = (DRAWER_SORT === "desc") ? "asc" : "desc";
-  qs("drawerSortBtn").textContent = laneSortLabel(DRAWER_SORT);
+  qs("drawerSortBtn").textContent = arrowFor(DRAWER_SORT);
   renderDrawer();
 }
 
@@ -231,6 +232,7 @@ document.addEventListener("keydown", (e)=>{
 });
 
 function sortMarkers(arr, dir){
+  // sort by rating_avg (desc), then rating_count, then brand name
   const d = (dir === "asc") ? 1 : -1;
   return arr.sort((a,b)=>{
     const av = Number(a.rating_avg ?? 0);
@@ -291,7 +293,7 @@ function renderLane(catId, markersForCat){
     <div class="lane">
       <div class="lane-head">
         <div class="lane-title">
-          <span class="lane-pill">🛒 Product</span>
+          <span class="lane-pill">🛒</span>
           <img class="lane-ic" src="${escapeHtml(icon)}" alt=""/>
           <div style="min-width:0;">
             <div class="lane-name">${escapeHtml(name)}</div>
@@ -299,7 +301,9 @@ function renderLane(catId, markersForCat){
           </div>
         </div>
 
-        <button class="tba-btn lane-sort" onclick="toggleLaneSort('${escapeHtml(catId)}')">${escapeHtml(laneSortLabel(dir))}</button>
+        <button class="tba-btn lane-sort" onclick="toggleLaneSort('${escapeHtml(catId)}')" title="Toggle sort">
+          ${escapeHtml(arrowFor(dir))}
+        </button>
       </div>
 
       ${itemsHtml || `<div class="muted">No products in this category yet.</div>`}
@@ -348,7 +352,6 @@ function computeTopCategories(){
     if (!cid) return;
     counts[cid] = (counts[cid] || 0) + 1;
   });
-
   const ids = Object.keys(counts);
   ids.sort((a,b)=> (counts[b]||0) - (counts[a]||0));
   return ids;
@@ -359,7 +362,7 @@ function renderAll(){
 
   TOP_CATS = computeTopCategories();
 
-  // More dropdown list
+  // More dropdown
   const more = qs("catMore");
   more.innerHTML = `<option value="">More…</option>` + CATS
     .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
@@ -408,7 +411,7 @@ async function saveProduct(){
   if (!brand_id) { setPStatus("Brand required."); return; }
   if (!(v >= 1 && v <= 10)) { setPStatus("Vote must be 1–10."); return; }
 
-  // 1) Exists? (category+brand unique for products)
+  // Exists?
   const { data: existing, error: eErr } = await sb
     .from("markers")
     .select("id")
@@ -425,7 +428,6 @@ async function saveProduct(){
     return;
   }
 
-  // 2) Create marker title = Category · Brand
   const catName = CAT_BY_ID[String(category_id)]?.name || category_id;
   const brandName = BRAND_BY_ID[String(brand_id)]?.name || brand_id;
   const title = `${catName} · ${brandName}`;
@@ -449,24 +451,10 @@ async function saveProduct(){
     .single();
 
   if (mErr) {
-    // if uniqueness triggers by race
-    if (String(mErr.code) === "23505") {
-      setPStatus("Already exists ✅ Opening…");
-      const { data: again } = await sb
-        .from("markers").select("id")
-        .eq("is_active", true)
-        .eq("group_type", "product")
-        .eq("category_id", category_id)
-        .eq("brand_id", brand_id)
-        .maybeSingle();
-      if (again?.id) window.location.href = `marker.html?id=${encodeURIComponent(again.id)}`;
-      return;
-    }
     setPStatus("Error creating: " + mErr.message);
     return;
   }
 
-  // 3) Create vote for user
   const { error: vErr } = await sb
     .from("votes")
     .insert([{ marker_id: markerRow.id, user_id: user.id, vote: v, is_active: true }]);
@@ -477,7 +465,22 @@ async function saveProduct(){
     return;
   }
 
-  setPStatus("Saved ✅ Redirecting…");
+  setPStatus("Saved ✅ Reloading…");
+
+  // reload markers locally for instant UI update
+  const { data: markers, error: reloadErr } = await sb
+    .from("markers")
+    .select("id,title,group_type,category_id,brand_id,rating_avg,rating_count,is_active,created_at")
+    .eq("is_active", true)
+    .eq("group_type", "product");
+
+  if (!reloadErr) MARKERS = markers || [];
+
+  TOP_CATS = computeTopCategories();
+  showClearIfNeeded();
+  renderAll();
+
+  // jump to marker page (your desired behavior)
   window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
 }
 
@@ -487,7 +490,6 @@ async function initProductsMasonryPage(){
   renderRatingButtons();
   fillVoteSelect();
 
-  // login gating for add panel
   const user = await maybeUser();
   if (!user) {
     qs("addPanelForm").style.display = "none";
@@ -499,7 +501,7 @@ async function initProductsMasonryPage(){
     .from("brands")
     .select("id,name,is_active,icon_url")
     .eq("is_active", true)
-    .order("id", { ascending: true });
+    .order("name", { ascending: true });
 
   if (bErr) { setStatus("Error loading brands: " + bErr.message); return; }
   BRANDS = brands || [];
