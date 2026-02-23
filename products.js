@@ -1,21 +1,21 @@
-// products.js — Masonry lanes + drawer + filters (Products only)
+// products.js — Masonry lanes + drawer + filters (Products only) + Add Product panel
 // Cards show BRAND (category is the lane header)
 // Optional brand icon (brands.icon_url) reserved
 
-let CATS = [];          // product categories only
-let CAT_BY_ID = {};     // id -> {id,name,icon_url}
-let BRANDS = [];        // active brands
-let BRAND_BY_ID = {};   // id -> {id,name,icon_url}
+let CATS = [];
+let CAT_BY_ID = {};
+let BRANDS = [];
+let BRAND_BY_ID = {};
 
-let MARKERS = [];       // product markers only
+let MARKERS = [];
 
 // filters
 let FILTER_CATEGORY = "";
-let FILTER_BUCKET = ""; // "", "9-10","7-8","5-6","3-4","1-2"
+let FILTER_BUCKET = "";
 
-// lane order + sort
-let TOP_CATS = [];           // category ids shown as lanes (top N by count)
-let LANE_SORT = {};          // catId -> "desc" | "asc"
+// lane sort
+let TOP_CATS = [];
+let LANE_SORT = {};
 let DRAWER_CAT = null;
 let DRAWER_SORT = "desc";
 
@@ -45,10 +45,23 @@ function iconForCategory(id){
 }
 function iconForBrand(id){
   const raw = BRAND_BY_ID[String(id)]?.icon_url || "";
-  return normalizeUrl(raw); // can be empty
+  return normalizeUrl(raw);
 }
 
 function setStatus(msg){ qs("pageStatus").textContent = msg || ""; }
+function setPStatus(msg){ const el = qs("p_status"); if (el) el.textContent = msg || ""; }
+
+function fillVoteSelect(){
+  const sel = qs("p_vote");
+  sel.innerHTML = "";
+  for (let i=1;i<=10;i++){
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = String(i);
+    if (i===7) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
 
 function colorClassForRating(avg, cnt){
   const c = Number(cnt ?? 0);
@@ -73,10 +86,9 @@ function bucketFor(avg){
 function passesBucket(m){
   if (!FILTER_BUCKET) return true;
   const c = Number(m.rating_count ?? 0);
-  if (!c) return false; // if filtering by rating bucket, ignore 0-vote items
+  if (!c) return false;
   return bucketFor(m.rating_avg) === FILTER_BUCKET;
 }
-
 function passesCategory(m){
   if (!FILTER_CATEGORY) return true;
   return String(m.category_id) === String(FILTER_CATEGORY);
@@ -219,7 +231,6 @@ document.addEventListener("keydown", (e)=>{
 });
 
 function sortMarkers(arr, dir){
-  // sort by rating_avg (desc), then rating_count, then brand name
   const d = (dir === "asc") ? 1 : -1;
   return arr.sort((a,b)=>{
     const av = Number(a.rating_avg ?? 0);
@@ -312,9 +323,8 @@ function renderDrawer(){
 
   let rows = MARKERS
     .filter(m => String(m.category_id) === String(catId))
-    .filter(passesBucket); // keep global rating filter
+    .filter(passesBucket);
 
-  // if user set global category filter, drawer stays same category anyway
   rows = sortMarkers(rows.slice(), DRAWER_SORT);
 
   qs("drawerList").innerHTML = rows.map(m=>{
@@ -345,14 +355,11 @@ function computeTopCategories(){
 }
 
 function renderAll(){
-  // filtered markers (global)
   const filtered = MARKERS.filter(passesCategory).filter(passesBucket);
 
-  // counts per category based on full dataset (not filtered), to keep lane selection stable
-  const top = computeTopCategories();
-  TOP_CATS = top;
+  TOP_CATS = computeTopCategories();
 
-  // build More dropdown
+  // More dropdown list
   const more = qs("catMore");
   more.innerHTML = `<option value="">More…</option>` + CATS
     .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
@@ -361,47 +368,133 @@ function renderAll(){
 
   renderCatQuick();
 
-  // Which categories to show as lanes:
-  // - if a category filter is active, it goes first
-  // - then fill with top N categories by count
   const N = 6;
-  let laneIds = top.slice(0, N);
+  let laneIds = TOP_CATS.slice(0, N);
 
   if (FILTER_CATEGORY) {
     laneIds = [String(FILTER_CATEGORY), ...laneIds.filter(x => x !== String(FILTER_CATEGORY))];
   }
 
-  // group markers per category using CURRENT filtered set (so filter affects contents)
   const byCat = {};
   filtered.forEach(m=>{
     const cid = String(m.category_id);
     (byCat[cid] ||= []).push(m);
   });
 
-  // render lanes
   const html = [];
   laneIds.forEach(cid=>{
     html.push(renderLane(cid, byCat[cid] || []));
   });
-
-  // Fill empty slots if fewer lanes
   while (html.length < N) html.push(renderEmptyLane());
 
   qs("lanes").innerHTML = html.join("");
-
-  // status
   setStatus(`Loaded ${filtered.length} product(s).`);
 
-  // drawer refresh if open
   if (DRAWER_CAT) renderDrawer();
+}
+
+/* ---------- Add Product ---------- */
+async function saveProduct(){
+  const user = await requireAuth();
+  if (!user) return;
+
+  setPStatus("Saving…");
+
+  const category_id = qs("p_category").value;
+  const brand_id = qs("p_brand").value;
+  const v = Number(qs("p_vote").value);
+
+  if (!category_id) { setPStatus("Category required."); return; }
+  if (!brand_id) { setPStatus("Brand required."); return; }
+  if (!(v >= 1 && v <= 10)) { setPStatus("Vote must be 1–10."); return; }
+
+  // 1) Exists? (category+brand unique for products)
+  const { data: existing, error: eErr } = await sb
+    .from("markers")
+    .select("id")
+    .eq("is_active", true)
+    .eq("group_type", "product")
+    .eq("category_id", category_id)
+    .eq("brand_id", brand_id)
+    .maybeSingle();
+
+  if (eErr) { setPStatus("Error: " + eErr.message); return; }
+  if (existing?.id) {
+    setPStatus("Already exists ✅ Opening…");
+    window.location.href = `marker.html?id=${encodeURIComponent(existing.id)}`;
+    return;
+  }
+
+  // 2) Create marker title = Category · Brand
+  const catName = CAT_BY_ID[String(category_id)]?.name || category_id;
+  const brandName = BRAND_BY_ID[String(brand_id)]?.name || brand_id;
+  const title = `${catName} · ${brandName}`;
+
+  const payload = {
+    title,
+    category_id,
+    brand_id,
+    group_type: "product",
+    is_active: true,
+    rating_manual: v,
+    lat: null,
+    lon: null,
+    address: null
+  };
+
+  const { data: markerRow, error: mErr } = await sb
+    .from("markers")
+    .insert([payload])
+    .select("id")
+    .single();
+
+  if (mErr) {
+    // if uniqueness triggers by race
+    if (String(mErr.code) === "23505") {
+      setPStatus("Already exists ✅ Opening…");
+      const { data: again } = await sb
+        .from("markers").select("id")
+        .eq("is_active", true)
+        .eq("group_type", "product")
+        .eq("category_id", category_id)
+        .eq("brand_id", brand_id)
+        .maybeSingle();
+      if (again?.id) window.location.href = `marker.html?id=${encodeURIComponent(again.id)}`;
+      return;
+    }
+    setPStatus("Error creating: " + mErr.message);
+    return;
+  }
+
+  // 3) Create vote for user
+  const { error: vErr } = await sb
+    .from("votes")
+    .insert([{ marker_id: markerRow.id, user_id: user.id, vote: v, is_active: true }]);
+
+  if (vErr) {
+    setPStatus("Saved marker ✅ but vote failed: " + vErr.message);
+    window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
+    return;
+  }
+
+  setPStatus("Saved ✅ Redirecting…");
+  window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
 }
 
 /* Init */
 async function initProductsMasonryPage(){
   setStatus("Loading…");
   renderRatingButtons();
+  fillVoteSelect();
 
-  // Load brands (active)
+  // login gating for add panel
+  const user = await maybeUser();
+  if (!user) {
+    qs("addPanelForm").style.display = "none";
+    qs("addPanelLoggedOut").style.display = "block";
+  }
+
+  // Brands
   const { data: brands, error: bErr } = await sb
     .from("brands")
     .select("id,name,is_active,icon_url")
@@ -413,20 +506,24 @@ async function initProductsMasonryPage(){
   BRAND_BY_ID = {};
   BRANDS.forEach(b => BRAND_BY_ID[String(b.id)] = b);
 
-  // Load product categories only
+  // Categories (products only)
   const { data: cats, error: cErr } = await sb
     .from("categories")
     .select("id,name,icon_url,is_active,for_products")
     .eq("is_active", true)
     .eq("for_products", true)
-    .order("id", { ascending: true });
+    .order("name", { ascending: true });
 
   if (cErr) { setStatus("Error loading categories: " + cErr.message); return; }
   CATS = cats || [];
   CAT_BY_ID = {};
   CATS.forEach(c => CAT_BY_ID[String(c.id)] = c);
 
-  // Load product markers
+  // Fill add panel selects
+  qs("p_category").innerHTML = CATS.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
+  qs("p_brand").innerHTML = BRANDS.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`).join("");
+
+  // Product markers
   const { data: markers, error: mErr } = await sb
     .from("markers")
     .select("id,title,group_type,category_id,brand_id,rating_avg,rating_count,is_active,created_at")
@@ -436,10 +533,8 @@ async function initProductsMasonryPage(){
   if (mErr) { setStatus("Error loading products: " + mErr.message); return; }
   MARKERS = markers || [];
 
-  // compute top categories once for quick chips
   TOP_CATS = computeTopCategories();
 
-  // initial render
   showClearIfNeeded();
   renderAll();
 }
