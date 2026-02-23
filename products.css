@@ -1,11 +1,10 @@
-/* Products page: toolbar + masonry lanes + drawer (desktop-first) */
+/* Products page: toolbar + masonry lanes + drawer + add panel (desktop-first) */
 
 body.products-page{
   height: 100vh;
   overflow: hidden;
 }
 
-/* shell uses full viewport minus header */
 .products-shell{
   height: calc(100vh - 54px);
   display: flex;
@@ -68,7 +67,7 @@ body.products-page{
   padding:8px 10px;
 }
 
-/* chips + rating segments (shared style similar to map) */
+/* chips + rating segments */
 .chip-row{ display:flex; flex-wrap:wrap; gap:10px; }
 
 .chip{
@@ -110,28 +109,26 @@ body.products-page{
   border-color:rgba(0,0,0,0.35);
 }
 
-/* main area: masonry + drawer */
+/* main area: masonry + add panel + drawer */
 .products-area{
   position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 360px; /* drawer column */
+  grid-template-columns: 1fr 340px 360px; /* lanes | add | drawer */
   gap: 10px;
 }
 
-/* Masonry container scrolls (page doesn't scroll) */
+/* Masonry container scrolls */
 .lanes-masonry{
   min-height: 0;
   overflow: auto;
   padding-right: 6px;
 
-  /* masonry via columns */
   column-count: 3;
   column-gap: 10px;
 }
 
-/* Each lane card becomes a column item */
 .lane{
   break-inside: avoid;
   display: inline-block;
@@ -170,9 +167,7 @@ body.products-page{
   flex:0 0 auto;
 }
 
-.lane-ic{
-  width:22px; height:22px;
-}
+.lane-ic{ width:22px; height:22px; }
 
 .lane-name{
   font-weight:1000;
@@ -188,9 +183,7 @@ body.products-page{
   font-weight:900;
 }
 
-.lane-sort{
-  padding:8px 10px;
-}
+.lane-sort{ padding:8px 10px; }
 
 /* lane items */
 .item{
@@ -218,7 +211,6 @@ body.products-page{
   min-width:0;
 }
 
-/* reserved brand icon slot */
 .brand-ic-slot{
   width:28px;
   height:28px;
@@ -240,10 +232,9 @@ body.products-page{
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  max-width: 240px;
+  max-width: 200px;
 }
 
-/* rating badge: colored number */
 .rate-badge{
   min-width: 34px;
   height: 30px;
@@ -255,7 +246,6 @@ body.products-page{
   font-weight:1000;
 }
 
-/* see more row */
 .see-more{
   margin-top: 10px;
   padding: 10px 10px;
@@ -267,14 +257,26 @@ body.products-page{
 }
 .see-more:hover{ background: rgba(0,0,0,0.05); }
 
-/* empty lane slot (placeholder) */
 .lane.empty{
   background: rgba(255,255,255,0.6);
   box-shadow:none;
 }
 .lane.empty .muted{ font-size:13px; }
 
-/* drawer */
+/* Add panel */
+.add-panel{
+  min-height: 0;
+  border:1px solid rgba(0,0,0,0.18);
+  border-radius: var(--radius);
+  background:#fff;
+  box-shadow: var(--shadow);
+  padding: 12px;
+  overflow:auto;
+}
+.panel-title{ font-weight:1000; margin-bottom:2px; }
+.panel-sub{ font-size:12px; margin-bottom:8px; }
+
+/* Drawer */
 .drawer{
   min-height: 0;
   border:1px solid rgba(0,0,0,0.18);
@@ -324,7 +326,6 @@ body.products-page{
   min-height:0;
 }
 
-/* drawer item */
 .drawer-item{
   display:flex;
   align-items:center;
