@@ -55,6 +55,32 @@
       <!-- Masonry lanes -->
       <div id="lanes" class="lanes-masonry"></div>
 
+      <!-- Add product panel (new) -->
+      <aside id="addPanel" class="add-panel">
+        <div class="panel-title">Add product</div>
+        <div class="panel-sub muted">A product is Category + Brand (unique). Creating also saves your vote.</div>
+
+        <div id="addPanelLoggedOut" class="muted" style="display:none; margin-top:10px;">
+          Please <a href="login.html"><b>login</b></a> to add products.
+        </div>
+
+        <div id="addPanelForm" style="margin-top:10px;">
+          <label>Category</label>
+          <select id="p_category"></select>
+
+          <label style="margin-top:10px;">Brand</label>
+          <select id="p_brand"></select>
+
+          <label style="margin-top:10px;">My vote (1–10)</label>
+          <select id="p_vote"></select>
+
+          <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+            <button class="tba-btn tba-btn-primary" onclick="saveProduct()">Save</button>
+            <span id="p_status" class="muted"></span>
+          </div>
+        </div>
+      </aside>
+
       <!-- Right drawer -->
       <aside id="drawer" class="drawer" style="display:none;">
         <div class="drawer-head">
@@ -79,6 +105,6 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
 
-  <script src="products.js?v=200"></script>
+  <script src="products.js?v=201"></script>
 </body>
 </html>
