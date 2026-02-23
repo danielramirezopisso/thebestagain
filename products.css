@@ -1,4 +1,4 @@
-/* Products page: toolbar + masonry lanes + drawer + add panel (desktop-first) */
+/* Products page: compact toolbar + 3-column lanes grid + right sidebar add + overlay drawer */
 
 body.products-page{
   height: 100vh;
@@ -19,12 +19,10 @@ body.products-page{
   align-items:flex-end;
   justify-content:space-between;
   gap:10px;
-
   border:1px solid rgba(0,0,0,0.18);
   border-radius: var(--radius);
   background:#fff;
   padding:8px;
-
   box-shadow: var(--shadow);
 }
 
@@ -34,34 +32,29 @@ body.products-page{
   align-items:flex-end;
   flex-wrap:wrap;
 }
-
 .toolbar-right{
   display:flex;
   gap:10px;
   align-items:center;
   flex-wrap:wrap;
 }
-
 .toolbar-block{
   display:flex;
   flex-direction:column;
   gap:6px;
 }
-
 .toolbar-label{
   font-size:11px;
   font-weight:1000;
   color:rgba(11,18,32,0.70);
   letter-spacing:0.2px;
 }
-
 .toolbar-inline{
   display:flex;
   gap:10px;
   align-items:center;
   flex-wrap:wrap;
 }
-
 .select-compact{
   width:160px;
   padding:8px 10px;
@@ -69,7 +62,6 @@ body.products-page{
 
 /* chips + rating segments */
 .chip-row{ display:flex; flex-wrap:wrap; gap:10px; }
-
 .chip{
   display:inline-flex;
   align-items:center;
@@ -109,37 +101,36 @@ body.products-page{
   border-color:rgba(0,0,0,0.35);
 }
 
-/* main area: masonry + add panel + drawer */
+/* layout: lanes + add sidebar (drawer overlay does not consume width) */
 .products-area{
   position: relative;
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 340px 360px; /* lanes | add | drawer */
+  grid-template-columns: 1fr 340px; /* lanes | add */
   gap: 10px;
 }
 
-/* Masonry container scrolls */
-.lanes-masonry{
-  min-height: 0;
-  overflow: auto;
+/* lanes grid scrolls */
+.lanes-grid{
+  min-height:0;
+  overflow:auto;
   padding-right: 6px;
 
-  column-count: 3;
-  column-gap: 10px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:10px;
+  align-content:start;
 }
 
+/* lane card */
 .lane{
-  break-inside: avoid;
-  display: inline-block;
-  width: 100%;
-  margin: 0 0 10px;
-  padding: 12px;
-
   border: 1px solid rgba(0,0,0,0.18);
   border-radius: var(--radius);
   background: #fff;
   box-shadow: var(--shadow);
+  padding: 12px;
+  min-width:0;
 }
 
 .lane-head{
@@ -154,7 +145,7 @@ body.products-page{
   display:flex;
   align-items:center;
   gap:10px;
-  min-width: 0;
+  min-width:0;
 }
 
 .lane-pill{
@@ -167,14 +158,15 @@ body.products-page{
   flex:0 0 auto;
 }
 
-.lane-ic{ width:22px; height:22px; }
+.lane-ic{ width:22px; height:22px; flex:0 0 auto; }
 
 .lane-name{
   font-weight:1000;
-  white-space:nowrap;
+  white-space:normal;          /* allow wrap */
   overflow:hidden;
   text-overflow:ellipsis;
-  max-width: 220px;
+  line-height:1.15;
+  max-width: 100%;
 }
 
 .lane-count{
@@ -183,7 +175,11 @@ body.products-page{
   font-weight:900;
 }
 
-.lane-sort{ padding:8px 10px; }
+.lane-sort{
+  width:38px;
+  padding:8px 0;
+  justify-content:center;
+}
 
 /* lane items */
 .item{
@@ -232,7 +228,7 @@ body.products-page{
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  max-width: 200px;
+  max-width: 220px;
 }
 
 .rate-badge{
@@ -246,6 +242,7 @@ body.products-page{
   font-weight:1000;
 }
 
+/* see more row */
 .see-more{
   margin-top: 10px;
   padding: 10px 10px;
@@ -261,9 +258,8 @@ body.products-page{
   background: rgba(255,255,255,0.6);
   box-shadow:none;
 }
-.lane.empty .muted{ font-size:13px; }
 
-/* Add panel */
+/* add panel (right) */
 .add-panel{
   min-height: 0;
   border:1px solid rgba(0,0,0,0.18);
@@ -276,16 +272,37 @@ body.products-page{
 .panel-title{ font-weight:1000; margin-bottom:2px; }
 .panel-sub{ font-size:12px; margin-bottom:8px; }
 
-/* Drawer */
+/* drawer overlay */
+.drawer-overlay{
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,0.22);
+  z-index: 50;
+}
+
+/* drawer as slide-over (does not consume layout width) */
 .drawer{
-  min-height: 0;
+  position:absolute;
+  top:0;
+  right:0;
+  height:100%;
+  width:360px;
+  z-index: 60;
+
   border:1px solid rgba(0,0,0,0.18);
   border-radius: var(--radius);
   background:#fff;
-  box-shadow: var(--shadow);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.22);
+
   display:flex;
   flex-direction:column;
   overflow:hidden;
+}
+
+.drawer-slide{ animation: slideIn .14s ease; }
+@keyframes slideIn{
+  from{ transform: translateX(10px); opacity:0; }
+  to{ transform: translateX(0); opacity:1; }
 }
 
 .drawer-head{
