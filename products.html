@@ -4,11 +4,13 @@
   <meta charset="utf-8" />
   <title>The Best Again — Products</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="styles.css" />
+
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="products.css" />
 </head>
 
-<body onload="initProductsPage()">
-  <header class="topbar">
+<body class="products-page" onload="initProductsMasonryPage()">
+  <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav">
       <a href="index.html">Home</a>
@@ -16,49 +18,59 @@
       <a href="map.html">Map</a>
       <a class="active" href="products.html">Products</a>
       <a href="my-votes.html">My Votes</a>
-      <span id="authStatus" style="margin-left:12px;"></span>
+      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
     </nav>
   </header>
 
-  <main class="container">
-    <h1>Products</h1>
-    <p class="muted">A product is defined by <b>Category + Brand</b>. No title needed.</p>
+  <main class="products-shell">
+    <!-- TOP TOOLBAR -->
+    <section class="products-toolbar">
+      <div class="toolbar-left">
+        <div class="toolbar-block">
+          <div class="toolbar-label">Category</div>
+          <div class="toolbar-inline">
+            <div id="catQuick" class="chip-row"></div>
 
-    <section class="card" id="productCreateCard">
-      <h2>Add product</h2>
-      <p class="muted">Creating a product also creates your vote and updates the overall average automatically.</p>
+            <select id="catMore" class="select-compact" onchange="onCategoryMoreChanged()">
+              <option value="">More…</option>
+            </select>
 
-      <div style="display:flex; gap:12px; flex-wrap:wrap;">
-        <div style="flex:1; min-width:220px;">
-          <label>Category (product categories only)</label>
-          <select id="p_category"></select>
+            <button id="btnClearFilters" class="chip chip-clear" style="display:none;" onclick="clearFilters()">✕ Clear</button>
+          </div>
         </div>
 
-        <div style="flex:1; min-width:220px;">
-          <label>Brand (required)</label>
-          <select id="p_brand"></select>
-        </div>
-
-        <div style="width:160px;">
-          <label>My vote (1–10)</label>
-          <select id="p_vote"></select>
+        <div class="toolbar-block">
+          <div class="toolbar-label">Rating</div>
+          <div id="ratingSeg" class="seg-row"></div>
         </div>
       </div>
 
-      <div style="margin-top:12px;">
-        <button onclick="saveProduct()">Save product</button>
-        <span id="p_status" class="muted" style="margin-left:10px;"></span>
+      <div class="toolbar-right">
+        <span id="pageStatus" class="muted"></span>
       </div>
     </section>
 
-    <section class="card">
-      <h2>Products list</h2>
-      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-        <div style="margin-left:auto;">
-          <span id="productsStatus" class="muted"></span>
+    <!-- CONTENT -->
+    <section class="products-area">
+      <!-- Masonry lanes -->
+      <div id="lanes" class="lanes-masonry"></div>
+
+      <!-- Right drawer -->
+      <aside id="drawer" class="drawer" style="display:none;">
+        <div class="drawer-head">
+          <div class="drawer-title">
+            <span id="drawerType" class="drawer-pill">🛒 Product</span>
+            <span id="drawerCatName">—</span>
+          </div>
+
+          <div class="drawer-actions">
+            <button class="tba-btn" id="drawerSortBtn" onclick="toggleDrawerSort()">Top ↓</button>
+            <button class="tba-btn" onclick="closeDrawer()">Close</button>
+          </div>
         </div>
-      </div>
-      <div id="productsWrap" style="margin-top:12px;"></div>
+
+        <div class="drawer-body" id="drawerList"></div>
+      </aside>
     </section>
   </main>
 
@@ -67,6 +79,6 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
 
-  <script src="products.js?v=2"></script>
+  <script src="products.js?v=200"></script>
 </body>
 </html>
