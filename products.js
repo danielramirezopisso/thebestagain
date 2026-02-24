@@ -1,5 +1,10 @@
-// products.js — Products UX v2 (grid lanes + add panel + overlay drawer)
-// Products are unique by (category_id, brand_id). No variants.
+// products.js — Products UX v2.1 (grid lanes + add panel + overlay drawer)
+// Fixes:
+// - Default sort is Top→Bottom (desc)
+// - No "No more" row
+// - Lanes auto-height (natural)
+// - No empty slot cards
+// - Lanes show up to 5 items + (See more) only if more exist
 
 let CATS = [];
 let CAT_BY_ID = {};
@@ -13,7 +18,7 @@ let FILTER_BUCKET = "";
 
 // lane sort
 let TOP_CATS = [];
-let LANE_SORT = {}; // catId -> "desc" | "asc"
+let LANE_SORT = {}; // catId -> "desc" | "asc" (default desc)
 let DRAWER_CAT = null;
 let DRAWER_SORT = "desc";
 
@@ -232,7 +237,6 @@ document.addEventListener("keydown", (e)=>{
 });
 
 function sortMarkers(arr, dir){
-  // sort by rating_avg (desc), then rating_count, then brand name
   const d = (dir === "asc") ? 1 : -1;
   return arr.sort((a,b)=>{
     const av = Number(a.rating_avg ?? 0);
@@ -267,10 +271,12 @@ function renderLane(catId, markersForCat){
   const name = cat?.name || String(catId);
   const icon = iconForCategory(catId);
 
-  const dir = LANE_SORT[String(catId)] || "desc";
+  const dir = LANE_SORT[String(catId)] || "desc"; // default top->bottom
   const sorted = sortMarkers(markersForCat.slice(), dir);
 
-  const visible = sorted.slice(0, 6);
+  // SHOW UP TO 5 ITEMS; if more than 5, show See more as "6th"
+  const visible = sorted.slice(0, 5);
+  const hasMore = sorted.length > 5;
 
   const itemsHtml = visible.map(m=>{
     const brand = BRAND_BY_ID[String(m.brand_id)]?.name || "(unknown brand)";
@@ -285,9 +291,9 @@ function renderLane(catId, markersForCat){
     `;
   }).join("");
 
-  const moreHtml = (sorted.length > 6)
+  const moreHtml = hasMore
     ? `<div class="see-more" onclick="openDrawer('${escapeHtml(catId)}')">See more →</div>`
-    : `<div class="see-more" style="opacity:0.55; cursor:default;">No more</div>`;
+    : "";
 
   return `
     <div class="lane">
@@ -308,15 +314,6 @@ function renderLane(catId, markersForCat){
 
       ${itemsHtml || `<div class="muted">No products in this category yet.</div>`}
       ${moreHtml}
-    </div>
-  `;
-}
-
-function renderEmptyLane(){
-  return `
-    <div class="lane empty">
-      <div style="font-weight:1000;">Empty slot</div>
-      <div class="muted" style="margin-top:6px;">Create more products to fill this space.</div>
     </div>
   `;
 }
@@ -378,17 +375,15 @@ function renderAll(){
     laneIds = [String(FILTER_CATEGORY), ...laneIds.filter(x => x !== String(FILTER_CATEGORY))];
   }
 
+  // Group current filtered markers by category
   const byCat = {};
   filtered.forEach(m=>{
     const cid = String(m.category_id);
     (byCat[cid] ||= []).push(m);
   });
 
-  const html = [];
-  laneIds.forEach(cid=>{
-    html.push(renderLane(cid, byCat[cid] || []));
-  });
-  while (html.length < N) html.push(renderEmptyLane());
+  // Only render lanes that exist in laneIds (no empty slots)
+  const html = laneIds.map(cid => renderLane(cid, byCat[cid] || []));
 
   qs("lanes").innerHTML = html.join("");
   setStatus(`Loaded ${filtered.length} product(s).`);
@@ -465,22 +460,6 @@ async function saveProduct(){
     return;
   }
 
-  setPStatus("Saved ✅ Reloading…");
-
-  // reload markers locally for instant UI update
-  const { data: markers, error: reloadErr } = await sb
-    .from("markers")
-    .select("id,title,group_type,category_id,brand_id,rating_avg,rating_count,is_active,created_at")
-    .eq("is_active", true)
-    .eq("group_type", "product");
-
-  if (!reloadErr) MARKERS = markers || [];
-
-  TOP_CATS = computeTopCategories();
-  showClearIfNeeded();
-  renderAll();
-
-  // jump to marker page (your desired behavior)
   window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
 }
 
