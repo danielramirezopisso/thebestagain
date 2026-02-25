@@ -4,11 +4,12 @@
   <meta charset="utf-8" />
   <title>The Best Again — List</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="list.css" />
 </head>
 
 <body onload="initListPage()">
-  <header class="topbar">
+  <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav">
       <a href="index.html">Home</a>
@@ -17,59 +18,62 @@
       <a href="products.html">Products</a>
       <a href="my-votes.html">My Votes</a>
       <a href="admin.html">Admin</a>
-      <span id="authStatus" style="margin-left:12px;"></span>
+      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
     </nav>
   </header>
 
   <main class="container">
-    <h1>List</h1>
-    <p class="muted">All markers (Places + Products). Read-only.</p>
 
-    <section class="card">
-      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-        <div>
-          <label>Type</label>
-          <select id="filter_type" onchange="applyListFilters()">
-            <option value="">All</option>
-            <option value="place">Places</option>
-            <option value="product">Products</option>
-          </select>
+    <div class="list-header">
+      <div>
+        <h1>List</h1>
+        <p class="muted">All places &amp; products.</p>
+      </div>
+      <span id="listCount" class="list-count muted"></span>
+    </div>
+
+    <!-- FILTERS -->
+    <section class="card filter-card">
+
+      <!-- Row 1: Search + Type toggle -->
+      <div class="filter-row">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input id="searchInput" class="search-input" placeholder="Search title, brand, address…" oninput="applyListFilters()" />
         </div>
-
-        <div>
-          <label>Category</label>
-          <select id="filter_category" onchange="applyListFilters()">
-            <option value="">All</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Min rating</label>
-          <select id="filter_min_rating" onchange="applyListFilters()">
-            <option value="">All</option>
-          </select>
-        </div>
-
-        <div style="margin-top:22px;">
-          <button onclick="clearListFilters()">Clear</button>
-        </div>
-
-        <div style="margin-left:auto;">
-          <span id="listStatus" class="muted"></span>
+        <div class="type-toggle">
+          <button class="type-btn active" data-type="" onclick="setTypeFilter(this, '')">All</button>
+          <button class="type-btn" data-type="place" onclick="setTypeFilter(this, 'place')">📍 Places</button>
+          <button class="type-btn" data-type="product" onclick="setTypeFilter(this, 'product')">🛒 Products</button>
         </div>
       </div>
+
+      <!-- Row 2: Category chips -->
+      <div class="filter-row filter-row-chips">
+        <div class="filter-label">Category</div>
+        <div id="catChips" class="chip-row"></div>
+      </div>
+
+      <!-- Row 3: Rating + Clear -->
+      <div class="filter-row">
+        <div class="filter-label">Rating</div>
+        <div id="ratingSeg" class="seg-row"></div>
+        <button id="btnClearFilters" class="chip chip-clear" style="display:none; margin-left:auto;" onclick="clearListFilters()">✕ Clear all</button>
+      </div>
+
     </section>
 
-    <section class="card">
+    <!-- TABLE -->
+    <section class="card table-card">
       <div id="listWrap"></div>
     </section>
+
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
-
-  <script src="list.js?v=2"></script>
+  <script src="list.js?v=3"></script>
 </body>
 </html>
