@@ -101,7 +101,7 @@ body.products-page{
   border-color:rgba(0,0,0,0.35);
 }
 
-/* layout: lanes + add sidebar (drawer overlay does not consume width) */
+/* layout */
 .products-area{
   position: relative;
   flex: 1;
@@ -121,6 +121,9 @@ body.products-page{
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap:10px;
   align-content:start;
+
+  /* ✅ IMPORTANT: don't stretch lane heights */
+  align-items: start;
 }
 
 /* lane card */
@@ -131,6 +134,9 @@ body.products-page{
   box-shadow: var(--shadow);
   padding: 12px;
   min-width:0;
+
+  /* ✅ IMPORTANT: lane keeps its own height */
+  align-self: start;
 }
 
 .lane-head{
@@ -162,7 +168,7 @@ body.products-page{
 
 .lane-name{
   font-weight:1000;
-  white-space:normal;          /* allow wrap */
+  white-space:normal;
   overflow:hidden;
   text-overflow:ellipsis;
   line-height:1.15;
@@ -254,12 +260,7 @@ body.products-page{
 }
 .see-more:hover{ background: rgba(0,0,0,0.05); }
 
-.lane.empty{
-  background: rgba(255,255,255,0.6);
-  box-shadow:none;
-}
-
-/* add panel (right) */
+/* add panel */
 .add-panel{
   min-height: 0;
   border:1px solid rgba(0,0,0,0.18);
@@ -280,7 +281,7 @@ body.products-page{
   z-index: 50;
 }
 
-/* drawer as slide-over (does not consume layout width) */
+/* drawer slide-over */
 .drawer{
   position:absolute;
   top:0;
