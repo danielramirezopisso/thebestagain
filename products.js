@@ -1,10 +1,8 @@
-// products.js — Products UX v2.1 (grid lanes + add panel + overlay drawer)
-// Fixes:
-// - Default sort is Top→Bottom (desc)
-// - No "No more" row
-// - Lanes auto-height (natural)
-// - No empty slot cards
-// - Lanes show up to 5 items + (See more) only if more exist
+// products.js — Products UX v2.2 (grid lanes + add panel + overlay drawer)
+// FIXES:
+// - Sorting now correctly defaults to Top→Bottom (DESC)
+// - Arrow reflects sort direction
+// - Lanes show up to 5 items + See more only if >5
 
 let CATS = [];
 let CAT_BY_ID = {};
@@ -158,7 +156,7 @@ function setActiveRatingBtn(key){
   });
 }
 
-/* Category quick chips (top 4 by product count) */
+/* Category quick chips */
 function renderCatQuick(){
   const host = qs("catQuick");
   host.innerHTML = "";
@@ -213,7 +211,6 @@ function openDrawer(catId){
 
   qs("drawerOverlay").style.display = "block";
   qs("drawer").style.display = "flex";
-
   qs("drawerCatName").textContent = CAT_BY_ID[DRAWER_CAT]?.name || DRAWER_CAT;
   qs("drawerSortBtn").textContent = arrowFor(DRAWER_SORT);
 
@@ -236,15 +233,21 @@ document.addEventListener("keydown", (e)=>{
   if (e.key === "Escape") closeDrawer();
 });
 
+/* ✅ FIXED comparator: DESC really means highest first */
 function sortMarkers(arr, dir){
-  const d = (dir === "asc") ? 1 : -1;
+  // primary: rating_avg, secondary: rating_count, then brand name
+  // dir="desc" => higher first
+  const mult = (dir === "asc") ? 1 : -1;
+
   return arr.sort((a,b)=>{
     const av = Number(a.rating_avg ?? 0);
     const bv = Number(b.rating_avg ?? 0);
-    if (bv !== av) return d * (bv - av);
+    if (av !== bv) return mult * (av - bv);
+
     const ac = Number(a.rating_count ?? 0);
     const bc = Number(b.rating_count ?? 0);
-    if (bc !== ac) return d * (bc - ac);
+    if (ac !== bc) return mult * (ac - bc);
+
     const an = BRAND_BY_ID[String(a.brand_id)]?.name || "";
     const bn = BRAND_BY_ID[String(b.brand_id)]?.name || "";
     return an.localeCompare(bn);
@@ -271,10 +274,9 @@ function renderLane(catId, markersForCat){
   const name = cat?.name || String(catId);
   const icon = iconForCategory(catId);
 
-  const dir = LANE_SORT[String(catId)] || "desc"; // default top->bottom
+  const dir = LANE_SORT[String(catId)] || "desc"; // default TOP→BOTTOM
   const sorted = sortMarkers(markersForCat.slice(), dir);
 
-  // SHOW UP TO 5 ITEMS; if more than 5, show See more as "6th"
   const visible = sorted.slice(0, 5);
   const hasMore = sorted.length > 5;
 
@@ -356,10 +358,8 @@ function computeTopCategories(){
 
 function renderAll(){
   const filtered = MARKERS.filter(passesCategory).filter(passesBucket);
-
   TOP_CATS = computeTopCategories();
 
-  // More dropdown
   const more = qs("catMore");
   more.innerHTML = `<option value="">More…</option>` + CATS
     .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
@@ -370,22 +370,17 @@ function renderAll(){
 
   const N = 6;
   let laneIds = TOP_CATS.slice(0, N);
-
   if (FILTER_CATEGORY) {
     laneIds = [String(FILTER_CATEGORY), ...laneIds.filter(x => x !== String(FILTER_CATEGORY))];
   }
 
-  // Group current filtered markers by category
   const byCat = {};
   filtered.forEach(m=>{
     const cid = String(m.category_id);
     (byCat[cid] ||= []).push(m);
   });
 
-  // Only render lanes that exist in laneIds (no empty slots)
-  const html = laneIds.map(cid => renderLane(cid, byCat[cid] || []));
-
-  qs("lanes").innerHTML = html.join("");
+  qs("lanes").innerHTML = laneIds.map(cid => renderLane(cid, byCat[cid] || [])).join("");
   setStatus(`Loaded ${filtered.length} product(s).`);
 
   if (DRAWER_CAT) renderDrawer();
@@ -406,7 +401,6 @@ async function saveProduct(){
   if (!brand_id) { setPStatus("Brand required."); return; }
   if (!(v >= 1 && v <= 10)) { setPStatus("Vote must be 1–10."); return; }
 
-  // Exists?
   const { data: existing, error: eErr } = await sb
     .from("markers")
     .select("id")
@@ -445,10 +439,7 @@ async function saveProduct(){
     .select("id")
     .single();
 
-  if (mErr) {
-    setPStatus("Error creating: " + mErr.message);
-    return;
-  }
+  if (mErr) { setPStatus("Error creating: " + mErr.message); return; }
 
   const { error: vErr } = await sb
     .from("votes")
@@ -475,7 +466,6 @@ async function initProductsMasonryPage(){
     qs("addPanelLoggedOut").style.display = "block";
   }
 
-  // Brands
   const { data: brands, error: bErr } = await sb
     .from("brands")
     .select("id,name,is_active,icon_url")
@@ -487,7 +477,6 @@ async function initProductsMasonryPage(){
   BRAND_BY_ID = {};
   BRANDS.forEach(b => BRAND_BY_ID[String(b.id)] = b);
 
-  // Categories (products only)
   const { data: cats, error: cErr } = await sb
     .from("categories")
     .select("id,name,icon_url,is_active,for_products")
@@ -500,11 +489,9 @@ async function initProductsMasonryPage(){
   CAT_BY_ID = {};
   CATS.forEach(c => CAT_BY_ID[String(c.id)] = c);
 
-  // Fill add panel selects
   qs("p_category").innerHTML = CATS.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
   qs("p_brand").innerHTML = BRANDS.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`).join("");
 
-  // Product markers
   const { data: markers, error: mErr } = await sb
     .from("markers")
     .select("id,title,group_type,category_id,brand_id,rating_avg,rating_count,is_active,created_at")
@@ -515,7 +502,6 @@ async function initProductsMasonryPage(){
   MARKERS = markers || [];
 
   TOP_CATS = computeTopCategories();
-
   showClearIfNeeded();
   renderAll();
 }
