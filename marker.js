@@ -7,8 +7,20 @@ let CURRENT_MARKER = null;
 
 let CATEGORIES_ALL = [];
 let BRANDS = [];
+let CATEGORY_BRANDS = []; // [{category_id, brand_id}]
 
 let CURRENT_VOTE_ROW = null;
+
+// Returns brands allowed for a given category_id (integer)
+function brandsForCategory(category_id) {
+  if (!category_id) return BRANDS.filter(b => b.is_active);
+  const allowed = new Set(
+    CATEGORY_BRANDS
+      .filter(cb => cb.category_id === category_id && cb.is_active)
+      .map(cb => cb.brand_id)
+  );
+  return BRANDS.filter(b => b.is_active && allowed.has(b.id));
+}
 
 function qs(name) {
   return new URLSearchParams(window.location.search).get(name);
@@ -84,14 +96,14 @@ function renderCategoryOptions(group_type, selectedId) {
   if (selectedId != null) sel.value = String(selectedId);
 }
 
-function renderBrandOptions(selectedId) {
+function renderBrandOptions(selectedId, category_id) {
   const sel = document.getElementById("e_brand");
   if (!sel) return;
 
-  sel.innerHTML = BRANDS
-    .filter(b => b.is_active)
-    .map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`)
-    .join("");
+  const filtered = brandsForCategory(category_id || null);
+  sel.innerHTML = filtered.length
+    ? filtered.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("")
+    : `<option value="">No brands linked to this category</option>`;
 
   if (selectedId != null) sel.value = String(selectedId);
 }
@@ -130,31 +142,33 @@ function setTitleReadonlyForGroup(group_type) {
 // Called when group changes in edit mode
 function onEditGroupChanged() {
   const g = document.getElementById("e_group_type").value;
+  const category_id = parseInt(document.getElementById("e_category").value) || null;
 
   showBrandRow(g === "product");
-
-  // Re-render categories for that group
   renderCategoryOptions(g, null);
-
-  // Toggle title editability
   setTitleReadonlyForGroup(g);
 
-  // If switching to product, auto-fill title from current selections
   if (g === "product") {
-    const category_id = document.getElementById("e_category").value;
-    const brand_id = document.getElementById("e_brand").value;
-    document.getElementById("e_title").value = computeProductTitle(category_id, brand_id);
+    renderBrandOptions(null, category_id);
+    const brand_id = parseInt(document.getElementById("e_brand").value) || null;
+    document.getElementById("e_title").value = computeProductTitle(
+      document.getElementById("e_category").value,
+      brand_id
+    );
   }
 }
 
 // When category changes, update product title if product
 function onEditCategoryChanged() {
   const g = document.getElementById("e_group_type").value;
-  if (g !== "product") return;
+  const category_id = parseInt(document.getElementById("e_category").value) || null;
 
-  const category_id = document.getElementById("e_category").value;
-  const brand_id = document.getElementById("e_brand").value;
-  document.getElementById("e_title").value = computeProductTitle(category_id, brand_id);
+  if (g === "product") {
+    // Re-filter brands for new category
+    renderBrandOptions(null, category_id);
+    const brand_id = parseInt(document.getElementById("e_brand").value) || null;
+    document.getElementById("e_title").value = computeProductTitle(category_id, brand_id);
+  }
 }
 
 // When brand changes, update product title if product
@@ -192,6 +206,18 @@ async function initMarkerPage() {
 
   fillSelect1to10("my_vote", 7);
   fillSelect1to10("e_rating", 7);
+
+  // Load category_brands
+  const cbResult = await sb
+    .from("category_brands")
+    .select("category_id,brand_id,is_active")
+    .eq("is_active", true);
+
+  if (cbResult.error) {
+    setStatus("Error loading category-brands: " + cbResult.error.message);
+    return;
+  }
+  CATEGORY_BRANDS = cbResult.data || [];
 
   // Load categories (with scope flags)
   const cats = await sb
@@ -299,8 +325,8 @@ function fillEditForm() {
   document.getElementById("e_title").value = m.title || "";
   document.getElementById("e_group_type").value = m.group_type || "place";
 
-  // render brand options always (we just hide/show)
-  renderBrandOptions(m.brand_id || "");
+  // render brand options filtered by current category
+  renderBrandOptions(m.brand_id || "", m.category_id || null);
 
   // categories filtered by group
   renderCategoryOptions(m.group_type || "place", m.category_id || "");
