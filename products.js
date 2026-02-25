@@ -1,14 +1,12 @@
-// products.js — Products UX v2.2 (grid lanes + add panel + overlay drawer)
-// FIXES:
-// - Sorting now correctly defaults to Top→Bottom (DESC)
-// - Arrow reflects sort direction
-// - Lanes show up to 5 items + See more only if >5
+// products.js — Products UX v2.3
+// NEW: brands filtered by selected category via category_brands table
 
 let CATS = [];
 let CAT_BY_ID = {};
 let BRANDS = [];
 let BRAND_BY_ID = {};
 let MARKERS = [];
+let CATEGORY_BRANDS = []; // [{category_id, brand_id}]
 
 // filters
 let FILTER_CATEGORY = "";
@@ -16,7 +14,7 @@ let FILTER_BUCKET = "";
 
 // lane sort
 let TOP_CATS = [];
-let LANE_SORT = {}; // catId -> "desc" | "asc" (default desc)
+let LANE_SORT = {};
 let DRAWER_CAT = null;
 let DRAWER_SORT = "desc";
 
@@ -41,16 +39,35 @@ function normalizeUrl(raw){
 }
 
 function iconForCategory(id){
-  const raw = CAT_BY_ID[String(id)]?.icon_url || "";
+  const raw = CAT_BY_ID[id]?.icon_url || "";
   return normalizeUrl(raw) || DEFAULT_ICON_URL;
 }
 function iconForBrand(id){
-  const raw = BRAND_BY_ID[String(id)]?.icon_url || "";
-  return normalizeUrl(raw); // can be empty
+  const raw = BRAND_BY_ID[id]?.icon_url || "";
+  return normalizeUrl(raw);
 }
 
 function setStatus(msg){ qs("pageStatus").textContent = msg || ""; }
 function setPStatus(msg){ const el = qs("p_status"); if (el) el.textContent = msg || ""; }
+
+// Returns brands allowed for a given category_id (integer)
+function brandsForCategory(category_id) {
+  if (!category_id) return BRANDS.filter(b => b.is_active);
+  const allowed = new Set(
+    CATEGORY_BRANDS
+      .filter(cb => cb.category_id === category_id && cb.is_active)
+      .map(cb => cb.brand_id)
+  );
+  return BRANDS.filter(b => b.is_active && allowed.has(b.id));
+}
+
+function fillAddBrandDropdown() {
+  const category_id = parseInt(qs("p_category").value) || null;
+  const filtered = brandsForCategory(category_id);
+  qs("p_brand").innerHTML = filtered.length
+    ? filtered.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("")
+    : `<option value="">No brands linked to this category</option>`;
+}
 
 function fillVoteSelect(){
   const sel = qs("p_vote");
@@ -92,7 +109,7 @@ function passesBucket(m){
 }
 function passesCategory(m){
   if (!FILTER_CATEGORY) return true;
-  return String(m.category_id) === String(FILTER_CATEGORY);
+  return m.category_id === FILTER_CATEGORY;
 }
 
 function showClearIfNeeded(){
@@ -111,7 +128,7 @@ function clearFilters(){
 }
 
 function onCategoryMoreChanged(){
-  const v = qs("catMore").value;
+  const v = parseInt(qs("catMore").value) || "";
   if (!v) return;
   FILTER_CATEGORY = v;
   renderCatQuick();
@@ -119,11 +136,9 @@ function onCategoryMoreChanged(){
   renderAll();
 }
 
-/* Rating buttons */
 function renderRatingButtons(){
   const host = qs("ratingSeg");
   host.innerHTML = "";
-
   const buttons = [
     { key:"", label:"Any", cls:"" },
     { key:"9-10", label:"9–10", cls:"rating-9-10" },
@@ -132,7 +147,6 @@ function renderRatingButtons(){
     { key:"3-4",  label:"3–4",  cls:"rating-3-4" },
     { key:"1-2",  label:"1–2",  cls:"rating-1-2" },
   ];
-
   buttons.forEach(b => {
     const btn = document.createElement("button");
     btn.className = `seg-btn ${b.cls}`.trim();
@@ -146,7 +160,6 @@ function renderRatingButtons(){
     };
     host.appendChild(btn);
   });
-
   setActiveRatingBtn("");
 }
 
@@ -156,30 +169,26 @@ function setActiveRatingBtn(key){
   });
 }
 
-/* Category quick chips */
 function renderCatQuick(){
   const host = qs("catQuick");
   host.innerHTML = "";
-
-  const top4 = TOP_CATS.slice(0,4).map(id => CAT_BY_ID[String(id)]).filter(Boolean);
-
+  const top4 = TOP_CATS.slice(0,4).map(id => CAT_BY_ID[id]).filter(Boolean);
   top4.forEach(c => {
     const a = document.createElement("a");
     a.href="#";
     a.className="chip";
     a.onclick = (e) => {
       e.preventDefault();
-      FILTER_CATEGORY = (FILTER_CATEGORY === String(c.id)) ? "" : String(c.id);
+      FILTER_CATEGORY = (FILTER_CATEGORY === c.id) ? "" : c.id;
       qs("catMore").value = FILTER_CATEGORY ? FILTER_CATEGORY : "";
       renderCatQuick();
       showClearIfNeeded();
       renderAll();
     };
-    if (FILTER_CATEGORY === String(c.id)) a.classList.add("active");
+    if (FILTER_CATEGORY === c.id) a.classList.add("active");
     a.innerHTML = `<img class="chip-ic" src="${escapeHtml(iconForCategory(c.id))}" alt=""/><span>${escapeHtml(c.name)}</span>`;
     host.appendChild(a);
   });
-
   const all = document.createElement("a");
   all.href="#";
   all.className="chip chip-more";
@@ -196,24 +205,22 @@ function renderCatQuick(){
   host.appendChild(all);
 }
 
-/* Sorting */
 function arrowFor(dir){ return dir === "asc" ? "↑" : "↓"; }
 
 function toggleLaneSort(catId){
-  const cur = LANE_SORT[catId] || "desc";
-  LANE_SORT[catId] = (cur === "desc") ? "asc" : "desc";
+  const id = parseInt(catId);
+  const cur = LANE_SORT[id] || "desc";
+  LANE_SORT[id] = (cur === "desc") ? "asc" : "desc";
   renderAll();
 }
 
 function openDrawer(catId){
-  DRAWER_CAT = String(catId);
+  DRAWER_CAT = parseInt(catId);
   DRAWER_SORT = LANE_SORT[DRAWER_CAT] || "desc";
-
   qs("drawerOverlay").style.display = "block";
   qs("drawer").style.display = "flex";
-  qs("drawerCatName").textContent = CAT_BY_ID[DRAWER_CAT]?.name || DRAWER_CAT;
+  qs("drawerCatName").textContent = CAT_BY_ID[DRAWER_CAT]?.name || String(DRAWER_CAT);
   qs("drawerSortBtn").textContent = arrowFor(DRAWER_SORT);
-
   renderDrawer();
 }
 
@@ -233,23 +240,17 @@ document.addEventListener("keydown", (e)=>{
   if (e.key === "Escape") closeDrawer();
 });
 
-/* ✅ FIXED comparator: DESC really means highest first */
 function sortMarkers(arr, dir){
-  // primary: rating_avg, secondary: rating_count, then brand name
-  // dir="desc" => higher first
   const mult = (dir === "asc") ? 1 : -1;
-
   return arr.sort((a,b)=>{
     const av = Number(a.rating_avg ?? 0);
     const bv = Number(b.rating_avg ?? 0);
     if (av !== bv) return mult * (av - bv);
-
     const ac = Number(a.rating_count ?? 0);
     const bc = Number(b.rating_count ?? 0);
     if (ac !== bc) return mult * (ac - bc);
-
-    const an = BRAND_BY_ID[String(a.brand_id)]?.name || "";
-    const bn = BRAND_BY_ID[String(b.brand_id)]?.name || "";
+    const an = BRAND_BY_ID[a.brand_id]?.name || "";
+    const bn = BRAND_BY_ID[b.brand_id]?.name || "";
     return an.localeCompare(bn);
   });
 }
@@ -270,18 +271,16 @@ function brandIconSlotHtml(brandId){
 }
 
 function renderLane(catId, markersForCat){
-  const cat = CAT_BY_ID[String(catId)];
+  const cat = CAT_BY_ID[catId];
   const name = cat?.name || String(catId);
   const icon = iconForCategory(catId);
-
-  const dir = LANE_SORT[String(catId)] || "desc"; // default TOP→BOTTOM
+  const dir = LANE_SORT[catId] || "desc";
   const sorted = sortMarkers(markersForCat.slice(), dir);
-
   const visible = sorted.slice(0, 5);
   const hasMore = sorted.length > 5;
 
   const itemsHtml = visible.map(m=>{
-    const brand = BRAND_BY_ID[String(m.brand_id)]?.name || "(unknown brand)";
+    const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
     return `
       <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}">
         <div class="item-left">
@@ -294,7 +293,7 @@ function renderLane(catId, markersForCat){
   }).join("");
 
   const moreHtml = hasMore
-    ? `<div class="see-more" onclick="openDrawer('${escapeHtml(catId)}')">See more →</div>`
+    ? `<div class="see-more" onclick="openDrawer(${catId})">See more →</div>`
     : "";
 
   return `
@@ -308,12 +307,10 @@ function renderLane(catId, markersForCat){
             <div class="lane-count">${markersForCat.length} brand${markersForCat.length === 1 ? "" : "s"}</div>
           </div>
         </div>
-
-        <button class="tba-btn lane-sort" onclick="toggleLaneSort('${escapeHtml(catId)}')" title="Toggle sort">
+        <button class="tba-btn lane-sort" onclick="toggleLaneSort(${catId})" title="Toggle sort">
           ${escapeHtml(arrowFor(dir))}
         </button>
       </div>
-
       ${itemsHtml || `<div class="muted">No products in this category yet.</div>`}
       ${moreHtml}
     </div>
@@ -323,15 +320,10 @@ function renderLane(catId, markersForCat){
 function renderDrawer(){
   if (!DRAWER_CAT) return;
   const catId = DRAWER_CAT;
-
-  let rows = MARKERS
-    .filter(m => String(m.category_id) === String(catId))
-    .filter(passesBucket);
-
+  let rows = MARKERS.filter(m => m.category_id === catId).filter(passesBucket);
   rows = sortMarkers(rows.slice(), DRAWER_SORT);
-
   qs("drawerList").innerHTML = rows.map(m=>{
-    const brand = BRAND_BY_ID[String(m.brand_id)]?.name || "(unknown brand)";
+    const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
     return `
       <a class="drawer-item" href="marker.html?id=${encodeURIComponent(m.id)}">
         <div class="item-left">
@@ -347,11 +339,11 @@ function renderDrawer(){
 function computeTopCategories(){
   const counts = {};
   MARKERS.forEach(m=>{
-    const cid = String(m.category_id ?? "");
+    const cid = m.category_id;
     if (!cid) return;
     counts[cid] = (counts[cid] || 0) + 1;
   });
-  const ids = Object.keys(counts);
+  const ids = Object.keys(counts).map(Number);
   ids.sort((a,b)=> (counts[b]||0) - (counts[a]||0));
   return ids;
 }
@@ -362,7 +354,7 @@ function renderAll(){
 
   const more = qs("catMore");
   more.innerHTML = `<option value="">More…</option>` + CATS
-    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
+    .map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
     .join("");
   more.value = FILTER_CATEGORY ? FILTER_CATEGORY : "";
 
@@ -371,18 +363,17 @@ function renderAll(){
   const N = 6;
   let laneIds = TOP_CATS.slice(0, N);
   if (FILTER_CATEGORY) {
-    laneIds = [String(FILTER_CATEGORY), ...laneIds.filter(x => x !== String(FILTER_CATEGORY))];
+    laneIds = [FILTER_CATEGORY, ...laneIds.filter(x => x !== FILTER_CATEGORY)];
   }
 
   const byCat = {};
   filtered.forEach(m=>{
-    const cid = String(m.category_id);
+    const cid = m.category_id;
     (byCat[cid] ||= []).push(m);
   });
 
   qs("lanes").innerHTML = laneIds.map(cid => renderLane(cid, byCat[cid] || [])).join("");
   setStatus(`Loaded ${filtered.length} product(s).`);
-
   if (DRAWER_CAT) renderDrawer();
 }
 
@@ -393,8 +384,8 @@ async function saveProduct(){
 
   setPStatus("Saving…");
 
-  const category_id = qs("p_category").value;
-  const brand_id = qs("p_brand").value;
+  const category_id = parseInt(qs("p_category").value) || null;
+  const brand_id = parseInt(qs("p_brand").value) || null;
   const v = Number(qs("p_vote").value);
 
   if (!category_id) { setPStatus("Category required."); return; }
@@ -417,20 +408,16 @@ async function saveProduct(){
     return;
   }
 
-  const catName = CAT_BY_ID[String(category_id)]?.name || category_id;
-  const brandName = BRAND_BY_ID[String(brand_id)]?.name || brand_id;
+  const catName = CAT_BY_ID[category_id]?.name || String(category_id);
+  const brandName = BRAND_BY_ID[brand_id]?.name || String(brand_id);
   const title = `${catName} · ${brandName}`;
 
   const payload = {
-    title,
-    category_id,
-    brand_id,
+    title, category_id, brand_id,
     group_type: "product",
     is_active: true,
     rating_manual: v,
-    lat: null,
-    lon: null,
-    address: null
+    lat: null, lon: null, address: null
   };
 
   const { data: markerRow, error: mErr } = await sb
@@ -466,6 +453,15 @@ async function initProductsMasonryPage(){
     qs("addPanelLoggedOut").style.display = "block";
   }
 
+  // Load category_brands linking table
+  const { data: cbData, error: cbErr } = await sb
+    .from("category_brands")
+    .select("category_id,brand_id,is_active")
+    .eq("is_active", true);
+
+  if (cbErr) { setStatus("Error loading category-brands: " + cbErr.message); return; }
+  CATEGORY_BRANDS = cbData || [];
+
   const { data: brands, error: bErr } = await sb
     .from("brands")
     .select("id,name,is_active,icon_url")
@@ -475,7 +471,7 @@ async function initProductsMasonryPage(){
   if (bErr) { setStatus("Error loading brands: " + bErr.message); return; }
   BRANDS = brands || [];
   BRAND_BY_ID = {};
-  BRANDS.forEach(b => BRAND_BY_ID[String(b.id)] = b);
+  BRANDS.forEach(b => BRAND_BY_ID[b.id] = b);
 
   const { data: cats, error: cErr } = await sb
     .from("categories")
@@ -487,10 +483,13 @@ async function initProductsMasonryPage(){
   if (cErr) { setStatus("Error loading categories: " + cErr.message); return; }
   CATS = cats || [];
   CAT_BY_ID = {};
-  CATS.forEach(c => CAT_BY_ID[String(c.id)] = c);
+  CATS.forEach(c => CAT_BY_ID[c.id] = c);
 
-  qs("p_category").innerHTML = CATS.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
-  qs("p_brand").innerHTML = BRANDS.map(b => `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name)}</option>`).join("");
+  qs("p_category").innerHTML = CATS.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+
+  // Fill brands filtered by selected category, update on change
+  fillAddBrandDropdown();
+  qs("p_category").addEventListener("change", fillAddBrandDropdown);
 
   const { data: markers, error: mErr } = await sb
     .from("markers")
