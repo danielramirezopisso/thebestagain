@@ -1,15 +1,19 @@
-// list.js — Read-only list of all markers (places + products)
-// + URL params support: ?type=place|product & ?category=<id> & ?min_rating=1..10
-// uses sb from auth.js
+// list.js v3 — sortable columns, category chips, rating filter, search, type toggle
 
+let ALL_MARKERS = [];   // raw from DB
 let CATEGORIES = [];
-let BRANDS = [];
-let CAT_NAME = {};
-let BRAND_NAME = {};
+let CAT_BY_ID = {};
+let BRAND_BY_ID = {};
 
-let FILTER_TYPE = "";
-let FILTER_CATEGORY = "";
-let FILTER_MIN_RATING = "";
+// Active filters
+let FILTER_TYPE = "";       // "" | "place" | "product"
+let FILTER_CATEGORY = "";   // "" | category id (integer)
+let FILTER_BUCKET = "";     // "" | "9-10" | "7-8" etc.
+let FILTER_SEARCH = "";
+
+// Sort state
+let SORT_COL = "votes";     // "title" | "type" | "category" | "votes" | "rating"
+let SORT_DIR = "desc";      // "asc" | "desc"
 
 function escapeHtml(s) {
   return String(s ?? "")
@@ -20,217 +24,318 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-function setListStatus(msg) {
-  const el = document.getElementById("listStatus");
-  if (el) el.textContent = msg || "";
+function setCount(shown, total) {
+  const el = document.getElementById("listCount");
+  if (el) el.textContent = shown === total ? `${total} items` : `Showing ${shown} of ${total}`;
 }
 
+function showClearIfNeeded() {
+  const any = FILTER_TYPE || FILTER_CATEGORY || FILTER_BUCKET || FILTER_SEARCH;
+  document.getElementById("btnClearFilters").style.display = any ? "inline-flex" : "none";
+}
+
+/* ── TYPE TOGGLE ── */
+function setTypeFilter(btn, type) {
+  FILTER_TYPE = type;
+  document.querySelectorAll(".type-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  // Rebuild category chips so they match the type
+  renderCatChips();
+  showClearIfNeeded();
+  renderTable();
+}
+
+/* ── CATEGORY CHIPS ── */
+function renderCatChips() {
+  const host = document.getElementById("catChips");
+  host.innerHTML = "";
+
+  // Filter categories to match current type filter
+  let cats = CATEGORIES.filter(c => c.is_active);
+  if (FILTER_TYPE === "place")   cats = cats.filter(c => c.for_places);
+  if (FILTER_TYPE === "product") cats = cats.filter(c => c.for_products);
+
+  cats.forEach(c => {
+    const btn = document.createElement("button");
+    btn.className = "chip" + (FILTER_CATEGORY === c.id ? " active" : "");
+    btn.onclick = () => {
+      FILTER_CATEGORY = (FILTER_CATEGORY === c.id) ? "" : c.id;
+      renderCatChips();
+      showClearIfNeeded();
+      renderTable();
+    };
+
+    const icon = c.icon_url
+      ? `<img class="chip-ic" src="${escapeHtml(c.icon_url)}" alt="" />`
+      : "";
+    btn.innerHTML = `${icon}<span>${escapeHtml(c.name)}</span>`;
+    host.appendChild(btn);
+  });
+}
+
+/* ── RATING BUTTONS ── */
+function renderRatingButtons() {
+  const host = document.getElementById("ratingSeg");
+  host.innerHTML = "";
+  const buttons = [
+    { key: "", label: "Any", cls: "" },
+    { key: "9-10", label: "9–10", cls: "rating-9-10" },
+    { key: "7-8",  label: "7–8",  cls: "rating-7-8" },
+    { key: "5-6",  label: "5–6",  cls: "rating-5-6" },
+    { key: "3-4",  label: "3–4",  cls: "rating-3-4" },
+    { key: "1-2",  label: "1–2",  cls: "rating-1-2" },
+  ];
+  buttons.forEach(b => {
+    const btn = document.createElement("button");
+    btn.className = `seg-btn ${b.cls}`.trim();
+    btn.dataset.key = b.key;
+    btn.textContent = b.label;
+    btn.onclick = () => {
+      FILTER_BUCKET = b.key;
+      setActiveRatingBtn(b.key);
+      showClearIfNeeded();
+      renderTable();
+    };
+    host.appendChild(btn);
+  });
+  setActiveRatingBtn("");
+}
+
+function setActiveRatingBtn(key) {
+  document.querySelectorAll(".seg-btn").forEach(el => {
+    el.classList.toggle("active", el.dataset.key === key);
+  });
+}
+
+/* ── FILTERS ── */
 function applyListFilters() {
-  FILTER_TYPE = document.getElementById("filter_type").value;
-  FILTER_CATEGORY = document.getElementById("filter_category").value;
-  FILTER_MIN_RATING = document.getElementById("filter_min_rating").value;
-
-  // Optional: keep URL in sync (nice for sharing/bookmarking)
-  updateUrlFromFilters();
-
-  reloadList();
+  FILTER_SEARCH = document.getElementById("searchInput").value.trim().toLowerCase();
+  showClearIfNeeded();
+  renderTable();
 }
 
 function clearListFilters() {
   FILTER_TYPE = "";
   FILTER_CATEGORY = "";
-  FILTER_MIN_RATING = "";
+  FILTER_BUCKET = "";
+  FILTER_SEARCH = "";
 
-  document.getElementById("filter_type").value = "";
-  document.getElementById("filter_category").value = "";
-  document.getElementById("filter_min_rating").value = "";
-
-  updateUrlFromFilters();
-  reloadList();
+  document.getElementById("searchInput").value = "";
+  document.querySelectorAll(".type-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.type === "");
+  });
+  setActiveRatingBtn("");
+  renderCatChips();
+  showClearIfNeeded();
+  renderTable();
 }
 
-function updateUrlFromFilters() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("type");
-  url.searchParams.delete("category");
-  url.searchParams.delete("min_rating");
-
-  if (FILTER_TYPE) url.searchParams.set("type", FILTER_TYPE);
-  if (FILTER_CATEGORY) url.searchParams.set("category", FILTER_CATEGORY);
-  if (FILTER_MIN_RATING) url.searchParams.set("min_rating", FILTER_MIN_RATING);
-
-  window.history.replaceState({}, "", url.toString());
-}
-
-function initFiltersFromUrl() {
-  const sp = new URLSearchParams(window.location.search);
-
-  const type = (sp.get("type") || "").trim();
-  const category = (sp.get("category") || "").trim();
-  const minRating = (sp.get("min_rating") || "").trim();
-
-  // Validate type
-  if (type === "place" || type === "product") {
-    FILTER_TYPE = type;
-    document.getElementById("filter_type").value = type;
+/* ── SORTING ── */
+function setSort(col) {
+  if (SORT_COL === col) {
+    SORT_DIR = SORT_DIR === "desc" ? "asc" : "desc";
+  } else {
+    SORT_COL = col;
+    SORT_DIR = col === "title" ? "asc" : "desc";
   }
-
-  // Validate category exists (after categories loaded)
-  if (category && CAT_NAME[String(category)]) {
-    FILTER_CATEGORY = category;
-    document.getElementById("filter_category").value = category;
-  }
-
-  // Validate rating
-  const n = Number(minRating);
-  if (minRating && n >= 1 && n <= 10) {
-    FILTER_MIN_RATING = String(n);
-    document.getElementById("filter_min_rating").value = String(n);
-  }
-
-  // Keep URL clean/normalized
-  updateUrlFromFilters();
+  renderTable();
 }
 
-function overallText(avg, cnt) {
-  const a = Number(avg ?? 0);
-  const c = Number(cnt ?? 0);
-  if (!c) return "—/10 (0 votes)";
-  return `${a.toFixed(2)}/10 (${c} vote${c === 1 ? "" : "s"})`;
+function sortRows(rows) {
+  return rows.slice().sort((a, b) => {
+    const mult = SORT_DIR === "asc" ? 1 : -1;
+    switch (SORT_COL) {
+      case "title":
+        return mult * String(a.title || "").localeCompare(String(b.title || ""));
+      case "type":
+        return mult * String(a.group_type || "").localeCompare(String(b.group_type || ""));
+      case "category": {
+        const an = CAT_BY_ID[a.category_id]?.name || "";
+        const bn = CAT_BY_ID[b.category_id]?.name || "";
+        return mult * an.localeCompare(bn);
+      }
+      case "votes":
+        return mult * (Number(a.rating_count ?? 0) - Number(b.rating_count ?? 0));
+      case "rating":
+        return mult * (Number(a.rating_avg ?? 0) - Number(b.rating_avg ?? 0));
+      default:
+        return 0;
+    }
+  });
 }
 
-function renderRows(rows) {
-  if (!rows.length) {
-    document.getElementById("listWrap").innerHTML = `<p class="muted">No markers found.</p>`;
+/* ── FILTERING ── */
+function bucketFor(avg) {
+  const x = Number(avg ?? 0);
+  if (x >= 9) return "9-10";
+  if (x >= 7) return "7-8";
+  if (x >= 5) return "5-6";
+  if (x >= 3) return "3-4";
+  return "1-2";
+}
+
+function colorClassForRating(avg, count) {
+  const cnt = Number(count ?? 0);
+  if (!cnt) return "rating-none";
+  const x = Number(avg ?? 0);
+  if (x >= 9) return "rating-9-10";
+  if (x >= 7) return "rating-7-8";
+  if (x >= 5) return "rating-5-6";
+  if (x >= 3) return "rating-3-4";
+  return "rating-1-2";
+}
+
+function dotColorFor(cls) {
+  const map = {
+    "rating-none": "#ccc",
+    "rating-1-2":  "#ff3b30",
+    "rating-3-4":  "#ff8a00",
+    "rating-5-6":  "#ffd60a",
+    "rating-7-8":  "#34c759",
+    "rating-9-10": "#0f9d58",
+  };
+  return map[cls] || "#ccc";
+}
+
+function filterRows(rows) {
+  return rows.filter(m => {
+    if (FILTER_TYPE && m.group_type !== FILTER_TYPE) return false;
+    if (FILTER_CATEGORY && m.category_id !== FILTER_CATEGORY) return false;
+    if (FILTER_BUCKET) {
+      const cnt = Number(m.rating_count ?? 0);
+      if (!cnt) return false;
+      if (bucketFor(m.rating_avg) !== FILTER_BUCKET) return false;
+    }
+    if (FILTER_SEARCH) {
+      const title  = String(m.title || "").toLowerCase();
+      const addr   = String(m.address || "").toLowerCase();
+      const brand  = String(BRAND_BY_ID[m.brand_id]?.name || "").toLowerCase();
+      const cat    = String(CAT_BY_ID[m.category_id]?.name || "").toLowerCase();
+      const needle = FILTER_SEARCH;
+      if (!title.includes(needle) && !addr.includes(needle) && !brand.includes(needle) && !cat.includes(needle)) return false;
+    }
+    return true;
+  });
+}
+
+/* ── RENDER TABLE ── */
+function thClass(col) {
+  if (SORT_COL !== col) return "sortable";
+  return `sortable sort-${SORT_DIR}`;
+}
+
+function renderTable() {
+  const filtered = filterRows(ALL_MARKERS);
+  const sorted   = sortRows(filtered);
+
+  setCount(sorted.length, ALL_MARKERS.length);
+
+  const wrap = document.getElementById("listWrap");
+
+  if (!sorted.length) {
+    wrap.innerHTML = `
+      <div class="list-empty">
+        <div class="list-empty-icon">🔍</div>
+        <h3>No results</h3>
+        <p class="muted">Try adjusting your filters or search term.</p>
+        <button class="tba-btn" onclick="clearListFilters()" style="margin-top:10px;">Clear filters</button>
+      </div>
+    `;
     return;
   }
 
-  const html = `
-    <table class="table">
+  wrap.innerHTML = `
+    <table class="list-table">
       <thead>
         <tr>
-          <th>Title</th>
-          <th>Type</th>
-          <th>Category</th>
-          <th>Overall</th>
+          <th class="${thClass('title')}"   onclick="setSort('title')">Title</th>
+          <th class="${thClass('type')}"    onclick="setSort('type')">Type</th>
+          <th class="${thClass('category')}" onclick="setSort('category')">Category</th>
           <th>Info</th>
+          <th class="${thClass('votes')}"   onclick="setSort('votes')">Votes</th>
+          <th class="${thClass('rating')}"  onclick="setSort('rating')">Rating</th>
         </tr>
       </thead>
       <tbody>
-        ${rows.map(m => {
-          const cat = CAT_NAME[String(m.category_id)] || m.category_id || "";
-          const over = overallText(m.rating_avg, m.rating_count);
+        ${sorted.map(m => {
+          const cat       = CAT_BY_ID[m.category_id]?.name || "—";
+          const avg       = Number(m.rating_avg ?? 0);
+          const cnt       = Number(m.rating_count ?? 0);
+          const cls       = colorClassForRating(avg, cnt);
+          const dot       = dotColorFor(cls);
+          const ratingTxt = cnt ? avg.toFixed(2) : "—";
+          const votesTxt  = cnt ? String(cnt) : "—";
 
+          // Info column
           let info = "";
-          if (m.group_type === "place") {
-            info = escapeHtml(m.address || "");
-          } else if (m.group_type === "product") {
-            const b = BRAND_NAME[String(m.brand_id)] || "";
-            info = b ? `Brand: ${escapeHtml(b)}` : "";
+          if (m.group_type === "place" && m.address) {
+            info = `<span class="muted" style="font-size:12px;">📍 ${escapeHtml(m.address)}</span>`;
+          } else if (m.group_type === "product" && m.brand_id) {
+            const brand = BRAND_BY_ID[m.brand_id]?.name || "";
+            if (brand) info = `<span class="muted" style="font-size:12px;">🏷️ ${escapeHtml(brand)}</span>`;
           }
 
+          const typeTag = m.group_type === "place"
+            ? `<span class="type-tag type-tag-place">📍 Place</span>`
+            : `<span class="type-tag type-tag-product">🛒 Product</span>`;
+
           return `
-            <tr>
-              <td><a href="marker.html?id=${encodeURIComponent(m.id)}">${escapeHtml(m.title)}</a></td>
-              <td>${escapeHtml(m.group_type)}</td>
+            <tr onclick="window.location.href='marker.html?id=${encodeURIComponent(m.id)}'">
+              <td><b>${escapeHtml(m.title)}</b></td>
+              <td>${typeTag}</td>
               <td>${escapeHtml(cat)}</td>
-              <td>${escapeHtml(over)}</td>
-              <td class="muted">${info}</td>
+              <td>${info}</td>
+              <td><span class="rating-votes">${escapeHtml(votesTxt)}</span></td>
+              <td>
+                <div class="rating-cell">
+                  <div class="rating-dot" style="background:${dot};"></div>
+                  <span class="rating-val">${escapeHtml(ratingTxt)}</span>
+                </div>
+              </td>
             </tr>
           `;
         }).join("")}
       </tbody>
     </table>
   `;
-
-  document.getElementById("listWrap").innerHTML = html;
 }
 
+/* ── INIT ── */
 async function initListPage() {
-  // Build min-rating options
-  const fr = document.getElementById("filter_min_rating");
-  fr.innerHTML = `<option value="">All</option>`;
-  for (let i = 1; i <= 10; i++) {
-    const opt = document.createElement("option");
-    opt.value = String(i);
-    opt.textContent = String(i);
-    fr.appendChild(opt);
-  }
+  renderRatingButtons();
 
-  setListStatus("Loading categories/brands…");
-
-  // Categories
+  // Load categories
   const { data: catData, error: catErr } = await sb
     .from("categories")
-    .select("id,name,is_active")
+    .select("id,name,icon_url,is_active,for_places,for_products")
     .eq("is_active", true)
-    .order("id", { ascending: true });
+    .order("name", { ascending: true });
 
-  if (catErr) {
-    setListStatus("Error categories: " + catErr.message);
-    return;
-  }
-
+  if (catErr) { document.getElementById("listWrap").textContent = "Error: " + catErr.message; return; }
   CATEGORIES = catData || [];
-  CAT_NAME = {};
-  CATEGORIES.forEach(c => (CAT_NAME[String(c.id)] = c.name));
+  CAT_BY_ID = {};
+  CATEGORIES.forEach(c => CAT_BY_ID[c.id] = c);
 
-  const catSel = document.getElementById("filter_category");
-  catSel.innerHTML =
-    `<option value="">All</option>` +
-    CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
-
-  // Brands (for Info column)
+  // Load brands
   const { data: brandData, error: brandErr } = await sb
     .from("brands")
     .select("id,name,is_active")
-    .eq("is_active", true)
-    .order("id", { ascending: true });
+    .eq("is_active", true);
 
-  if (brandErr) {
-    setListStatus("Error brands: " + brandErr.message);
-    return;
+  if (!brandErr && brandData) {
+    brandData.forEach(b => BRAND_BY_ID[b.id] = b);
   }
 
-  BRANDS = brandData || [];
-  BRAND_NAME = {};
-  BRANDS.forEach(b => (BRAND_NAME[String(b.id)] = b.name));
-
-  // ✅ NEW: apply URL params now that dropdowns are populated
-  initFiltersFromUrl();
-
-  await reloadList();
-}
-
-async function reloadList() {
-  setListStatus("Loading markers…");
-
-  let q = sb
+  // Load markers
+  const { data, error } = await sb
     .from("markers")
     .select("id,title,group_type,category_id,brand_id,address,rating_avg,rating_count,is_active")
     .eq("is_active", true);
 
-  if (FILTER_TYPE) q = q.eq("group_type", FILTER_TYPE);
-  if (FILTER_CATEGORY) q = q.eq("category_id", FILTER_CATEGORY);
-  if (FILTER_MIN_RATING) q = q.gte("rating_avg", Number(FILTER_MIN_RATING));
+  if (error) { document.getElementById("listWrap").textContent = "Error: " + error.message; return; }
+  ALL_MARKERS = data || [];
 
-  const { data, error } = await q;
-
-  if (error) {
-    setListStatus("Error markers: " + error.message);
-    return;
-  }
-
-  const rows = (data || []).slice();
-
-  // Client sort: rating desc, then title
-  rows.sort((a, b) => {
-    const av = Number(a.rating_avg ?? 0);
-    const bv = Number(b.rating_avg ?? 0);
-    if (bv !== av) return bv - av;
-    return String(a.title || "").localeCompare(String(b.title || ""));
-  });
-
-  renderRows(rows);
-  setListStatus(`Loaded ${rows.length} marker(s).`);
+  renderCatChips();
+  showClearIfNeeded();
+  renderTable();
 }
