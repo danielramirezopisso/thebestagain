@@ -134,8 +134,8 @@ function renderRating(m, isFirst) {
     const myCls = colorClass(CURRENT_VOTE, 1);
     myVoteHtml = `
       <div class="rating-my">
-        <div class="rating-my-number ${myCls}">${Number(CURRENT_VOTE).toFixed(1)}</div>
-        <div class="rating-label" style="margin-left:4px;">Your vote</div>
+        <span class="rating-label">Your vote</span>
+        <span class="rating-my-number ${myCls}">${Number(CURRENT_VOTE).toFixed(1)}</span>
       </div>
     `;
   }
