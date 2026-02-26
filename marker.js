@@ -264,6 +264,9 @@ async function initMarkerPage() {
   renderView();
   fillEditForm();
 
+  // Load creator display name
+  loadCreatorName();
+
   // load vote only if logged in
   if (user) await loadMyVote();
 
@@ -310,6 +313,7 @@ function renderView() {
     <p><b>Lat/Lon:</b> ${escapeHtml(latLon)}</p>
     <p><b>Active:</b> ${escapeHtml(String(m.is_active))}</p>
     <p><b>Created:</b> ${escapeHtml(formatDate(m.created_at))}</p>
+    <p><b>Added by:</b> <span id="createdByName" class="muted">...</span></p>
     <p><b>ID:</b> <span class="muted">${escapeHtml(m.id)}</span></p>
   `;
 
@@ -558,4 +562,33 @@ async function clearMyVote() {
   await loadMyVote();
   setVoteStatus("Removed ✅ (soft delete)");
   await refreshMarkerAfterVote();
+}
+
+// Load and display the display name of the user who created this marker
+async function loadCreatorName() {
+  const el = document.getElementById("createdByName");
+  if (!el) return;
+
+  const m = CURRENT_MARKER;
+  if (!m?.created_by) {
+    el.textContent = "Unknown";
+    return;
+  }
+
+  // Fetch from profiles view — we read user metadata via a helper RPC or just show uid
+  // Since auth.users is not directly readable from client, we store display_name in a profiles table
+  // For now, if it's the current user show their name, otherwise show a shortened uid
+  const user = await maybeUser();
+  if (user && user.id === m.created_by) {
+    const name = user.user_metadata?.display_name || user.email || "You";
+    el.textContent = name;
+  } else {
+    // Try to get from profiles table (we'll create this next)
+    const { data } = await sb
+      .from("profiles")
+      .select("display_name")
+      .eq("id", m.created_by)
+      .maybeSingle();
+    el.textContent = data?.display_name || "A member";
+  }
 }
