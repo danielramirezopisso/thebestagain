@@ -146,7 +146,10 @@ function editCategory(id) {
 async function saveCategory() {
   const id = parseInt(document.getElementById("cat_id").value) || null;
   const name = document.getElementById("cat_name").value.trim();
-  const icon_url = document.getElementById("cat_icon_url").value.trim() || null;
+  const iconRaw = document.getElementById("cat_icon_url").value.trim();
+  const icon_url = iconRaw
+    ? (iconRaw.startsWith("http") ? iconRaw : `https://danielramirezopisso.github.io/thebestagain/icons/${iconRaw.replace(/\.svg$/,"")}.svg`)
+    : null;
   const for_places = document.getElementById("cat_for_places").checked;
   const for_products = document.getElementById("cat_for_products").checked;
   const statusEl = document.getElementById("catModalStatus");
@@ -285,7 +288,10 @@ function editBrand(id) {
 async function saveBrand() {
   const id = parseInt(document.getElementById("brand_id").value) || null;
   const name = document.getElementById("brand_name").value.trim();
-  const icon_url = document.getElementById("brand_icon_url").value.trim() || null;
+  const iconRaw2 = document.getElementById("brand_icon_url").value.trim();
+  const icon_url = iconRaw2
+    ? (iconRaw2.startsWith("http") ? iconRaw2 : `https://danielramirezopisso.github.io/thebestagain/icons/brands/${iconRaw2.replace(/\.(svg|jpg|jpeg|png)$/,"")}.${iconRaw2.match(/\.(jpg|jpeg|png)$/) ? iconRaw2.split(".").pop() : "svg"}`)
+    : null;
   const statusEl = document.getElementById("brandModalStatus");
 
   if (!name) { statusEl.textContent = "Name is required."; return; }
