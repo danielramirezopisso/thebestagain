@@ -118,13 +118,18 @@ function renderHero(m, user) {
 /* ══════════════════════════════
    RENDER RATING CARD
 ══════════════════════════════ */
-function renderRating(m) {
+function renderRating(m, isFirst) {
   const avg = Number(m.rating_avg ?? 0);
   const cnt = Number(m.rating_count ?? 0);
   const cls = colorClass(avg, cnt);
   const bCls = barClass(avg, cnt);
   const pct = cnt ? Math.round((avg / 10) * 100) : 0;
   const displayAvg = cnt ? avg.toFixed(1) : "—";
+  const CROWN_URL = "https://danielramirezopisso.github.io/thebestagain/icons/ranking/crown_ranking.svg";
+
+  const crownHtml = (isFirst && cnt > 0)
+    ? `<img class="rating-crown" src="${CROWN_URL}" alt="👑" title="#1 ranked!" />`
+    : "";
 
   let myVoteHtml = "";
   if (CURRENT_VOTE !== null) {
@@ -132,23 +137,30 @@ function renderRating(m) {
     myVoteHtml = `
       <div class="rating-my">
         <div class="rating-my-number ${myCls}">${Number(CURRENT_VOTE).toFixed(1)}</div>
-        <div class="rating-label">Your vote</div>
+        <div class="rating-label" style="margin-left:4px;">Your vote</div>
       </div>
     `;
   }
 
   document.getElementById("ratingDisplay").innerHTML = `
-    <div class="rating-big">
-      <div class="rating-number ${cls}">${escapeHtml(displayAvg)}</div>
-      <div class="rating-label">Overall</div>
+    <div class="rating-badge ${cls}" style="margin-top:${isFirst && cnt > 0 ? '18px' : '0'}">
+      ${crownHtml}
+      <div class="rating-badge-number ${cls}">${escapeHtml(displayAvg)}</div>
+      <div class="rating-badge-label">Overall</div>
     </div>
-    <div class="rating-bar-wrap">
-      <div class="rating-bar-track">
-        <div class="rating-bar-fill ${bCls}" style="width:${pct}%"></div>
+    <div class="rating-right">
+      <div class="rating-bar-block">
+        <div class="rating-bar-header">
+          <span class="rating-bar-score ${cls}">${escapeHtml(displayAvg)}</span>
+          <span class="rating-bar-max">/ 10</span>
+        </div>
+        <div class="rating-bar-track">
+          <div class="rating-bar-fill ${bCls}" style="width:${pct}%"></div>
+        </div>
+        <div class="rating-votes-txt">${cnt} vote${cnt === 1 ? "" : "s"}</div>
       </div>
-      <div class="rating-votes-txt">${cnt} vote${cnt === 1 ? "" : "s"}</div>
+      ${myVoteHtml}
     </div>
-    ${myVoteHtml}
   `;
 }
 
@@ -276,14 +288,22 @@ async function renderRankingWidget(m) {
 
   const position = currentIdx + 1;
   const total = sorted.length;
+  const isFirst = position === 1 && Number(m.rating_count ?? 0) > 0;
+  const CROWN_URL = "https://danielramirezopisso.github.io/thebestagain/icons/ranking/crown_ranking.svg";
 
-  // Update edit votes link to go straight to category
+  // Re-render rating card now we know position
+  renderRating(m, isFirst);
+
+  // Update edit votes link
   const editLink = document.getElementById("editVotesCatLink");
-  if (editLink) editLink.href = "my-votes.html"; // user opens edit mode and picks category
+  if (editLink) editLink.href = "my-votes.html";
 
   // Position display
+  const crownHtml = isFirst
+    ? `<img src="${CROWN_URL}" alt="👑" style="width:28px;height:28px;vertical-align:middle;margin-bottom:4px;" /><br/>`
+    : "";
   document.getElementById("rankingPosition").innerHTML = `
-    <div class="ranking-pos-number">#${position}</div>
+    <div class="ranking-pos-number">${crownHtml}#${position}</div>
     <div class="ranking-pos-sub">of ${total} ${escapeHtml(cat.name)}</div>
   `;
 
