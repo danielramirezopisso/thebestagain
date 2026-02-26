@@ -220,21 +220,32 @@
   font-weight: 900;
 }
 
-/* My vote pill */
+/* My vote pill — clean label + number, no square */
 .rating-my {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid rgba(0,0,0,0.12);
-  border-radius: var(--radius);
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid rgba(0,0,0,0.14);
+  border-radius: 999px;
   background: rgba(0,0,0,0.03);
   align-self: flex-start;
 }
+.rating-my .rating-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
 .rating-my-number {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
   letter-spacing: -0.5px;
+  /* color comes from rating class, no background */
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
 }
 .rating-label {
   font-size: 11px;
