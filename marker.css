@@ -110,6 +110,8 @@
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
+  overflow: visible;
+  padding-top: 6px;
 }
 
 /* Big score badge — colored circle */
@@ -125,6 +127,7 @@
   flex: 0 0 auto;
   border: 3px solid transparent;
   box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  overflow: visible;
 }
 .rating-badge.rating-9-10 { background: rgba(15,157,88,0.12);  border-color: #0f9d58; }
 .rating-badge.rating-7-8  { background: rgba(52,199,89,0.12);  border-color: #34c759; }
@@ -156,15 +159,17 @@
   margin-top: 2px;
 }
 
-/* Crown for #1 — SVG has its own colors, no filter needed */
+/* Crown for #1 — floats above the badge circle */
 .rating-crown {
   position: absolute;
-  top: -34px;
+  top: -38px;
   left: 50%;
   transform: translateX(-50%);
-  width: 56px;
-  height: 56px;
+  width: 54px;
+  height: 54px;
+  z-index: 10;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.20));
+  pointer-events: none;
 }
 
 /* Right side: bar + votes + my vote */
@@ -457,4 +462,10 @@ body {
 
 .marker-grid {
   overflow: hidden;
+}
+
+
+/* Allow crown to overflow card boundary */
+#ratingCard {
+  overflow: visible;
 }
