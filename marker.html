@@ -4,11 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The Best Again — Marker</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="marker.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 
 <body onload="initMarkerPage()">
-  <header class="topbar">
+  <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav">
       <a href="index.html">Home</a>
@@ -17,123 +19,140 @@
       <a href="products.html">Products</a>
       <a href="my-votes.html">My Votes</a>
       <a href="admin.html">Admin</a>
-      <span id="authStatus" style="margin-left:12px;"></span>
+      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
     </nav>
   </header>
 
   <main class="container">
-    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-      <div>
-        <h1 id="markerTitle">Loading…</h1>
-        <p id="markerSubtitle" class="muted"></p>
+    <p id="pageStatus" class="muted" style="margin:10px 0;"></p>
+
+    <!-- ── HERO ── -->
+    <div class="marker-hero" id="markerHero">
+      <div class="hero-left">
+        <div class="hero-cat-icon" id="heroCatIcon"></div>
+        <div>
+          <div class="hero-type-tag" id="heroTypeTag"></div>
+          <h1 class="hero-title" id="markerTitle">Loading…</h1>
+          <p class="hero-sub muted" id="markerSubtitle"></p>
+        </div>
+      </div>
+      <div class="hero-actions" id="heroActions"></div>
+    </div>
+
+    <!-- ── MAIN GRID ── -->
+    <div class="marker-grid" id="markerGrid">
+
+      <!-- LEFT COLUMN -->
+      <div class="marker-col-left">
+
+        <!-- Rating card -->
+        <div class="card m-card" id="ratingCard">
+          <div class="m-card-head">Rating</div>
+          <div class="rating-display" id="ratingDisplay"></div>
+        </div>
+
+        <!-- My vote card (logged in only) -->
+        <div class="card m-card" id="voteCard" style="display:none;">
+          <div class="m-card-head">My vote</div>
+          <div class="vote-row">
+            <div class="vote-btns" id="voteBtns"></div>
+            <div class="vote-actions">
+              <button class="tba-btn tba-btn-primary" onclick="saveMyVote()">Save</button>
+              <button class="tba-btn" onclick="clearMyVote()" id="btnClearVote" style="display:none;">Remove</button>
+            </div>
+          </div>
+          <p id="voteStatus" class="muted vote-status"></p>
+        </div>
+
+        <!-- Details card -->
+        <div class="card m-card">
+          <div class="m-card-head">Details</div>
+          <div id="detailsContent"></div>
+        </div>
+
+        <!-- Mini map (places only) -->
+        <div class="card m-card" id="miniMapCard" style="display:none;">
+          <div class="m-card-head">Location</div>
+          <div id="miniMap" class="mini-map"></div>
+          <div id="miniMapAddress" class="mini-map-address muted"></div>
+        </div>
+
       </div>
 
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-        <button id="btnEdit" onclick="enterEditMode()">Edit</button>
-        <button id="btnSave" onclick="saveEdits()" style="display:none;">Save</button>
-        <button id="btnCancel" onclick="cancelEdits()" style="display:none;">Cancel</button>
-        <button id="btnDeactivate" onclick="deactivateMarker()" style="border:1px solid #ef4444;">Deactivate</button>
+      <!-- RIGHT COLUMN -->
+      <div class="marker-col-right">
+
+        <!-- Category ranking widget -->
+        <div class="card m-card" id="rankingCard" style="display:none;">
+          <div class="m-card-head-row">
+            <span class="m-card-head">Category ranking</span>
+            <a id="editVotesCatLink" href="my-votes.html" class="m-card-link">✏️ Edit my votes</a>
+          </div>
+          <div class="ranking-position" id="rankingPosition"></div>
+          <div class="ranking-list" id="rankingList"></div>
+        </div>
+
       </div>
     </div>
 
-    <p id="pageStatus" class="muted"></p>
+    <!-- ── EDIT FORM (hidden by default) ── -->
+    <div class="card m-card" id="editCard" style="display:none;">
+      <div class="m-card-head">Edit marker</div>
 
-    <!-- My vote -->
-    <section class="card" id="voteSection">
-      <h2>My vote</h2>
-      <p class="muted">Your personal score. Removing does a soft delete (is_active=false).</p>
-
-      <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap;">
-        <div style="min-width:180px;">
-          <label>Vote (1–10)</label>
-          <select id="my_vote"></select>
+      <div class="edit-grid">
+        <div class="edit-field">
+          <label>Title</label>
+          <input id="e_title" />
         </div>
-
-        <div>
-          <button onclick="saveMyVote()">Save my vote</button>
-          <button onclick="clearMyVote()" style="margin-left:8px;">Remove</button>
-        </div>
-
-        <div class="muted" id="voteStatus" style="margin-left:10px;"></div>
-      </div>
-    </section>
-
-    <!-- View mode -->
-    <section class="card" id="viewCard">
-      <h2>Details</h2>
-      <div id="markerDetails" class="muted">Loading…</div>
-    </section>
-
-    <!-- Edit mode -->
-    <section class="card" id="editCard" style="display:none;">
-      <h2>Edit marker</h2>
-
-      <label>Title</label>
-      <input id="e_title" />
-
-      <div style="display:flex; gap:12px; flex-wrap:wrap;">
-        <div style="flex:1; min-width:220px;">
-          <label>Group</label>
+        <div class="edit-field">
+          <label>Type</label>
           <select id="e_group_type" onchange="onEditGroupChanged()">
-            <option value="place">place</option>
-            <option value="product">product</option>
+            <option value="place">Place</option>
+            <option value="product">Product</option>
           </select>
         </div>
-
-        <div style="flex:1; min-width:220px;">
+        <div class="edit-field">
           <label>Category</label>
           <select id="e_category"></select>
         </div>
-
-        <div style="width:180px;">
-          <label>Rating (legacy manual)</label>
+        <div class="edit-field" id="brandRow" style="display:none;">
+          <label>Brand</label>
+          <select id="e_brand"></select>
+        </div>
+        <div class="edit-field">
+          <label>Address</label>
+          <input id="e_address" placeholder="Optional" />
+        </div>
+        <div class="edit-field">
+          <label>Lat</label>
+          <input id="e_lat" placeholder="41.3889" />
+        </div>
+        <div class="edit-field">
+          <label>Lon</label>
+          <input id="e_lon" placeholder="2.1618" />
+        </div>
+        <div class="edit-field">
+          <label>Rating (legacy)</label>
           <select id="e_rating"></select>
         </div>
       </div>
 
-      <!-- Brand: only for products -->
-      <div id="brandRow" style="margin-top:12px; display:none;">
-        <label>Brand (required for products)</label>
-        <select id="e_brand"></select>
-      </div>
-
-      <label style="margin-top:12px;">Address</label>
-      <input id="e_address" placeholder="Optional (usually for places)" />
-
-      <div style="display:flex; gap:12px; flex-wrap:wrap;">
-        <div style="flex:1; min-width:220px;">
-          <label>Lat</label>
-          <input id="e_lat" placeholder="41.3889" />
-        </div>
-        <div style="flex:1; min-width:220px;">
-          <label>Lon</label>
-          <input id="e_lon" placeholder="2.1618" />
+      <div class="edit-foot">
+        <span id="editStatus" class="muted"></span>
+        <div style="display:flex;gap:10px;">
+          <button onclick="cancelEdits()">Cancel</button>
+          <button class="tba-btn tba-btn-primary" onclick="saveEdits()">Save changes</button>
         </div>
       </div>
+    </div>
 
-      <p class="muted" style="margin-top:10px;">
-        Tip: leave Lat/Lon empty for products; use Lat/Lon only for places shown on the map.
-      </p>
-    </section>
-
-    <section class="card">
-      <h2>Quick links</h2>
-      <p class="muted">
-        <a href="list.html">← Back to List</a>
-        &nbsp;·&nbsp;
-        <a href="map.html">Go to Map</a>
-        &nbsp;·&nbsp;
-        <a href="products.html">Products</a>
-        &nbsp;·&nbsp;
-        <a href="my-votes.html">My Votes</a>
-      </p>
-    </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
-  <script src="marker.js?v=4"></script>
+  <script src="marker.js?v=5"></script>
 </body>
 </html>
