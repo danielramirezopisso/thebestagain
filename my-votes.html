@@ -4,38 +4,84 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The Best Again — My Votes</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="votes.css" />
 </head>
 
 <body onload="initVotesPage()">
-  <header class="topbar">
+  <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav">
       <a href="index.html">Home</a>
       <a href="list.html">List</a>
       <a href="map.html">Map</a>
       <a href="products.html">Products</a>
-      <a class="active" href="my-votes.html">My Votes
-      <a href="admin.html">Admin</a></a>
-      <span id="authStatus" style="margin-left:12px;"></span>
+      <a class="active" href="my-votes.html">My Votes</a>
+      <a href="admin.html">Admin</a>
+      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
     </nav>
   </header>
 
   <main class="container">
-    <h1>My Votes</h1>
-    <p class="muted">Release 7 — your personal ranking (highest → lowest).</p>
 
-    <section class="card">
-      <h2>Votes</h2>
-      <div id="votesStatus" class="muted">Loading…</div>
-      <div id="votesTable" style="margin-top:10px;"></div>
-    </section>
+    <!-- ── NORMAL VIEW ── -->
+    <div id="normalView">
+      <div class="votes-header">
+        <div>
+          <h1>My Votes</h1>
+          <p class="muted">Your personal rankings, grouped by category.</p>
+        </div>
+        <button class="tba-btn tba-btn-primary" onclick="enterEditMode()">✏️ Edit Mode</button>
+      </div>
+      <div id="votesStatus" class="muted" style="margin-bottom:12px;"></div>
+      <div id="votesByCategory"></div>
+    </div>
+
+    <!-- ── EDIT MODE ── -->
+    <div id="editView" style="display:none;">
+      <div class="votes-header">
+        <div>
+          <h1>Edit Votes</h1>
+          <p class="muted">Select a category, drag to rank, pin scores.</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="tba-btn" onclick="exitEditMode()">Cancel</button>
+          <button class="tba-btn tba-btn-primary" id="btnSaveVotes" onclick="saveVotes()" disabled>Save</button>
+        </div>
+      </div>
+
+      <!-- Category picker -->
+      <section class="card edit-cat-picker">
+        <div class="filter-label">Select category to edit</div>
+        <div id="editCatChips" class="chip-row" style="margin-top:8px;"></div>
+      </section>
+
+      <!-- Edit panel -->
+      <div id="editPanel" style="display:none;">
+        <div class="edit-toolbar">
+          <span id="editCatName" class="edit-cat-label"></span>
+          <div style="display:flex;gap:8px;">
+            <button class="tba-btn" onclick="quickSet10to1()" title="Pin top=10, bottom=1">⚡ Set 10→1</button>
+            <button class="tba-btn" onclick="resetPins()">🔄 Reset pins</button>
+          </div>
+        </div>
+
+        <div id="editWarning" class="edit-warning" style="display:none;">
+          ⚠️ Pin a score for the <b>top</b> and <b>bottom</b> card to enable Save.
+        </div>
+
+        <div id="editPreview" class="edit-preview-bar" style="display:none;"></div>
+
+        <div id="dragList" class="drag-list"></div>
+      </div>
+    </div>
+
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
-  <script src="votes.js"></script>
+  <script src="votes.js?v=2"></script>
 </body>
 </html>
