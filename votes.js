@@ -470,28 +470,31 @@ async function saveVotes() {
 
   const scores = computeScores();
 
-  // Build upsert payload
-  const upserts = EDIT_CARDS.map((card, i) => ({
-    marker_id: card.marker_id,
-    vote:      scores[i],
-    is_active: true,
-  }));
+  // Safety check: all scores must be valid numbers
+  const hasNulls = scores.some(s => s === null || s === undefined || isNaN(s));
+  if (hasNulls) {
+    alert("Some scores could not be computed. Make sure top and bottom are pinned.");
+    btn.disabled = false;
+    btn.textContent = "Save";
+    return;
+  }
 
-  // We update votes one by one matching vote_id
+  // Update all votes one by one
   const errors = [];
   for (let i = 0; i < EDIT_CARDS.length; i++) {
+    const score = +parseFloat(scores[i]).toFixed(1);
     const { error } = await sb
       .from("votes")
-      .update({ vote: scores[i], is_active: true })
+      .update({ vote: score, is_active: true })
       .eq("id", EDIT_CARDS[i].vote_id);
-    if (error) errors.push(error.message);
+    if (error) errors.push(`${EDIT_CARDS[i].title}: ${error.message}`);
   }
 
   if (errors.length) {
     alert("Some votes failed to save:\n" + errors.join("\n"));
+  } else {
+    btn.textContent = "Saved ✅";
   }
-
-  btn.textContent = "Save";
 
   // Reload data and go back to normal view
   await reloadVotes();
