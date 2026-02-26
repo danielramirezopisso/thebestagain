@@ -1,29 +1,24 @@
-// marker.js — supports places + products (brand for products), voting, edit/deactivate
-// Product title is AUTO: "Category · Brand" and is read-only for products.
-// Uses sb + maybeUser/requireAuth from auth.js
+// marker.js v5 — redesigned marker detail page
 
 let MARKER_ID = null;
 let CURRENT_MARKER = null;
+let CURRENT_VOTE = null;       // number | null (current user's vote value)
+let CURRENT_VOTE_ID = null;    // uuid of vote row
 
 let CATEGORIES_ALL = [];
 let BRANDS = [];
-let CATEGORY_BRANDS = []; // [{category_id, brand_id}]
+let CATEGORY_BRANDS = [];
 
-let CURRENT_VOTE_ROW = null;
+let miniMapInstance = null;
 
-// Returns brands allowed for a given category_id (integer)
-function brandsForCategory(category_id) {
-  if (!category_id) return BRANDS.filter(b => b.is_active);
-  const allowed = new Set(
-    CATEGORY_BRANDS
-      .filter(cb => cb.category_id === category_id && cb.is_active)
-      .map(cb => cb.brand_id)
-  );
-  return BRANDS.filter(b => b.is_active && allowed.has(b.id));
+function qp(name) {
+  return new URLSearchParams(window.location.search).get(name);
 }
 
-function qs(name) {
-  return new URLSearchParams(window.location.search).get(name);
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 
 function setStatus(msg) {
@@ -36,445 +31,315 @@ function setVoteStatus(msg) {
   if (el) el.textContent = msg || "";
 }
 
-function escapeHtml(s) {
-  return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+function setEditStatus(msg) {
+  const el = document.getElementById("editStatus");
+  if (el) el.textContent = msg || "";
 }
 
 function formatDate(iso) {
-  if (!iso) return "";
-  return iso.replace("T", " ").slice(0, 19);
+  return (iso || "").replace("T"," ").slice(0,16);
 }
 
-function fillSelect1to10(selectId, defaultValue = 7) {
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-
-  sel.innerHTML = "";
-  for (let i = 1; i <= 10; i++) {
-    const opt = document.createElement("option");
-    opt.value = String(i);
-    opt.textContent = String(i);
-    if (i === defaultValue) opt.selected = true;
-    sel.appendChild(opt);
-  }
+function colorClass(avg, cnt) {
+  if (!Number(cnt)) return "rating-none";
+  const x = Number(avg);
+  if (x >= 9) return "rating-9-10";
+  if (x >= 7) return "rating-7-8";
+  if (x >= 5) return "rating-5-6";
+  if (x >= 3) return "rating-3-4";
+  return "rating-1-2";
 }
 
-function overallText(avg, cnt) {
-  const a = Number(avg ?? 0);
-  const c = Number(cnt ?? 0);
-  if (!c) return "—/10 (0 votes)";
-  return `${a.toFixed(2)}/10 (${c} vote${c === 1 ? "" : "s"})`;
+function barClass(avg, cnt) {
+  return colorClass(avg, cnt).replace("rating-","bar-");
 }
 
 function getCategoryById(id) {
-  return CATEGORIES_ALL.find(c => String(c.id) === String(id)) || null;
+  return CATEGORIES_ALL.find(c => c.id === id) || null;
 }
-
 function getBrandById(id) {
-  return BRANDS.find(b => String(b.id) === String(id)) || null;
+  return BRANDS.find(b => b.id === id) || null;
+}
+function brandsForCategory(category_id) {
+  if (!category_id) return BRANDS.filter(b => b.is_active);
+  const allowed = new Set(
+    CATEGORY_BRANDS.filter(cb => cb.category_id === category_id && cb.is_active).map(cb => cb.brand_id)
+  );
+  return BRANDS.filter(b => b.is_active && allowed.has(b.id));
 }
 
-function categoriesForGroup(group_type) {
-  if (group_type === "product") return CATEGORIES_ALL.filter(c => c.for_products);
-  return CATEGORIES_ALL.filter(c => c.for_places);
-}
+/* ══════════════════════════════
+   RENDER HERO
+══════════════════════════════ */
+function renderHero(m, user) {
+  document.title = `${m.title} — The Best Again`;
 
-function renderCategoryOptions(group_type, selectedId) {
-  const list = categoriesForGroup(group_type);
-  const sel = document.getElementById("e_category");
-  if (!sel) return;
-
-  sel.innerHTML = list
-    .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`)
-    .join("");
-
-  if (selectedId != null) sel.value = String(selectedId);
-}
-
-function renderBrandOptions(selectedId, category_id) {
-  const sel = document.getElementById("e_brand");
-  if (!sel) return;
-
-  const filtered = brandsForCategory(category_id || null);
-  sel.innerHTML = filtered.length
-    ? filtered.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("")
-    : `<option value="">No brands linked to this category</option>`;
-
-  if (selectedId != null) sel.value = String(selectedId);
-}
-
-function showBrandRow(shouldShow) {
-  const row = document.getElementById("brandRow");
-  if (row) row.style.display = shouldShow ? "block" : "none";
-}
-
-function categoryNameById(id) {
-  return getCategoryById(id)?.name || "";
-}
-function brandNameById(id) {
-  return getBrandById(id)?.name || "";
-}
-
-function computeProductTitle(category_id, brand_id) {
-  const c = categoryNameById(category_id);
-  const b = brandNameById(brand_id);
-  return `${c} · ${b}`.trim();
-}
-
-function setTitleReadonlyForGroup(group_type) {
-  const titleEl = document.getElementById("e_title");
-  if (!titleEl) return;
-
-  if (group_type === "product") {
-    titleEl.disabled = true;
-    titleEl.style.opacity = "0.8";
-  } else {
-    titleEl.disabled = false;
-    titleEl.style.opacity = "1";
-  }
-}
-
-// Called when group changes in edit mode
-function onEditGroupChanged() {
-  const g = document.getElementById("e_group_type").value;
-  const category_id = parseInt(document.getElementById("e_category").value) || null;
-
-  showBrandRow(g === "product");
-  renderCategoryOptions(g, null);
-  setTitleReadonlyForGroup(g);
-
-  if (g === "product") {
-    renderBrandOptions(null, category_id);
-    const brand_id = parseInt(document.getElementById("e_brand").value) || null;
-    document.getElementById("e_title").value = computeProductTitle(
-      document.getElementById("e_category").value,
-      brand_id
-    );
-  }
-}
-
-// When category changes, update product title if product
-function onEditCategoryChanged() {
-  const g = document.getElementById("e_group_type").value;
-  const category_id = parseInt(document.getElementById("e_category").value) || null;
-
-  if (g === "product") {
-    // Re-filter brands for new category
-    renderBrandOptions(null, category_id);
-    const brand_id = parseInt(document.getElementById("e_brand").value) || null;
-    document.getElementById("e_title").value = computeProductTitle(category_id, brand_id);
-  }
-}
-
-// When brand changes, update product title if product
-function onEditBrandChanged() {
-  const g = document.getElementById("e_group_type").value;
-  if (g !== "product") return;
-
-  const category_id = document.getElementById("e_category").value;
-  const brand_id = document.getElementById("e_brand").value;
-  document.getElementById("e_title").value = computeProductTitle(category_id, brand_id);
-}
-
-async function initMarkerPage() {
-  const user = await maybeUser();
-  if (!user) {
-    const v = document.getElementById("voteSection");
-    if (v) v.style.display = "none";
-
-    const b1 = document.getElementById("btnEdit");
-    const b2 = document.getElementById("btnDeactivate");
-    if (b1) b1.style.display = "none";
-    if (b2) b2.style.display = "none";
-  }
-
-  MARKER_ID = qs("id");
-  if (!MARKER_ID) {
-    document.getElementById("markerTitle").textContent = "Missing marker id";
-    document.getElementById("markerDetails").innerHTML =
-      `<p>Open this page like: <code>marker.html?id=YOUR_MARKER_ID</code></p>`;
-    return;
-  }
-
-  setStatus("Loading…");
-  setVoteStatus("");
-
-  fillSelect1to10("my_vote", 7);
-  fillSelect1to10("e_rating", 7);
-
-  // Load category_brands
-  const cbResult = await sb
-    .from("category_brands")
-    .select("category_id,brand_id,is_active")
-    .eq("is_active", true);
-
-  if (cbResult.error) {
-    setStatus("Error loading category-brands: " + cbResult.error.message);
-    return;
-  }
-  CATEGORY_BRANDS = cbResult.data || [];
-
-  // Load categories (with scope flags)
-  const cats = await sb
-    .from("categories")
-    .select("id,name,icon_url,is_active,for_places,for_products")
-    .eq("is_active", true)
-    .order("id", { ascending: true });
-
-  if (cats.error) {
-    setStatus("Error loading categories: " + cats.error.message);
-    return;
-  }
-  CATEGORIES_ALL = cats.data || [];
-
-  // Load brands
-  const brands = await sb
-    .from("brands")
-    .select("id,name,is_active")
-    .eq("is_active", true)
-    .order("id", { ascending: true });
-
-  if (brands.error) {
-    setStatus("Error loading brands: " + brands.error.message);
-    return;
-  }
-  BRANDS = brands.data || [];
-
-  // Load marker (includes averages + brand_id)
-  const { data: marker, error } = await sb
-    .from("markers")
-    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
-    .eq("id", MARKER_ID)
-    .single();
-
-  if (error || !marker) {
-    document.getElementById("markerTitle").textContent = "Marker not found";
-    document.getElementById("markerDetails").textContent = error ? error.message : "";
-    setStatus("");
-    return;
-  }
-
-  CURRENT_MARKER = marker;
-
-  renderView();
-  fillEditForm();
-
-  // Load creator display name
-  loadCreatorName();
-
-  // load vote only if logged in
-  if (user) await loadMyVote();
-
-  setStatus("");
-}
-
-function renderView() {
-  const m = CURRENT_MARKER;
-
+  // Category icon
   const cat = getCategoryById(m.category_id);
-  const categoryName = cat ? cat.name : (m.category_id || "");
-  const iconUrl = cat ? (cat.icon_url || "") : "";
+  const iconHtml = cat?.icon_url
+    ? `<img src="${escapeHtml(cat.icon_url)}" alt="" />`
+    : "📦";
+  document.getElementById("heroCatIcon").innerHTML = iconHtml;
 
-  const b = m.group_type === "product" ? getBrandById(m.brand_id) : null;
-  const brandName = b ? b.name : (m.brand_id || "");
+  // Type tag
+  const isPlace = m.group_type === "place";
+  document.getElementById("heroTypeTag").className = `hero-type-tag ${isPlace ? "type-tag-place" : "type-tag-product"}`;
+  document.getElementById("heroTypeTag").textContent = isPlace ? "📍 Place" : "🛒 Product";
 
-  const over = overallText(m.rating_avg, m.rating_count);
-
+  // Title & subtitle
   document.getElementById("markerTitle").textContent = m.title;
+  const sub = [];
+  if (cat) sub.push(cat.name);
+  if (!isPlace && m.brand_id) {
+    const brand = getBrandById(m.brand_id);
+    if (brand) sub.push(brand.name);
+  }
+  document.getElementById("markerSubtitle").textContent = sub.join(" · ");
 
-  const subtitleBits = [m.group_type, categoryName];
-  if (m.group_type === "product" && brandName) subtitleBits.push(`Brand: ${brandName}`);
-  subtitleBits.push(over);
+  // Actions (only for logged-in users)
+  const actionsEl = document.getElementById("heroActions");
+  if (user) {
+    actionsEl.innerHTML = `
+      <button class="tba-btn" id="btnEdit" onclick="enterEditMode()">✏️ Edit</button>
+      <button class="tba-btn" id="btnDeactivate"
+        onclick="deactivateMarker()"
+        style="border-color:#ef4444;color:#ef4444;"
+        ${!m.is_active ? "disabled" : ""}>
+        Deactivate
+      </button>
+    `;
+  }
 
-  document.getElementById("markerSubtitle").textContent = subtitleBits.join(" · ");
+  if (!m.is_active) {
+    setStatus("⚠️ This marker is inactive (deactivated).");
+  }
+}
 
-  const latLon = (m.lat !== null && m.lon !== null) ? `${m.lat}, ${m.lon}` : "";
+/* ══════════════════════════════
+   RENDER RATING CARD
+══════════════════════════════ */
+function renderRating(m) {
+  const avg = Number(m.rating_avg ?? 0);
+  const cnt = Number(m.rating_count ?? 0);
+  const cls = colorClass(avg, cnt);
+  const bCls = barClass(avg, cnt);
+  const pct = cnt ? Math.round((avg / 10) * 100) : 0;
+  const displayAvg = cnt ? avg.toFixed(1) : "—";
 
-  const iconHtml = iconUrl
-    ? `<img src="${escapeHtml(iconUrl)}" alt="" style="width:22px;height:22px;vertical-align:middle;margin-right:6px;" />`
-    : "";
+  let myVoteHtml = "";
+  if (CURRENT_VOTE !== null) {
+    const myCls = colorClass(CURRENT_VOTE, 1);
+    myVoteHtml = `
+      <div class="rating-my">
+        <div class="rating-my-number ${myCls}">${Number(CURRENT_VOTE).toFixed(1)}</div>
+        <div class="rating-label">Your vote</div>
+      </div>
+    `;
+  }
 
-  const brandLine = (m.group_type === "product")
-    ? `<p><b>Brand:</b> ${escapeHtml(brandName)}</p>`
-    : "";
+  document.getElementById("ratingDisplay").innerHTML = `
+    <div class="rating-big">
+      <div class="rating-number ${cls}">${escapeHtml(displayAvg)}</div>
+      <div class="rating-label">Overall</div>
+    </div>
+    <div class="rating-bar-wrap">
+      <div class="rating-bar-track">
+        <div class="rating-bar-fill ${bCls}" style="width:${pct}%"></div>
+      </div>
+      <div class="rating-votes-txt">${cnt} vote${cnt === 1 ? "" : "s"}</div>
+    </div>
+    ${myVoteHtml}
+  `;
+}
 
-  document.getElementById("markerDetails").innerHTML = `
-    <p><b>Category:</b> ${iconHtml}${escapeHtml(categoryName)}</p>
-    <p><b>Group:</b> ${escapeHtml(m.group_type)}</p>
-    ${brandLine}
-    <p><b>Overall rating:</b> ${escapeHtml(over)}</p>
-    <p class="muted"><b>Manual rating (legacy):</b> ${escapeHtml(String(m.rating_manual ?? ""))}/10</p>
-    <p><b>Address:</b> ${escapeHtml(m.address || "")}</p>
-    <p><b>Lat/Lon:</b> ${escapeHtml(latLon)}</p>
-    <p><b>Active:</b> ${escapeHtml(String(m.is_active))}</p>
-    <p><b>Created:</b> ${escapeHtml(formatDate(m.created_at))}</p>
-    <p><b>Added by:</b> <span id="createdByName" class="muted">...</span></p>
-    <p><b>ID:</b> <span class="muted">${escapeHtml(m.id)}</span></p>
+/* ══════════════════════════════
+   RENDER VOTE BUTTONS
+══════════════════════════════ */
+function renderVoteButtons() {
+  const wrap = document.getElementById("voteBtns");
+  wrap.innerHTML = "";
+
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement("button");
+    btn.className = "vote-btn" + (CURRENT_VOTE === i ? " selected" : "");
+    btn.textContent = String(i);
+    btn.onclick = () => selectVote(i);
+    wrap.appendChild(btn);
+  }
+
+  const removeBtn = document.getElementById("btnClearVote");
+  if (removeBtn) removeBtn.style.display = CURRENT_VOTE !== null ? "inline-flex" : "none";
+}
+
+function selectVote(v) {
+  CURRENT_VOTE = v;
+  renderVoteButtons();
+  renderRating(CURRENT_MARKER);
+}
+
+/* ══════════════════════════════
+   RENDER DETAILS
+══════════════════════════════ */
+function renderDetails(m, creatorName) {
+  const isPlace = m.group_type === "place";
+  const cat = getCategoryById(m.category_id);
+  const brand = getBrandById(m.brand_id);
+
+  const rows = [];
+
+  if (isPlace && m.address) {
+    rows.push({ key: "Address", val: escapeHtml(m.address) });
+  }
+  if (!isPlace && brand) {
+    rows.push({ key: "Brand", val: escapeHtml(brand.name) });
+  }
+  if (cat) {
+    rows.push({ key: "Category", val: escapeHtml(cat.name) });
+  }
+  rows.push({ key: "Added", val: escapeHtml(formatDate(m.created_at)) });
+  rows.push({ key: "By", val: `<span id="createdByName">${escapeHtml(creatorName || "…")}</span>` });
+  if (!m.is_active) {
+    rows.push({ key: "Status", val: `<span style="color:#ef4444;font-weight:900;">Inactive</span>` });
+  }
+
+  document.getElementById("detailsContent").innerHTML = rows.map(r => `
+    <div class="detail-row">
+      <div class="detail-key">${r.key}</div>
+      <div class="detail-val">${r.val}</div>
+    </div>
+  `).join("");
+}
+
+/* ══════════════════════════════
+   MINI MAP
+══════════════════════════════ */
+function renderMiniMap(m) {
+  const lat = Number(m.lat);
+  const lon = Number(m.lon);
+  if (!m.lat || !m.lon || isNaN(lat) || isNaN(lon)) return;
+
+  const card = document.getElementById("miniMapCard");
+  card.style.display = "block";
+
+  // Set address text
+  const addrEl = document.getElementById("miniMapAddress");
+  if (m.address) addrEl.textContent = "📍 " + m.address;
+
+  // Init Leaflet map
+  if (miniMapInstance) {
+    miniMapInstance.remove();
+    miniMapInstance = null;
+  }
+  setTimeout(() => {
+    miniMapInstance = L.map("miniMap", { zoomControl: true, scrollWheelZoom: false })
+      .setView([lat, lon], 15);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors"
+    }).addTo(miniMapInstance);
+
+    L.marker([lat, lon])
+      .addTo(miniMapInstance)
+      .bindPopup(escapeHtml(m.title))
+      .openPopup();
+  }, 50);
+}
+
+/* ══════════════════════════════
+   RANKING WIDGET
+══════════════════════════════ */
+async function renderRankingWidget(m) {
+  const card = document.getElementById("rankingCard");
+  const cat = getCategoryById(m.category_id);
+  if (!cat) return;
+
+  // Load all markers of same category, same group_type
+  const { data, error } = await sb
+    .from("markers")
+    .select("id,title,rating_avg,rating_count,brand_id")
+    .eq("is_active", true)
+    .eq("category_id", m.category_id)
+    .eq("group_type", m.group_type)
+    .order("rating_avg", { ascending: false });
+
+  if (error || !data?.length) return;
+
+  // Sort: avg desc, count as tiebreaker
+  const sorted = data.slice().sort((a, b) => {
+    const diff = Number(b.rating_avg ?? 0) - Number(a.rating_avg ?? 0);
+    if (diff !== 0) return diff;
+    return Number(b.rating_count ?? 0) - Number(a.rating_count ?? 0);
+  });
+
+  const currentIdx = sorted.findIndex(r => r.id === m.id);
+  if (currentIdx === -1) return;
+
+  const position = currentIdx + 1;
+  const total = sorted.length;
+
+  // Update edit votes link to go straight to category
+  const editLink = document.getElementById("editVotesCatLink");
+  if (editLink) editLink.href = "my-votes.html"; // user opens edit mode and picks category
+
+  // Position display
+  document.getElementById("rankingPosition").innerHTML = `
+    <div class="ranking-pos-number">#${position}</div>
+    <div class="ranking-pos-sub">of ${total} ${escapeHtml(cat.name)}</div>
   `;
 
-  const isInactive = !m.is_active;
-  document.getElementById("btnEdit").disabled = isInactive;
-  document.getElementById("btnDeactivate").disabled = isInactive;
-  if (isInactive) setStatus("This marker is inactive (deactivated).");
+  // Build the 5-card window: 2 above, current, 2 below
+  const windowItems = [];
+
+  const aboveStart = Math.max(0, currentIdx - 2);
+  const belowEnd   = Math.min(sorted.length - 1, currentIdx + 2);
+
+  // Show "…" if there are items above the window
+  if (aboveStart > 0) {
+    windowItems.push({ type: "sep" });
+  }
+
+  for (let i = aboveStart; i <= belowEnd; i++) {
+    windowItems.push({ type: "item", item: sorted[i], pos: i + 1, isCurrent: i === currentIdx });
+  }
+
+  // Show "…" if there are items below the window
+  if (belowEnd < sorted.length - 1) {
+    windowItems.push({ type: "sep" });
+  }
+
+  const listEl = document.getElementById("rankingList");
+  listEl.innerHTML = windowItems.map(w => {
+    if (w.type === "sep") return `<div class="rank-row rank-separator">⋯</div>`;
+
+    const r = w.item;
+    const avg = Number(r.rating_avg ?? 0);
+    const cnt = Number(r.rating_count ?? 0);
+    const cls = colorClass(avg, cnt);
+    const scoreText = cnt ? avg.toFixed(1) : "—";
+
+    // Name: for products show brand, for places show title
+    let name = r.title;
+    if (m.group_type === "product" && r.brand_id) {
+      name = getBrandById(r.brand_id)?.name || r.title;
+    }
+
+    const href = `marker.html?id=${encodeURIComponent(r.id)}`;
+    return `
+      <a class="rank-row ${w.isCurrent ? "rank-current" : ""}" href="${href}">
+        <div class="rank-pos">${w.pos}</div>
+        <div class="rank-name">${escapeHtml(name)}</div>
+        <div class="rank-score ${cls}">${escapeHtml(scoreText)}</div>
+      </a>
+    `;
+  }).join("");
+
+  card.style.display = "block";
 }
 
-function fillEditForm() {
-  const m = CURRENT_MARKER;
-
-  document.getElementById("e_title").value = m.title || "";
-  document.getElementById("e_group_type").value = m.group_type || "place";
-
-  // render brand options filtered by current category
-  renderBrandOptions(m.brand_id || "", m.category_id || null);
-
-  // categories filtered by group
-  renderCategoryOptions(m.group_type || "place", m.category_id || "");
-
-  fillSelect1to10("e_rating", Number(m.rating_manual) || 7);
-
-  // brand row visibility + title editability
-  showBrandRow((m.group_type || "place") === "product");
-  setTitleReadonlyForGroup(m.group_type || "place");
-
-  document.getElementById("e_address").value = m.address || "";
-  document.getElementById("e_lat").value = (m.lat ?? "");
-  document.getElementById("e_lon").value = (m.lon ?? "");
-
-  // Hook change listeners once (safe to call multiple times)
-  const catSel = document.getElementById("e_category");
-  if (catSel && !catSel.dataset.bound) {
-    catSel.addEventListener("change", onEditCategoryChanged);
-    catSel.dataset.bound = "1";
-  }
-
-  const brandSel = document.getElementById("e_brand");
-  if (brandSel && !brandSel.dataset.bound) {
-    brandSel.addEventListener("change", onEditBrandChanged);
-    brandSel.dataset.bound = "1";
-  }
-
-  // If product, enforce title format immediately
-  if ((m.group_type || "place") === "product") {
-    document.getElementById("e_title").value = computeProductTitle(m.category_id, m.brand_id);
-  }
-}
-
-function enterEditMode() {
-  document.getElementById("viewCard").style.display = "none";
-  document.getElementById("editCard").style.display = "block";
-
-  document.getElementById("btnEdit").style.display = "none";
-  document.getElementById("btnDeactivate").style.display = "none";
-  document.getElementById("btnSave").style.display = "inline-block";
-  document.getElementById("btnCancel").style.display = "inline-block";
-
-  setStatus("");
-}
-
-function cancelEdits() {
-  fillEditForm();
-
-  document.getElementById("viewCard").style.display = "block";
-  document.getElementById("editCard").style.display = "none";
-
-  document.getElementById("btnEdit").style.display = "inline-block";
-  document.getElementById("btnDeactivate").style.display = "inline-block";
-  document.getElementById("btnSave").style.display = "none";
-  document.getElementById("btnCancel").style.display = "none";
-
-  setStatus("");
-}
-
-async function saveEdits() {
-  setStatus("Saving changes…");
-
-  const titleEl = document.getElementById("e_title");
-  const group_type = document.getElementById("e_group_type").value;
-  const category_id = document.getElementById("e_category").value;
-  const rating_manual = Number(document.getElementById("e_rating").value);
-  const address = document.getElementById("e_address").value.trim();
-
-  const latRaw = document.getElementById("e_lat").value.trim();
-  const lonRaw = document.getElementById("e_lon").value.trim();
-  const lat = latRaw === "" ? null : Number(latRaw);
-  const lon = lonRaw === "" ? null : Number(lonRaw);
-
-  const brand_id = (group_type === "product") ? document.getElementById("e_brand").value : null;
-
-  // Title rules
-  let title = titleEl.value.trim();
-  if (group_type === "product") {
-    if (!brand_id) { setStatus("Brand is required for products."); return; }
-    // Force computed title
-    title = computeProductTitle(category_id, brand_id);
-    titleEl.value = title;
-  }
-
-  if (!title) { setStatus("Title required."); return; }
-  if (!(rating_manual >= 1 && rating_manual <= 10)) { setStatus("Rating must be 1–10."); return; }
-  if ((latRaw !== "" && Number.isNaN(lat)) || (lonRaw !== "" && Number.isNaN(lon))) {
-    setStatus("Lat/Lon must be numbers (or empty).");
-    return;
-  }
-
-  const patch = { title, group_type, category_id, rating_manual, address, lat, lon, brand_id };
-
-  const { data, error } = await sb
-    .from("markers")
-    .update(patch)
-    .eq("id", MARKER_ID)
-    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
-    .single();
-
-  if (error) {
-    setStatus("Error: " + error.message);
-    return;
-  }
-
-  CURRENT_MARKER = data;
-  renderView();
-  cancelEdits();
-  setStatus("Saved ✅");
-}
-
-async function deactivateMarker() {
-  const ok = confirm("Deactivate this marker? It will disappear from list/map.");
-  if (!ok) return;
-
-  setStatus("Deactivating…");
-
-  const { data, error } = await sb
-    .from("markers")
-    .update({ is_active: false })
-    .eq("id", MARKER_ID)
-    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
-    .single();
-
-  if (error) {
-    setStatus("Error: " + error.message);
-    return;
-  }
-
-  CURRENT_MARKER = data;
-  renderView();
-  cancelEdits();
-  setStatus("Deactivated ✅");
-}
-
-// --------------------
-// My vote (soft delete)
-// --------------------
-async function loadMyVote() {
-  setVoteStatus("Loading your vote…");
-
-  const user = await requireAuth();
-  if (!user) return;
-
+/* ══════════════════════════════
+   VOTE ACTIONS
+══════════════════════════════ */
+async function loadMyVote(user) {
   const { data, error } = await sb
     .from("votes")
     .select("id,vote,is_active")
@@ -482,67 +347,46 @@ async function loadMyVote() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (error) {
-    setVoteStatus("Error loading vote: " + error.message);
-    return;
-  }
+  if (error) { setVoteStatus("Error loading vote."); return; }
 
-  CURRENT_VOTE_ROW = data || null;
-
-  if (CURRENT_VOTE_ROW && CURRENT_VOTE_ROW.is_active) {
-    document.getElementById("my_vote").value = String(Math.round(Number(CURRENT_VOTE_ROW.vote)));
-    setVoteStatus(`Saved vote: ${CURRENT_VOTE_ROW.vote}`);
+  if (data?.is_active) {
+    CURRENT_VOTE = Number(data.vote);
+    CURRENT_VOTE_ID = data.id;
+    setVoteStatus(`Your current vote: ${CURRENT_VOTE}`);
   } else {
-    setVoteStatus("No active vote yet.");
+    CURRENT_VOTE = null;
+    CURRENT_VOTE_ID = data?.id || null;
+    setVoteStatus("No vote yet.");
   }
-}
 
-async function refreshMarkerAfterVote() {
-  const { data: marker, error: mErr } = await sb
-    .from("markers")
-    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at")
-    .eq("id", MARKER_ID)
-    .single();
-
-  if (!mErr && marker) {
-    CURRENT_MARKER = marker;
-    renderView();
-    fillEditForm();
-  }
+  renderVoteButtons();
+  renderRating(CURRENT_MARKER);
 }
 
 async function saveMyVote() {
-  const v = Number(document.getElementById("my_vote").value);
-  if (!(v >= 1 && v <= 10)) {
-    setVoteStatus("Vote must be 1–10.");
-    return;
-  }
+  if (CURRENT_VOTE === null) { setVoteStatus("Select a score first."); return; }
 
   setVoteStatus("Saving…");
-
   const user = await requireAuth();
   if (!user) return;
 
   const { error } = await sb
     .from("votes")
     .upsert(
-      [{ marker_id: MARKER_ID, user_id: user.id, vote: v, is_active: true }],
+      [{ marker_id: MARKER_ID, user_id: user.id, vote: CURRENT_VOTE, is_active: true }],
       { onConflict: "marker_id,user_id" }
     );
 
-  if (error) {
-    setVoteStatus("Error: " + error.message);
-    return;
-  }
+  if (error) { setVoteStatus("Error: " + error.message); return; }
 
-  await loadMyVote();
   setVoteStatus("Saved ✅");
-  await refreshMarkerAfterVote();
+  await refreshMarker();
+  renderVoteButtons();
+  renderRating(CURRENT_MARKER);
 }
 
 async function clearMyVote() {
-  if (!confirm("Remove your vote for this marker?")) return;
-
+  if (!confirm("Remove your vote?")) return;
   setVoteStatus("Removing…");
 
   const user = await requireAuth();
@@ -554,41 +398,290 @@ async function clearMyVote() {
     .eq("marker_id", MARKER_ID)
     .eq("user_id", user.id);
 
-  if (error) {
-    setVoteStatus("Error: " + error.message);
-    return;
-  }
+  if (error) { setVoteStatus("Error: " + error.message); return; }
 
-  await loadMyVote();
-  setVoteStatus("Removed ✅ (soft delete)");
-  await refreshMarkerAfterVote();
+  CURRENT_VOTE = null;
+  setVoteStatus("Removed ✅");
+  await refreshMarker();
+  renderVoteButtons();
+  renderRating(CURRENT_MARKER);
 }
 
-// Load and display the display name of the user who created this marker
-async function loadCreatorName() {
-  const el = document.getElementById("createdByName");
-  if (!el) return;
+async function refreshMarker() {
+  const { data } = await sb
+    .from("markers")
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
+    .eq("id", MARKER_ID)
+    .single();
+  if (data) CURRENT_MARKER = data;
+}
 
+/* ══════════════════════════════
+   EDIT MODE
+══════════════════════════════ */
+function categoriesForGroup(group_type) {
+  return group_type === "product"
+    ? CATEGORIES_ALL.filter(c => c.for_products)
+    : CATEGORIES_ALL.filter(c => c.for_places);
+}
+
+function renderCategoryOptions(group_type, selectedId) {
+  const sel = document.getElementById("e_category");
+  if (!sel) return;
+  sel.innerHTML = categoriesForGroup(group_type)
+    .map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+  if (selectedId != null) sel.value = String(selectedId);
+}
+
+function renderBrandOptions(selectedId, category_id) {
+  const sel = document.getElementById("e_brand");
+  if (!sel) return;
+  const filtered = brandsForCategory(category_id || null);
+  sel.innerHTML = filtered.length
+    ? filtered.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("")
+    : `<option value="">No brands for this category</option>`;
+  if (selectedId != null) sel.value = String(selectedId);
+}
+
+function showBrandRow(show) {
+  const row = document.getElementById("brandRow");
+  if (row) row.style.display = show ? "flex" : "none";
+}
+
+function computeProductTitle(category_id, brand_id) {
+  const c = CATEGORIES_ALL.find(x => x.id === parseInt(category_id));
+  const b = BRANDS.find(x => x.id === parseInt(brand_id));
+  return `${c?.name || ""} · ${b?.name || ""}`.trim();
+}
+
+function setTitleReadonly(isProduct) {
+  const el = document.getElementById("e_title");
+  if (!el) return;
+  el.disabled = isProduct;
+  el.style.opacity = isProduct ? "0.7" : "1";
+}
+
+function onEditGroupChanged() {
+  const g = document.getElementById("e_group_type").value;
+  showBrandRow(g === "product");
+  renderCategoryOptions(g, null);
+  setTitleReadonly(g === "product");
+  if (g === "product") {
+    const cat_id = parseInt(document.getElementById("e_category").value) || null;
+    renderBrandOptions(null, cat_id);
+    document.getElementById("e_title").value = computeProductTitle(
+      document.getElementById("e_category").value,
+      document.getElementById("e_brand").value
+    );
+  }
+}
+
+function onEditCategoryChanged() {
+  const g = document.getElementById("e_group_type").value;
+  if (g !== "product") return;
+  const cat_id = parseInt(document.getElementById("e_category").value) || null;
+  renderBrandOptions(null, cat_id);
+  document.getElementById("e_title").value = computeProductTitle(
+    document.getElementById("e_category").value,
+    document.getElementById("e_brand").value
+  );
+}
+
+function onEditBrandChanged() {
+  if (document.getElementById("e_group_type").value !== "product") return;
+  document.getElementById("e_title").value = computeProductTitle(
+    document.getElementById("e_category").value,
+    document.getElementById("e_brand").value
+  );
+}
+
+function fillSelect1to10(id, def = 7) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  sel.innerHTML = "";
+  for (let i = 1; i <= 10; i++) {
+    const o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = String(i);
+    if (i === def) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+function fillEditForm() {
   const m = CURRENT_MARKER;
-  if (!m?.created_by) {
-    el.textContent = "Unknown";
+  document.getElementById("e_title").value = m.title || "";
+  document.getElementById("e_group_type").value = m.group_type || "place";
+  renderCategoryOptions(m.group_type || "place", m.category_id);
+  renderBrandOptions(m.brand_id, m.category_id);
+  fillSelect1to10("e_rating", Number(m.rating_manual) || 7);
+  showBrandRow(m.group_type === "product");
+  setTitleReadonly(m.group_type === "product");
+  document.getElementById("e_address").value = m.address || "";
+  document.getElementById("e_lat").value = m.lat ?? "";
+  document.getElementById("e_lon").value = m.lon ?? "";
+
+  const catSel = document.getElementById("e_category");
+  if (catSel && !catSel.dataset.bound) {
+    catSel.addEventListener("change", onEditCategoryChanged);
+    catSel.dataset.bound = "1";
+  }
+  const brandSel = document.getElementById("e_brand");
+  if (brandSel && !brandSel.dataset.bound) {
+    brandSel.addEventListener("change", onEditBrandChanged);
+    brandSel.dataset.bound = "1";
+  }
+  if (m.group_type === "product") {
+    document.getElementById("e_title").value = computeProductTitle(m.category_id, m.brand_id);
+  }
+}
+
+function enterEditMode() {
+  document.getElementById("editCard").style.display = "block";
+  document.getElementById("editCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  fillEditForm();
+  setEditStatus("");
+}
+
+function cancelEdits() {
+  document.getElementById("editCard").style.display = "none";
+  setEditStatus("");
+}
+
+async function saveEdits() {
+  setEditStatus("Saving…");
+
+  const group_type  = document.getElementById("e_group_type").value;
+  const category_id = parseInt(document.getElementById("e_category").value) || null;
+  const address     = document.getElementById("e_address").value.trim();
+  const latRaw      = document.getElementById("e_lat").value.trim();
+  const lonRaw      = document.getElementById("e_lon").value.trim();
+  const lat = latRaw === "" ? null : Number(latRaw);
+  const lon = lonRaw === "" ? null : Number(lonRaw);
+  const brand_id = group_type === "product"
+    ? (parseInt(document.getElementById("e_brand").value) || null)
+    : null;
+  const rating_manual = Number(document.getElementById("e_rating").value);
+
+  let title = document.getElementById("e_title").value.trim();
+  if (group_type === "product") {
+    if (!brand_id) { setEditStatus("Brand is required for products."); return; }
+    title = computeProductTitle(category_id, brand_id);
+  }
+  if (!title) { setEditStatus("Title is required."); return; }
+
+  const { data, error } = await sb
+    .from("markers")
+    .update({ title, group_type, category_id, brand_id, rating_manual, address, lat, lon })
+    .eq("id", MARKER_ID)
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
+    .single();
+
+  if (error) { setEditStatus("Error: " + error.message); return; }
+
+  CURRENT_MARKER = data;
+  const user = await maybeUser();
+  const creatorName = await resolveCreatorName(data, user);
+  renderHero(data, user);
+  renderDetails(data, creatorName);
+  renderRating(data);
+  if (data.group_type === "place") renderMiniMap(data);
+  await renderRankingWidget(data);
+  cancelEdits();
+  setStatus("Saved ✅");
+}
+
+async function deactivateMarker() {
+  if (!confirm("Deactivate this marker? It will be hidden from list and map.")) return;
+  setStatus("Deactivating…");
+
+  const { data, error } = await sb
+    .from("markers")
+    .update({ is_active: false })
+    .eq("id", MARKER_ID)
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
+    .single();
+
+  if (error) { setStatus("Error: " + error.message); return; }
+  CURRENT_MARKER = data;
+  const user = await maybeUser();
+  renderHero(data, user);
+  setStatus("Deactivated ✅");
+}
+
+/* ══════════════════════════════
+   CREATOR NAME
+══════════════════════════════ */
+async function resolveCreatorName(m, user) {
+  if (!m?.created_by) return "Unknown";
+  if (user && user.id === m.created_by) {
+    return user.user_metadata?.display_name || user.email || "You";
+  }
+  const { data } = await sb
+    .from("profiles")
+    .select("display_name")
+    .eq("id", m.created_by)
+    .maybeSingle();
+  return data?.display_name || "A member";
+}
+
+/* ══════════════════════════════
+   INIT
+══════════════════════════════ */
+async function initMarkerPage() {
+  MARKER_ID = qp("id");
+  if (!MARKER_ID) {
+    setStatus("Missing marker id. Open like: marker.html?id=YOUR_ID");
     return;
   }
 
-  // Fetch from profiles view — we read user metadata via a helper RPC or just show uid
-  // Since auth.users is not directly readable from client, we store display_name in a profiles table
-  // For now, if it's the current user show their name, otherwise show a shortened uid
+  setStatus("Loading…");
+
   const user = await maybeUser();
-  if (user && user.id === m.created_by) {
-    const name = user.user_metadata?.display_name || user.email || "You";
-    el.textContent = name;
-  } else {
-    // Try to get from profiles table (we'll create this next)
-    const { data } = await sb
-      .from("profiles")
-      .select("display_name")
-      .eq("id", m.created_by)
-      .maybeSingle();
-    el.textContent = data?.display_name || "A member";
+
+  // Show vote card only if logged in
+  if (user) {
+    document.getElementById("voteCard").style.display = "block";
   }
+
+  // Load reference data in parallel
+  const [cbRes, catRes, brandRes, markerRes] = await Promise.all([
+    sb.from("category_brands").select("category_id,brand_id,is_active").eq("is_active", true),
+    sb.from("categories").select("id,name,icon_url,is_active,for_places,for_products").eq("is_active", true).order("name"),
+    sb.from("brands").select("id,name,icon_url,is_active").eq("is_active", true).order("name"),
+    sb.from("markers")
+      .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
+      .eq("id", MARKER_ID)
+      .single(),
+  ]);
+
+  if (markerRes.error || !markerRes.data) {
+    setStatus("Marker not found.");
+    document.getElementById("markerTitle").textContent = "Not found";
+    return;
+  }
+
+  CATEGORY_BRANDS = cbRes.data || [];
+  CATEGORIES_ALL  = catRes.data || [];
+  BRANDS          = brandRes.data || [];
+  CURRENT_MARKER  = markerRes.data;
+
+  const m = CURRENT_MARKER;
+
+  // Resolve creator name
+  const creatorName = await resolveCreatorName(m, user);
+
+  // Load my vote if logged in
+  if (user) await loadMyVote(user);
+
+  // Render all sections
+  renderHero(m, user);
+  renderRating(m);
+  renderDetails(m, creatorName);
+
+  if (m.group_type === "place") renderMiniMap(m);
+
+  await renderRankingWidget(m);
+
+  setStatus("");
 }
