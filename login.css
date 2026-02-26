@@ -1,0 +1,116 @@
+/* login.css */
+
+body.login-bg {
+  --page-bg: #40826D;
+  --header-bg: #52a089;
+  min-height: 100vh;
+}
+
+.login-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 54px);
+  padding: 24px 20px;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+  padding: 32px;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.login-brand h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  letter-spacing: -0.4px;
+}
+
+/* Tabs */
+.auth-tabs {
+  display: flex;
+  border: 1px solid rgba(0,0,0,0.14);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 0;
+  background: #fff;
+  font-weight: 900;
+  font-size: 14px;
+  color: rgba(11,18,32,0.55);
+  cursor: pointer;
+  box-shadow: none;
+  transition: background .10s ease, color .10s ease;
+  border-right: 1px solid rgba(0,0,0,0.14);
+}
+.auth-tab:last-child { border-right: none; }
+.auth-tab:hover { background: rgba(0,0,0,0.04); transform: none; box-shadow: none; }
+.auth-tab.active {
+  background: #0b1220;
+  color: #fff;
+}
+
+/* Fields */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+.field label {
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(11,18,32,0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.field input {
+  width: 100%;
+}
+
+.field-row {
+  margin-top: 6px;
+}
+.full-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.auth-status {
+  min-height: 20px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #ef4444;
+  font-weight: 900;
+}
+.auth-status.success { color: #0f9d58; }
+
+.auth-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+
+/* Confirm sent */
+.confirm-sent {
+  text-align: center;
+  padding: 10px 0;
+}
+.confirm-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+.confirm-sent h2 { margin: 0 0 10px; }
