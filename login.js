@@ -101,7 +101,6 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ── If already logged in, redirect away ── */
-(async () => {
+(async function checkAlreadyLoggedIn() {
   const user = await maybeUser();
   if (user) window.location.href = "index.html";
-})();
