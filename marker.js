@@ -143,16 +143,15 @@ function renderRating(m, isFirst) {
   }
 
   document.getElementById("ratingDisplay").innerHTML = `
-    <div class="rating-badge ${cls}" style="margin-top:${isFirst && cnt > 0 ? '18px' : '0'}">
+    <div class="rating-badge ${cls}" style="margin-top:${isFirst && cnt > 0 ? '22px' : '0'}">
       ${crownHtml}
-      <div class="rating-badge-number ${cls}">${escapeHtml(displayAvg)}</div>
+      <div class="rating-badge-number">${escapeHtml(displayAvg)}</div>
       <div class="rating-badge-label">Overall</div>
     </div>
     <div class="rating-right">
       <div class="rating-bar-block">
         <div class="rating-bar-header">
-          <span class="rating-bar-score ${cls}">${escapeHtml(displayAvg)}</span>
-          <span class="rating-bar-max">/ 10</span>
+          <span class="rating-bar-score">${escapeHtml(displayAvg)} <span class="rating-bar-max">/ 10</span></span>
         </div>
         <div class="rating-bar-track">
           <div class="rating-bar-fill ${bCls}" style="width:${pct}%"></div>
