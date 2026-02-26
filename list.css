@@ -133,7 +133,7 @@
   color: #fff;
   border-color: #0b1220;
 }
-.chip-ic { width: 16px; height: 16px; }
+.chip-ic { width: 16px; height: 16px; flex: 0 0 16px; object-fit: contain; display: block; }
 .chip-clear {
   border-color: rgba(239,68,68,0.40);
   color: #ef4444;
