@@ -125,11 +125,9 @@ function renderRating(m, isFirst) {
   const bCls = barClass(avg, cnt);
   const pct = cnt ? Math.round((avg / 10) * 100) : 0;
   const displayAvg = cnt ? avg.toFixed(1) : "—";
-  const CROWN_URL = "https://danielramirezopisso.github.io/thebestagain/icons/ranking/crown_ranking.svg";
+  const CROWN_SVG = `<svg class="rating-crown" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"><path d="M94.52 21.81c2.44-1.18 4.13-3.67 4.13-6.56a7.28 7.28 0 0 0-14.56 0c0 2.93 1.73 5.44 4.22 6.6c-2.88 15.6-7.3 27.21-23.75 29.69c0 0 4.43 22.15 25.15 22.15s22.82-21.93 22.82-21.93c-16.81.86-18.23-20.27-18.01-29.95z" fill="#f19534"/><path d="M34.74 21.81c-2.44-1.18-4.13-3.67-4.13-6.56a7.28 7.28 0 0 1 14.56 0c0 2.93-1.73 5.44-4.22 6.6c2.88 15.6 7.3 27.21 23.75 29.69c0 0-4.43 22.15-25.15 22.15S16.74 51.77 16.74 51.77c16.8.85 18.22-20.28 18-29.96z" fill="#f19534"/><path d="M119.24 16.86c-3.33-.45-6.51 2.72-7.09 7.06c-.36 2.71.37 5.24 1.78 6.87l-2.4 9.95s-3.67 23.51-22.21 28.15C74.5 72.6 69.13 45.47 67.83 37.09c2.82-1.4 4.77-4.3 4.77-7.67c0-4.73-3.83-8.56-8.56-8.56s-8.56 3.83-8.56 8.56c0 3.39 1.98 6.32 4.85 7.7c-1.03 8.27-5.57 34.5-21.57 31.76c-16.24-2.79-23.33-30.14-24.97-37.58c1.95-1.6 3.04-4.42 2.64-7.45c-.58-4.35-4.02-7.47-7.68-6.98c-3.66.49-6.15 4.41-5.57 8.75c.42 3.16 2.36 5.67 4.79 6.62l12.72 79.03s11.1 8.77 43.35 8.77s43.35-8.77 43.35-8.77l12.75-79.24c2.06-1.08 3.68-3.51 4.08-6.49c.59-4.35-1.64-8.23-4.98-8.68z" fill="#ffca28"/><ellipse cx="64.44" cy="88.3" rx="9.74" ry="11.61" fill="#26a69a"/><path d="M64.44 79.56c.38.42.72 1.19 0 2.69s-4.6 3.53-5.31 3.94c-.71.42-1.18.23-1.4.06c-1.05-.84-.65-2.74.03-3.9c1.46-2.51 4.55-5.1 6.68-2.79z" fill="#69f0ae"/><path d="M109.15 98.21c-5.99 3-19.73 10.99-45.1 10.99s-39.11-7.99-45.1-10.99c0 0-2.15 1.15-2.15 2.35v9.21c0 1.23.65 2.36 1.71 2.99c4.68 2.76 18.94 9.28 45.55 9.28s40.87-6.52 45.55-9.28a3.475 3.475 0 0 0 1.71-2.99v-9.21c-.02-1.2-2.17-2.35-2.17-2.35z" fill="#ffca28"/></svg>`;
 
-  const crownHtml = (isFirst && cnt > 0)
-    ? `<img class="rating-crown" src="${CROWN_URL}" alt="👑" title="#1 ranked!" />`
-    : "";
+  const crownHtml = (isFirst && cnt > 0) ? CROWN_SVG : "";
 
   let myVoteHtml = "";
   if (CURRENT_VOTE !== null) {
@@ -288,8 +286,6 @@ async function renderRankingWidget(m) {
   const position = currentIdx + 1;
   const total = sorted.length;
   const isFirst = position === 1 && Number(m.rating_count ?? 0) > 0;
-  const CROWN_URL = "https://danielramirezopisso.github.io/thebestagain/icons/ranking/crown_ranking.svg";
-
   // Re-render rating card now we know position
   renderRating(m, isFirst);
 
@@ -297,10 +293,8 @@ async function renderRankingWidget(m) {
   const editLink = document.getElementById("editVotesCatLink");
   if (editLink) editLink.href = "my-votes.html";
 
-  // Position display
-  const crownHtml = isFirst
-    ? `<img src="${CROWN_URL}" alt="👑" style="width:28px;height:28px;vertical-align:middle;margin-bottom:4px;" /><br/>`
-    : "";
+  // Position display — use emoji crown here, simple and reliable
+  const crownHtml = isFirst ? `<div style="font-size:24px;line-height:1;">👑</div>` : "";
   document.getElementById("rankingPosition").innerHTML = `
     <div class="ranking-pos-number">${crownHtml}#${position}</div>
     <div class="ranking-pos-sub">of ${total} ${escapeHtml(cat.name)}</div>
