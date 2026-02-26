@@ -143,7 +143,7 @@ function renderRating(m, isFirst) {
   }
 
   document.getElementById("ratingDisplay").innerHTML = `
-    <div class="rating-badge ${cls}" style="margin-top:${isFirst && cnt > 0 ? '22px' : '0'}">
+    <div class="rating-badge ${cls}" style="margin-top:${isFirst && cnt > 0 ? '40px' : '0'}">
       ${crownHtml}
       <div class="rating-badge-number">${escapeHtml(displayAvg)}</div>
       <div class="rating-badge-label">Overall</div>
