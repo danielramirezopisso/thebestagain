@@ -215,3 +215,50 @@
   cursor: pointer;
 }
 .checkbox-label input { width: auto; }
+
+/* ── Table column sizing ── */
+.admin-table th:first-child,
+.admin-table td:first-child {
+  width: 48px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Name column always takes remaining space */
+.col-name { width: auto; }
+
+/* Fixed-width columns */
+.col-flag   { width: 90px; text-align: center; }
+.col-status { width: 90px; }
+.col-icon   { width: 160px; font-size: 12px; color: var(--muted); 
+              max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-actions { width: 160px; white-space: nowrap; }
+
+/* Consistent action buttons */
+.row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.row-actions .tba-btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Section title row consistency */
+.section-head {
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+/* Icon preview in table */
+.admin-icon-preview {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
