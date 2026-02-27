@@ -205,6 +205,7 @@ function selectEditCategory(cid) {
   renderEditCatChips();
 
   // Build EDIT_CARDS from votes of this category, sorted high→low
+  // Pre-populate pinned values from existing votes
   const votesForCat = MY_VOTES
     .filter(v => v.markers.category_id === cid)
     .sort((a, b) => b.vote - a.vote);
@@ -213,7 +214,7 @@ function selectEditCategory(cid) {
     vote_id:   v.id,
     marker_id: v.markers.id,
     title:     v.markers.title,
-    pinned:    null,   // no pin by default
+    pinned:    v.vote !== null && v.vote !== undefined ? +parseFloat(v.vote).toFixed(1) : null,
   }));
 
   const cat = CAT_BY_ID[cid];
@@ -378,9 +379,47 @@ function onPinInput(idx, input) {
       EDIT_CARDS[idx].pinned = null;
     }
   }
-  // Re-render scores and preview without re-building the whole list (smoother)
-  updateScoreDisplay();
+  // Auto-reorder: sort cards by pinned value desc (unpinned cards keep position relative to pinned neighbours)
+  autoReorderByPins();
   updateSaveBtn();
+}
+
+/* ── Auto-reorder cards by pinned scores (desc) ── */
+function autoReorderByPins() {
+  // Separate pinned and unpinned
+  const pinned   = EDIT_CARDS.filter(c => c.pinned !== null).sort((a, b) => b.pinned - a.pinned);
+  const unpinned = EDIT_CARDS.filter(c => c.pinned === null);
+
+  if (!pinned.length) {
+    // Nothing pinned — keep current order, just re-render
+    renderDragList();
+    return;
+  }
+
+  // Merge: slot unpinned cards into gaps proportionally
+  // Strategy: interleave unpinned evenly between pinned ones
+  const total = EDIT_CARDS.length;
+  const result = [];
+  let unpinnedIdx = 0;
+  let pinnedIdx = 0;
+
+  // Simple stable merge: place pinned in sorted order, scatter unpinned in between
+  // Ratio: how many unpinned per pinned slot
+  const gaps = pinned.length + 1; // slots: before first, between each, after last
+  const perGap = Math.floor(unpinned.length / gaps);
+  const extra   = unpinned.length % gaps;
+
+  for (let g = 0; g < gaps; g++) {
+    // How many unpinned go in this gap
+    const count = perGap + (g < extra ? 1 : 0);
+    for (let k = 0; k < count; k++) {
+      if (unpinnedIdx < unpinned.length) result.push(unpinned[unpinnedIdx++]);
+    }
+    if (pinnedIdx < pinned.length) result.push(pinned[pinnedIdx++]);
+  }
+
+  EDIT_CARDS = result;
+  renderDragList();
 }
 
 function updateScoreDisplay() {
