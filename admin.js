@@ -88,21 +88,24 @@ function renderCatTable() {
       <thead>
         <tr>
           <th>ID</th>
-          <th>Name</th>
-          <th>For places</th>
-          <th>For products</th>
-          <th>Status</th>
-          <th>Actions</th>
+          <th class="col-name">Name</th>
+          <th class="col-flag">Places</th>
+          <th class="col-flag">Products</th>
+          <th class="col-status">Status</th>
+          <th class="col-actions">Actions</th>
         </tr>
       </thead>
       <tbody>
         ${ALL_CATEGORIES.map(c => `
           <tr class="${c.is_active ? "" : "inactive"}">
-            <td class="muted">${c.id}</td>
-            <td><b>${escapeHtml(c.name)}</b></td>
-            <td>${c.for_places ? "✅" : "—"}</td>
-            <td>${c.for_products ? "✅" : "—"}</td>
-            <td><span class="pill ${c.is_active ? "pill-active" : "pill-inactive"}">${c.is_active ? "Active" : "Inactive"}</span></td>
+            <td>${c.id}</td>
+            <td class="col-name">
+              ${c.icon_url ? `<img class="admin-icon-preview" src="${escapeHtml(c.icon_url)}" onerror="this.style.display='none'" />` : ""}
+              <b>${escapeHtml(c.name)}</b>
+            </td>
+            <td class="col-flag">${c.for_places ? "✅" : "—"}</td>
+            <td class="col-flag">${c.for_products ? "✅" : "—"}</td>
+            <td class="col-status"><span class="pill ${c.is_active ? "pill-active" : "pill-inactive"}">${c.is_active ? "Active" : "Inactive"}</span></td>
             <td>
               <div class="row-actions">
                 <button onclick="editCategory(${c.id})">Edit</button>
@@ -234,19 +237,22 @@ function renderBrandTable() {
       <thead>
         <tr>
           <th>ID</th>
-          <th>Name</th>
-          <th>Icon URL</th>
-          <th>Status</th>
-          <th>Actions</th>
+          <th class="col-name">Name</th>
+          <th class="col-icon">Icon</th>
+          <th class="col-status">Status</th>
+          <th class="col-actions">Actions</th>
         </tr>
       </thead>
       <tbody>
         ${ALL_BRANDS.map(b => `
           <tr class="${b.is_active ? "" : "inactive"}">
-            <td class="muted">${b.id}</td>
-            <td><b>${escapeHtml(b.name)}</b></td>
-            <td class="muted" style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-              ${escapeHtml(b.icon_url || "—")}
+            <td>${b.id}</td>
+            <td class="col-name">
+              ${b.icon_url ? `<img class="admin-icon-preview" src="${escapeHtml(b.icon_url)}" onerror="this.style.display='none'" />` : ""}
+              <b>${escapeHtml(b.name)}</b>
+            </td>
+            <td class="col-icon">
+              <span title="${escapeHtml(b.icon_url || '')}">${escapeHtml(b.icon_url ? b.icon_url.split('/').pop() : '—')}</span>
             </td>
             <td><span class="pill ${b.is_active ? "pill-active" : "pill-inactive"}">${b.is_active ? "Active" : "Inactive"}</span></td>
             <td>
