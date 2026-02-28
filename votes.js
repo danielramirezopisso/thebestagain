@@ -140,6 +140,11 @@ function renderNormalView() {
           <span class="cat-block-count">${votes.length} vote${votes.length === 1 ? "" : "s"}</span>
         </div>
         <table class="votes-table">
+          <colgroup>
+            <col class="col-rank" />
+            <col class="col-title" />
+            <col class="col-score" />
+          </colgroup>
           <thead>
             <tr>
               <th>#</th>
