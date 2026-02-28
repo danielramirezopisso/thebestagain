@@ -42,37 +42,46 @@
       <div class="votes-header">
         <div>
           <h1>Edit Votes</h1>
-          <p class="muted">Select a category, drag to rank, pin scores.</p>
+          <p class="muted">Select a category, adjust scores, save.</p>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <button class="tba-btn" onclick="exitEditMode()">Cancel</button>
-          <button class="tba-btn tba-btn-primary" id="btnSaveVotes" onclick="saveVotes()" disabled>Save</button>
+          <button class="tba-btn" onclick="exitEditMode()">← Back</button>
+          <button class="tba-btn tba-btn-primary" id="btnSaveVotes" onclick="saveVotes()" disabled>Save changes</button>
         </div>
       </div>
 
-      <!-- Category picker -->
-      <section class="card edit-cat-picker">
-        <div class="filter-label">Select category to edit</div>
-        <div id="editCatChips" class="chip-row" style="margin-top:8px;"></div>
-      </section>
+      <!-- Two-column layout: sidebar + cards -->
+      <div class="edit-layout">
 
-      <!-- Edit panel -->
-      <div id="editPanel" style="display:none;">
-        <div class="edit-toolbar">
-          <span id="editCatName" class="edit-cat-label"></span>
-          <div style="display:flex;gap:8px;">
-            <button class="tba-btn" onclick="quickSet10to1()" title="Pin top=10, bottom=1">⚡ Set 10→1</button>
-            <button class="tba-btn" onclick="resetPins()">🔄 Reset pins</button>
+        <!-- LEFT: category sidebar -->
+        <div class="edit-sidebar">
+          <div class="edit-sidebar-head">Categories</div>
+          <div id="editCatList"></div>
+        </div>
+
+        <!-- RIGHT: vote cards -->
+        <div class="edit-main">
+
+          <!-- Distribute tool -->
+          <div class="distribute-bar" id="distributeBar" style="display:none;">
+            <span class="distribute-label">Distribute evenly:</span>
+            <div class="distribute-inputs">
+              <input id="distTop" type="number" min="1" max="10" step="0.1" placeholder="Top" class="dist-input" />
+              <span class="muted">→</span>
+              <input id="distBottom" type="number" min="1" max="10" step="0.1" placeholder="Bottom" class="dist-input" />
+            </div>
+            <button class="tba-btn" onclick="distributeScores()">Distribute</button>
+            <span id="distributeStatus" class="muted" style="font-size:12px;"></span>
           </div>
+
+          <!-- Vote cards list -->
+          <div id="editCardsList"></div>
+
+          <div id="editEmptyState" style="display:none;" class="edit-empty">
+            Select a category on the left to start editing.
+          </div>
+
         </div>
-
-        <div id="editWarning" class="edit-warning" style="display:none;">
-          ⚠️ Pin a score for the <b>top</b> and <b>bottom</b> card to enable Save.
-        </div>
-
-        <div id="editPreview" class="edit-preview-bar" style="display:none;"></div>
-
-        <div id="dragList" class="drag-list"></div>
       </div>
     </div>
 
@@ -82,6 +91,6 @@
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
-  <script src="votes.js?v=2"></script>
+  <script src="votes.js?v=3"></script>
 </body>
 </html>
