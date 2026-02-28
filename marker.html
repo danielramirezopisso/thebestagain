@@ -61,12 +61,6 @@
               <button class="tba-btn" onclick="clearMyVote()" id="btnClearVote" style="display:none;">Remove</button>
             </div>
           </div>
-          <div class="comment-input-wrap">
-            <textarea id="myCommentInput" class="comment-textarea" placeholder="Add a comment on your vote… (optional)" rows="2" maxlength="500"></textarea>
-            <div class="comment-input-foot">
-              <span id="commentCharCount" class="comment-char-count">0 / 500</span>
-            </div>
-          </div>
           <p id="voteStatus" class="muted vote-status"></p>
         </div>
 
@@ -100,7 +94,24 @@
 
         <!-- Comments card -->
         <div class="card m-card" id="commentsCard">
-          <div class="m-card-head">Comments</div>
+          <div class="m-card-head-row">
+            <span class="m-card-head">Comments</span>
+            <span id="commentsCount" class="m-card-link" style="cursor:default;"></span>
+          </div>
+
+          <!-- Write a comment (logged in only) -->
+          <div id="commentWriteArea" style="display:none;">
+            <textarea id="newCommentInput" class="comment-textarea" placeholder="Share your thoughts…" rows="2" maxlength="500"></textarea>
+            <div class="comment-write-foot">
+              <span id="newCommentCharCount" class="comment-char-count">0 / 500</span>
+              <button class="tba-btn tba-btn-primary comment-post-btn" onclick="postComment()">Post</button>
+            </div>
+          </div>
+          <div id="commentLoginPrompt" class="comment-login-prompt" style="display:none;">
+            <a href="login.html">Login</a> to leave a comment.
+          </div>
+
+          <!-- List -->
           <div id="commentsList"></div>
         </div>
 
@@ -165,6 +176,6 @@
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
-  <script src="marker.js?v=6"></script>
+  <script src="marker.js?v=7"></script>
 </body>
 </html>
