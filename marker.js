@@ -4,6 +4,7 @@ let MARKER_ID = null;
 let CURRENT_MARKER = null;
 let CURRENT_VOTE = null;       // number | null (current user's vote value)
 let CURRENT_VOTE_ID = null;    // uuid of vote row
+let CURRENT_COMMENT = null;    // string | null (current user's saved comment)
 
 let CATEGORIES_ALL = [];
 let BRANDS = [];
@@ -355,7 +356,7 @@ async function renderRankingWidget(m) {
 async function loadMyVote(user) {
   const { data, error } = await sb
     .from("votes")
-    .select("id,vote,is_active")
+    .select("id,vote,comment,is_active")
     .eq("marker_id", MARKER_ID)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -363,13 +364,22 @@ async function loadMyVote(user) {
   if (error) { setVoteStatus("Error loading vote."); return; }
 
   if (data?.is_active) {
-    CURRENT_VOTE = Number(data.vote);
+    CURRENT_VOTE    = Number(data.vote);
     CURRENT_VOTE_ID = data.id;
+    CURRENT_COMMENT = data.comment || null;
     setVoteStatus(`Your current vote: ${CURRENT_VOTE}`);
   } else {
-    CURRENT_VOTE = null;
+    CURRENT_VOTE    = null;
     CURRENT_VOTE_ID = data?.id || null;
+    CURRENT_COMMENT = null;
     setVoteStatus("No vote yet.");
+  }
+
+  // Populate comment textarea
+  const ta = document.getElementById("myCommentInput");
+  if (ta) {
+    ta.value = CURRENT_COMMENT || "";
+    updateCommentCharCount();
   }
 
   renderVoteButtons();
@@ -383,19 +393,24 @@ async function saveMyVote() {
   const user = await requireAuth();
   if (!user) return;
 
+  const ta      = document.getElementById("myCommentInput");
+  const comment = ta ? (ta.value.trim() || null) : null;
+
   const { error } = await sb
     .from("votes")
     .upsert(
-      [{ marker_id: MARKER_ID, user_id: user.id, vote: CURRENT_VOTE, is_active: true }],
+      [{ marker_id: MARKER_ID, user_id: user.id, vote: CURRENT_VOTE, comment, is_active: true }],
       { onConflict: "marker_id,user_id" }
     );
 
   if (error) { setVoteStatus("Error: " + error.message); return; }
 
+  CURRENT_COMMENT = comment;
   setVoteStatus("Saved ✅");
   await refreshMarker();
   renderVoteButtons();
   renderRating(CURRENT_MARKER);
+  await loadComments();
 }
 
 async function clearMyVote() {
@@ -413,11 +428,15 @@ async function clearMyVote() {
 
   if (error) { setVoteStatus("Error: " + error.message); return; }
 
-  CURRENT_VOTE = null;
+  CURRENT_VOTE    = null;
+  CURRENT_COMMENT = null;
+  const ta = document.getElementById("myCommentInput");
+  if (ta) { ta.value = ""; updateCommentCharCount(); }
   setVoteStatus("Removed ✅");
   await refreshMarker();
   renderVoteButtons();
   renderRating(CURRENT_MARKER);
+  await loadComments();
 }
 
 async function refreshMarker() {
@@ -638,6 +657,96 @@ async function resolveCreatorName(m, user) {
   return data?.display_name || "A member";
 }
 
+
+/* ══════════════════════════════
+   COMMENTS
+══════════════════════════════ */
+function updateCommentCharCount() {
+  const ta = document.getElementById("myCommentInput");
+  const el = document.getElementById("commentCharCount");
+  if (!ta || !el) return;
+  const len = ta.value.length;
+  el.textContent = `${len} / 500`;
+  el.style.color = len > 450 ? "#ef4444" : "";
+  // Hook oninput once
+  if (!ta.dataset.bound) {
+    ta.addEventListener("input", updateCommentCharCount);
+    ta.dataset.bound = "1";
+  }
+}
+
+function formatTimeAgo(iso) {
+  if (!iso) return "";
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60)   return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 7 * 86400) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { day:"numeric", month:"short", year:"numeric" });
+}
+
+async function loadComments() {
+  const card = document.getElementById("commentsCard");
+  const list = document.getElementById("commentsList");
+  if (!list) return;
+
+  // Fetch all active votes for this marker that have a comment, joined with profiles
+  const { data, error } = await sb
+    .from("votes")
+    .select("id,vote,comment,updated_at,user_id,profiles(display_name)")
+    .eq("marker_id", MARKER_ID)
+    .eq("is_active", true)
+    .not("comment", "is", null)
+    .neq("comment", "")
+    .order("updated_at", { ascending: false });
+
+  if (error || !data?.length) {
+    list.innerHTML = `<p class="muted" style="font-size:13px;padding:4px 0;">No comments yet.</p>`;
+    return;
+  }
+
+  const user = await maybeUser();
+
+  list.innerHTML = data.map(row => {
+    const name     = row.profiles?.display_name || "A member";
+    const initial  = (name[0] || "?").toUpperCase();
+    const score    = Number(row.vote);
+    const cls      = colorClassMarker(score, 1);
+    const isOwn    = user && user.id === row.user_id;
+    const timeAgo  = formatTimeAgo(row.updated_at);
+
+    return `
+      <div class="comment-row ${isOwn ? "comment-own" : ""}">
+        <div class="comment-avatar">${escapeHtml(initial)}</div>
+        <div class="comment-body">
+          <div class="comment-meta">
+            <span class="comment-author">${escapeHtml(name)}</span>
+            <span class="comment-score-pill ${cls}">${score.toFixed(1)}</span>
+            <span class="comment-time">${timeAgo}</span>
+            ${isOwn ? `<button class="comment-edit-btn" onclick="focusCommentInput()">Edit</button>` : ""}
+          </div>
+          <div class="comment-text">${escapeHtml(row.comment)}</div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function colorClassMarker(v, cnt) {
+  if (!cnt || !v) return "rating-none";
+  if (v >= 9) return "rating-9-10";
+  if (v >= 7) return "rating-7-8";
+  if (v >= 5) return "rating-5-6";
+  if (v >= 3) return "rating-3-4";
+  return "rating-1-2";
+}
+
+function focusCommentInput() {
+  const ta = document.getElementById("myCommentInput");
+  if (!ta) return;
+  ta.scrollIntoView({ behavior: "smooth", block: "center" });
+  ta.focus();
+}
+
 /* ══════════════════════════════
    INIT
 ══════════════════════════════ */
@@ -695,6 +804,8 @@ async function initMarkerPage() {
   if (m.group_type === "place") renderMiniMap(m);
 
   await renderRankingWidget(m);
+  await loadComments();
+  updateCommentCharCount();
 
   setStatus("");
 }
