@@ -1,10 +1,10 @@
 /* login.css — fully self-contained, overrides base.css for login page */
 
 body.login-bg {
-  background: #40826D;
+  background: var(--page-bg);
   min-height: 100vh;
-  --header-bg: #52a089;
-  --line: rgba(0,0,0,0.20);
+  --header-bg: var(--page-bg);
+  
 }
 
 /* Full-page centered layout — NOT using .container */
@@ -20,8 +20,8 @@ body.login-bg {
 /* The white card */
 .login-box {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 28px 64px rgba(0,0,0,0.22);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 24px rgba(26,23,20,0.10), 0 1px 4px rgba(26,23,20,0.08);
   padding: 36px 32px;
   width: 100%;
   max-width: 400px;
@@ -34,22 +34,23 @@ body.login-bg {
   margin-bottom: 28px;
 }
 .login-brand h1 {
+  font-family: 'Playfair Display', Georgia, serif;
   margin: 0 0 6px;
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: -0.3px;
-  color: #0b1220;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
 }
 .login-sub {
   margin: 0;
   font-size: 13px;
-  color: rgba(11,18,32,0.60);
+  color: var(--muted);
 }
 
 /* Tabs */
 .auth-tabs {
   display: flex;
-  border: 1px solid rgba(0,0,0,0.15);
+  border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 24px;
@@ -58,19 +59,19 @@ body.login-bg {
   flex: 1;
   padding: 10px 8px;
   border: none;
-  border-right: 1px solid rgba(0,0,0,0.15);
+  border-right: 1px solid var(--border);
   border-radius: 0;
   background: #fff;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 900;
-  color: rgba(11,18,32,0.50);
+  font-weight: 700;
+  color: var(--muted);
   cursor: pointer;
   transition: background .10s, color .10s;
 }
 .auth-tab:last-child { border-right: none; }
-.auth-tab:hover { background: rgba(0,0,0,0.04); }
-.auth-tab.active { background: #0b1220; color: #fff; }
+.auth-tab:hover { background: var(--faint); }
+.auth-tab.active { background: var(--accent); color: #fff; border-color: var(--accent2); }
 
 /* Fields */
 .field {
@@ -79,8 +80,8 @@ body.login-bg {
 .field-label {
   display: block;
   font-size: 11px;
-  font-weight: 900;
-  color: rgba(11,18,32,0.55);
+  font-weight: 700;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 6px;
@@ -91,18 +92,18 @@ body.login-bg {
   width: 100%;
   box-sizing: border-box;
   padding: 10px 12px;
-  border: 1px solid rgba(0,0,0,0.20);
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-family: inherit;
   font-size: 14px;
-  color: #0b1220;
+  color: var(--text);
   background: #fff;
   outline: none;
   transition: border-color .10s, box-shadow .10s;
 }
 .field-input:focus {
-  border-color: rgba(11,92,255,0.55);
-  box-shadow: 0 0 0 3px rgba(11,92,255,0.10);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(45,74,138,0.10);
 }
 
 /* Main CTA button */
@@ -112,20 +113,19 @@ body.login-bg {
   box-sizing: border-box;
   padding: 12px;
   margin-top: 8px;
-  background: #0b1220;
+  background: var(--accent);
   color: #fff;
   border: none;
   border-radius: 6px;
   font-family: inherit;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 700;
   cursor: pointer;
   transition: background .12s, transform .10s;
 }
 .auth-btn:hover {
-  background: #1a2a44;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+  background: var(--accent2);
+  transform: none;
 }
 
 /* Status messages */
@@ -133,15 +133,15 @@ body.login-bg {
   min-height: 18px;
   margin: 10px 0 0;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
   color: #ef4444;
 }
-.auth-status.success { color: #0f9d58; }
+.auth-status.success { color: #2e7d4f; }
 
 .auth-hint {
   margin: 10px 0 0;
   font-size: 12px;
-  color: rgba(11,18,32,0.50);
+  color: var(--muted);
 }
 
 /* Confirm screen */
