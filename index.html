@@ -4,12 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The Best Again</title>
-
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="home.css" />
 </head>
 
-<body class="home-bg" onload="initHomePage()">
+<body onload="initHomePage()">
   <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav">
@@ -19,41 +18,37 @@
       <a href="products.html">Products</a>
       <a href="my-votes.html">My Votes</a>
       <a href="admin.html">Admin</a>
-      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
+      <span id="authStatus" class="auth-pill" style="margin-left:8px;"></span>
     </nav>
   </header>
 
   <main class="container home">
+
+    <!-- ── HERO ── -->
     <section class="home-hero">
       <div>
         <h1 class="home-title">The Best Again</h1>
-        <p class="home-tagline muted">
-          A personal hunt for the best bites & products — one surprise at a time.
-        </p>
-        <p class="home-hint muted">
-          Shortcuts: <b>M</b> Map · <b>L</b> List · <b>P</b> Products · <b>R</b> Surprise
-        </p>
+        <p class="home-tagline">A personal hunt for the best bites &amp; products — one surprise at a time.</p>
+        <p class="home-hint muted">Shortcuts: <b>M</b> Map · <b>L</b> List · <b>P</b> Products · <b>R</b> Surprise</p>
       </div>
-
       <div class="home-actions">
-        <a class="tba-btn tba-btn-primary" href="map.html">🗺️ Map</a>
+        <a class="tba-btn tba-btn-primary" href="map.html">🗺 Map</a>
         <a class="tba-btn" href="list.html">📋 List</a>
         <a class="tba-btn" href="products.html">🛒 Products</a>
       </div>
     </section>
 
+    <!-- ── CRAVINGS ── -->
     <section class="card cravings">
       <div class="cravings-header">
-        <h2 style="margin:0;">Explore by craving</h2>
-        <span class="muted">Quick category shortcuts</span>
+        <h2>Explore by craving</h2>
+        <span class="muted" style="font-size:12px;">Quick shortcuts</span>
       </div>
-
       <div class="cravings-split">
         <div class="cravings-block">
           <div class="cravings-block-title">Places</div>
           <div id="chipRowPlaces" class="chip-row"></div>
         </div>
-
         <div class="cravings-block">
           <div class="cravings-block-title">Products</div>
           <div id="chipRowProducts" class="chip-row"></div>
@@ -61,34 +56,32 @@
       </div>
     </section>
 
+    <!-- ── SPOTLIGHT + RECENT ── -->
     <section class="home-grid">
+
       <section class="card spotlight">
         <div class="spotlight-header">
           <div class="spotlight-title">
             <span class="spotlight-dice">🎲</span>
             <div>
               <div class="spotlight-kicker">Spotlight Surprise</div>
-              <div class="spotlight-sub muted" id="spotSub">Loading something tasty…</div>
+              <div class="spotlight-sub" id="spotSub">Loading something tasty…</div>
             </div>
           </div>
-
-          <button class="tba-btn tba-btn-ghost" id="btnSurprise" onclick="surpriseMe()">🔁 Surprise</button>
+          <button class="tba-btn tba-btn-ghost" id="btnSurprise" onclick="surpriseMe()">↻ Shuffle</button>
         </div>
-
         <div id="spotBody" class="spotlight-body"></div>
-
-        <div class="spotlight-footer">
-          <span class="muted" id="spotStatus"></span>
-        </div>
+        <div class="spotlight-footer" id="spotStatus"></div>
       </section>
 
       <section class="card recent">
         <div class="recent-header">
-          <h2 style="margin:0;">Recently added</h2>
-          <span class="muted" id="recentStatus"></span>
+          <h2>Recently added</h2>
+          <span class="muted" id="recentStatus" style="font-size:12px;"></span>
         </div>
         <div id="recentList" class="recent-list"></div>
       </section>
+
     </section>
   </main>
 
@@ -99,4 +92,3 @@
   <script src="home.js?v=2"></script>
 </body>
 </html>
-
