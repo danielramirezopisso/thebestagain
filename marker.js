@@ -166,6 +166,7 @@ function renderRating(m, isFirst) {
 ══════════════════════════════ */
 function renderVoteButtons() {
   const wrap = document.getElementById("voteBtns");
+  if (!wrap) return;
   wrap.innerHTML = "";
 
   for (let i = 1; i <= 10; i++) {
@@ -725,20 +726,28 @@ async function loadComments(user) {
 
   // Fetch reactions for all comments
   const allIds = [...topIds, ...(replies || []).map(r => r.id)];
-  const { data: reactions } = await sb
-    .from("reactions")
-    .select("id,comment_id,user_id,emoji")
-    .in("comment_id", allIds);
+  let reactions = [];
+  if (allIds.length) {
+    const { data: rxData } = await sb
+      .from("reactions")
+      .select("id,comment_id,user_id,emoji")
+      .in("comment_id", allIds);
+    reactions = rxData || [];
+  }
 
   // Fetch display names
   const allUserIds = [...new Set([
     ...topComments.map(c => c.user_id),
     ...(replies || []).map(r => r.user_id),
   ])];
-  const { data: profiles } = await sb
-    .from("profiles")
-    .select("id,display_name")
-    .in("id", allUserIds);
+  let profiles = [];
+  if (allUserIds.length) {
+    const { data: profData } = await sb
+      .from("profiles")
+      .select("id,display_name")
+      .in("id", allUserIds);
+    profiles = profData || [];
+  }
 
   // Fetch votes for score pills (only for comments that have a vote_id)
   const voteIds = topComments.filter(c => c.vote_id).map(c => c.vote_id);
@@ -794,18 +803,24 @@ function renderCommentRow(c, user, nameById, reactionsByComment, repliesByParent
     reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
   });
 
-  const existingReactions = Object.entries(reactionCounts).map(([emoji, count]) => `
-    <button class="reaction-pill ${myReactions.has(emoji) ? "reacted" : ""}"
-      onclick="${user ? `toggleReaction('${c.id}','${emoji}')` : "location.href='login.html'"}"
-      title="${myReactions.has(emoji) ? "Remove reaction" : "React"}">
+  const existingReactions = Object.entries(reactionCounts).map(([emoji, count]) => {
+    const emojiB64 = btoa(unescape(encodeURIComponent(emoji)));
+    const reacted  = myReactions.has(emoji);
+    const clickFn  = user ? `toggleReactionB64('${c.id}','${emojiB64}')` : "location.href='login.html'";
+    return `<button class="reaction-pill ${reacted ? "reacted" : ""}"
+      onclick="${clickFn}" title="${reacted ? "Remove reaction" : "React"}">
       ${emoji} ${count}
-    </button>`).join("");
+    </button>`;
+  }).join("");
 
   const addReactionBtn = user ? `
     <div class="reaction-add-wrap">
       <button class="reaction-add-btn" onclick="toggleEmojiPicker('${c.id}')">＋</button>
       <div class="emoji-picker" id="picker-${c.id}" style="display:none;">
-        ${EMOJI_OPTIONS.map(e => `<button onclick="toggleReaction('${c.id}','${e}');toggleEmojiPicker('${c.id}')">${e}</button>`).join("")}
+        ${EMOJI_OPTIONS.map(e => {
+          const b64 = btoa(unescape(encodeURIComponent(e)));
+          return `<button onclick="toggleReactionB64('${c.id}','${b64}');toggleEmojiPicker('${c.id}')">${e}</button>`;
+        }).join("")}
       </div>
     </div>` : "";
 
@@ -916,6 +931,13 @@ async function deleteComment(commentId) {
   if (error) { alert("Error: " + error.message); return; }
   const user = await maybeUser();
   await loadComments(user);
+}
+
+async function toggleReactionB64(commentId, emojiB64) {
+  try {
+    const emoji = decodeURIComponent(escape(atob(emojiB64)));
+    await toggleReaction(commentId, emoji);
+  } catch(e) { console.error("emoji decode error", e); }
 }
 
 async function toggleReaction(commentId, emoji) {
