@@ -1,23 +1,21 @@
-// votes.js v2 — per-category tables + drag-to-rank edit mode
+// votes.js v3 — per-category tables + clean edit mode with sidebar + distribute tool
 
-let MY_VOTES = [];       // raw vote rows from DB
-let CAT_BY_ID = {};      // category lookup
-let BRAND_BY_ID = {};    // brand lookup
+let MY_VOTES    = [];
+let CAT_BY_ID   = {};
+let BRAND_BY_ID = {};
 
-// Edit mode state
-let EDIT_CAT_ID = null;  // currently selected category in edit mode
-let EDIT_CARDS = [];     // [{vote_id, marker_id, title, pinned: null|number}] ordered top→bottom
+// Edit mode: [{vote_id, marker_id, title, saved, pending}]
+// saved = current DB value, pending = new value (null = no change)
+let EDIT_CAT_ID = null;
+let EDIT_CARDS  = [];
 
 function escapeHtml(s) {
   return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 
-function colorClassForScore(v) {
+function colorClass(v) {
   const x = Number(v ?? 0);
   if (!x) return "rating-none";
   if (x >= 9) return "rating-9-10";
@@ -28,108 +26,91 @@ function colorClassForScore(v) {
 }
 
 function setStatus(msg) {
-  document.getElementById("votesStatus").textContent = msg || "";
+  const el = document.getElementById("votesStatus");
+  if (el) el.textContent = msg || "";
 }
 
-/* ══════════════════════════════
-   INIT
-══════════════════════════════ */
+function hasPendingChanges() {
+  return EDIT_CARDS.some(c => c.pending !== null);
+}
+
+function updateSaveBtn() {
+  const btn = document.getElementById("btnSaveVotes");
+  if (btn) btn.disabled = !hasPendingChanges();
+}
+
+/* ══════════════════════════════════ INIT */
 async function initVotesPage() {
   const user = await requireAuth();
   if (!user) return;
-
   setStatus("Loading…");
-
-  // Load categories
-  const { data: cats } = await sb
-    .from("categories")
-    .select("id,name,icon_url,for_places,for_products,is_active");
-  if (cats) cats.forEach(c => CAT_BY_ID[c.id] = c);
-
-  // Load brands
-  const { data: brands } = await sb
-    .from("brands")
-    .select("id,name");
-  if (brands) brands.forEach(b => BRAND_BY_ID[b.id] = b);
-
-  // Load my votes joined to markers
-  const { data, error } = await sb
-    .from("votes")
-    .select(`
-      id, vote, updated_at, marker_id, is_active,
-      markers (
-        id, title, group_type, category_id, brand_id, is_active
-      )
-    `)
-    .eq("is_active", true)
-    .order("vote", { ascending: false });
-
-  if (error) { setStatus("Error: " + error.message); return; }
-
-  MY_VOTES = (data || []).filter(v => v.markers && v.markers.is_active);
+  await loadAllData();
   setStatus("");
   renderNormalView();
-  renderEditCatChips();
 }
 
-/* ══════════════════════════════
-   NORMAL VIEW — per-category tables
-══════════════════════════════ */
+async function loadAllData() {
+  const [catRes, brandRes, voteRes] = await Promise.all([
+    sb.from("categories").select("id,name,icon_url,for_places,for_products,is_active"),
+    sb.from("brands").select("id,name"),
+    sb.from("votes")
+      .select(`id,vote,updated_at,marker_id,is_active,
+               markers(id,title,group_type,category_id,brand_id,is_active)`)
+      .eq("is_active", true)
+      .order("vote", { ascending: false }),
+  ]);
+  if (catRes.data)   catRes.data.forEach(c => CAT_BY_ID[c.id] = c);
+  if (brandRes.data) brandRes.data.forEach(b => BRAND_BY_ID[b.id] = b);
+  if (!voteRes.error)
+    MY_VOTES = (voteRes.data || []).filter(v => v.markers?.is_active);
+  else
+    setStatus("Error: " + voteRes.error.message);
+}
+
+/* ══════════════════════════════════ NORMAL VIEW */
 function renderNormalView() {
   const wrap = document.getElementById("votesByCategory");
-
   if (!MY_VOTES.length) {
     wrap.innerHTML = `
       <div style="text-align:center;padding:48px 20px;">
         <div style="font-size:36px;margin-bottom:10px;">🗳️</div>
         <h3 style="margin:0 0 6px;">No votes yet</h3>
         <p class="muted">Open any marker and cast your first vote.</p>
-      </div>
-    `;
+      </div>`;
     return;
   }
 
-  // Group by category
   const byCat = {};
   MY_VOTES.forEach(v => {
     const cid = v.markers.category_id;
     if (!byCat[cid]) byCat[cid] = [];
     byCat[cid].push(v);
   });
-
-  // Sort each group high→low
   Object.values(byCat).forEach(arr => arr.sort((a, b) => b.vote - a.vote));
 
-  // Sort categories by their highest vote desc
   const catIds = Object.keys(byCat).map(Number)
     .sort((a, b) => (byCat[b][0]?.vote ?? 0) - (byCat[a][0]?.vote ?? 0));
 
   wrap.innerHTML = catIds.map(cid => {
-    const cat = CAT_BY_ID[cid];
+    const cat   = CAT_BY_ID[cid];
     const votes = byCat[cid];
     const iconHtml = cat?.icon_url
       ? `<div class="cat-block-icon"><img src="${escapeHtml(cat.icon_url)}" alt=""/></div>`
       : `<div class="cat-block-icon">📦</div>`;
 
     const rows = votes.map((v, i) => {
-      const m = v.markers;
+      const m     = v.markers;
       const score = Number(v.vote);
-      const cls = colorClassForScore(score);
-
+      const cls   = colorClass(score);
       let info = "";
-      if (m.group_type === "product" && m.brand_id) {
+      if (m.group_type === "product" && m.brand_id)
         info = `<span class="muted" style="font-size:12px;"> · ${escapeHtml(BRAND_BY_ID[m.brand_id]?.name || "")}</span>`;
-      }
-
       return `
         <tr onclick="window.location.href='marker.html?id=${encodeURIComponent(m.id)}'">
           <td><span class="rank-badge">${i + 1}</span></td>
           <td><b>${escapeHtml(m.title)}</b>${info}</td>
-          <td>
-            <span class="score-pill ${cls}">${score.toFixed(1)}</span>
-          </td>
-        </tr>
-      `;
+          <td><span class="score-pill ${cls}">${score.toFixed(1)}</span></td>
+        </tr>`;
     }).join("");
 
     return `
@@ -140,77 +121,66 @@ function renderNormalView() {
           <span class="cat-block-count">${votes.length} vote${votes.length === 1 ? "" : "s"}</span>
         </div>
         <table class="votes-table">
-          <colgroup>
-            <col class="col-rank" />
-            <col class="col-title" />
-            <col class="col-score" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Title</th>
-              <th>Score</th>
-            </tr>
-          </thead>
+          <colgroup><col class="col-rank"/><col class="col-title"/><col class="col-score"/></colgroup>
+          <thead><tr><th>#</th><th>Title</th><th>Score</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>
-    `;
+      </div>`;
   }).join("");
 }
 
-/* ══════════════════════════════
-   EDIT MODE
-══════════════════════════════ */
+/* ══════════════════════════════════ EDIT MODE: ENTRY/EXIT */
 function enterEditMode() {
   document.getElementById("normalView").style.display = "none";
-  document.getElementById("editView").style.display = "block";
+  document.getElementById("editView").style.display   = "block";
   EDIT_CAT_ID = null;
-  EDIT_CARDS = [];
-  document.getElementById("editPanel").style.display = "none";
-  updateSaveBtn();
+  EDIT_CARDS  = [];
+  renderEditSidebar();
+
+  // Auto-select first category
+  const cids = [...new Set(MY_VOTES.map(v => v.markers.category_id))];
+  if (cids.length) selectEditCategory(cids[0]);
+  else showEditEmpty();
 }
 
 function exitEditMode() {
+  if (hasPendingChanges() && !confirm("Discard unsaved changes?")) return;
   document.getElementById("normalView").style.display = "block";
-  document.getElementById("editView").style.display = "none";
+  document.getElementById("editView").style.display   = "none";
 }
 
-/* ── Category chips for edit mode ── */
-function renderEditCatChips() {
-  const host = document.getElementById("editCatChips");
+/* ── Sidebar ── */
+function renderEditSidebar() {
+  const host = document.getElementById("editCatList");
   host.innerHTML = "";
-
-  // Only categories that have my votes
-  const cidsWithVotes = [...new Set(MY_VOTES.map(v => v.markers.category_id))];
-
-  if (!cidsWithVotes.length) {
-    host.innerHTML = `<span class="muted">No votes to edit yet.</span>`;
+  const cids = [...new Set(MY_VOTES.map(v => v.markers.category_id))];
+  if (!cids.length) {
+    host.innerHTML = `<p class="muted" style="padding:12px 14px;">No votes yet.</p>`;
     return;
   }
-
-  cidsWithVotes.forEach(cid => {
-    const cat = CAT_BY_ID[cid];
-    const btn = document.createElement("button");
-    btn.className = "chip" + (EDIT_CAT_ID === cid ? " active" : "");
-    btn.onclick = () => selectEditCategory(cid);
-
+  cids.forEach(cid => {
+    const cat   = CAT_BY_ID[cid];
+    const count = MY_VOTES.filter(v => v.markers.category_id === cid).length;
+    const btn   = document.createElement("button");
+    btn.className  = "edit-cat-item" + (EDIT_CAT_ID === cid ? " active" : "");
+    btn.dataset.cid = cid;
+    btn.onclick = () => {
+      if (hasPendingChanges() && !confirm("Discard unsaved changes?")) return;
+      selectEditCategory(cid);
+    };
     const iconHtml = cat?.icon_url
-      ? `<img class="chip-ic" src="${escapeHtml(cat.icon_url)}" alt=""/>`
-      : "";
-    btn.innerHTML = `${iconHtml}<span>${escapeHtml(cat?.name || String(cid))}</span>`;
+      ? `<img class="edit-cat-icon" src="${escapeHtml(cat.icon_url)}" alt=""/>`
+      : `<span class="edit-cat-icon-fallback">📦</span>`;
+    btn.innerHTML = `${iconHtml}<span class="edit-cat-name">${escapeHtml(cat?.name || String(cid))}</span><span class="edit-cat-count">${count}</span>`;
     host.appendChild(btn);
   });
 }
 
 function selectEditCategory(cid) {
   EDIT_CAT_ID = cid;
+  document.querySelectorAll(".edit-cat-item").forEach(el =>
+    el.classList.toggle("active", parseInt(el.dataset.cid) === cid));
 
-  // Rebuild chips to show active state
-  renderEditCatChips();
-
-  // Build EDIT_CARDS from votes of this category, sorted high→low
-  // Pre-populate pinned values from existing votes
   const votesForCat = MY_VOTES
     .filter(v => v.markers.category_id === cid)
     .sort((a, b) => b.vote - a.vote);
@@ -219,349 +189,149 @@ function selectEditCategory(cid) {
     vote_id:   v.id,
     marker_id: v.markers.id,
     title:     v.markers.title,
-    pinned:    v.vote !== null && v.vote !== undefined ? +parseFloat(v.vote).toFixed(1) : null,
+    saved:     v.vote !== null ? +parseFloat(v.vote).toFixed(1) : null,
+    pending:   null,
   }));
 
-  const cat = CAT_BY_ID[cid];
-  document.getElementById("editCatName").textContent = cat?.name || "";
-  document.getElementById("editPanel").style.display = "block";
-
-  renderDragList();
+  document.getElementById("distributeBar").style.display   = "flex";
+  document.getElementById("distTop").value                  = "";
+  document.getElementById("distBottom").value               = "";
+  document.getElementById("distributeStatus").textContent   = "";
+  document.getElementById("editEmptyState").style.display   = "none";
+  renderEditCards();
   updateSaveBtn();
 }
 
-/* ── Distribution logic ── */
-function computeScores() {
-  // Returns array of computed scores (numbers) same length as EDIT_CARDS
-  // Pinned cards are fixed. Unpinned cards between two anchors interpolate linearly.
-  const n = EDIT_CARDS.length;
-  if (!n) return [];
+function showEditEmpty() {
+  document.getElementById("editCardsList").innerHTML        = "";
+  document.getElementById("distributeBar").style.display    = "none";
+  document.getElementById("editEmptyState").style.display   = "block";
+}
 
-  const scores = new Array(n).fill(null);
+/* ── Render edit cards ── */
+function renderEditCards() {
+  const host = document.getElementById("editCardsList");
 
-  // Place pinned values
-  EDIT_CARDS.forEach((c, i) => {
-    if (c.pinned !== null) scores[i] = c.pinned;
+  // Sort by effective score desc (pending overrides saved)
+  EDIT_CARDS.sort((a, b) => {
+    const va = a.pending ?? a.saved ?? 0;
+    const vb = b.pending ?? b.saved ?? 0;
+    return vb - va;
   });
 
-  // Find segments between consecutive anchors and interpolate
-  // First find all anchor indices
-  const anchors = [];
-  scores.forEach((s, i) => { if (s !== null) anchors.push(i); });
-
-  if (!anchors.length) return scores.map(() => null);
-
-  // Interpolate between consecutive anchors
-  for (let a = 0; a < anchors.length - 1; a++) {
-    const i0 = anchors[a];
-    const i1 = anchors[a + 1];
-    const v0 = scores[i0];
-    const v1 = scores[i1];
-    const steps = i1 - i0;
-    for (let k = 1; k < steps; k++) {
-      scores[i0 + k] = +(v0 + (v1 - v0) * (k / steps)).toFixed(1);
-    }
-  }
-
-  // Extrapolate before first anchor and after last anchor
-  // (just fill with the boundary value — user must pin top & bottom anyway)
-  const first = anchors[0];
-  const last  = anchors[anchors.length - 1];
-  for (let i = 0; i < first; i++)  scores[i] = scores[first];
-  for (let i = last + 1; i < n; i++) scores[i] = scores[last];
-
-  return scores;
-}
-
-function hasValidAnchors() {
-  if (!EDIT_CARDS.length) return false;
-  const first = EDIT_CARDS[0].pinned;
-  const last  = EDIT_CARDS[EDIT_CARDS.length - 1].pinned;
-  return first !== null && last !== null;
-}
-
-function updateSaveBtn() {
-  const btn = document.getElementById("btnSaveVotes");
-  const warn = document.getElementById("editWarning");
-  const valid = EDIT_CAT_ID !== null && hasValidAnchors();
-  btn.disabled = !valid;
-
-  if (EDIT_CAT_ID && EDIT_CARDS.length && !hasValidAnchors()) {
-    warn.style.display = "block";
-  } else {
-    warn.style.display = "none";
-  }
-}
-
-/* ── Quick helpers ── */
-function quickSet10to1() {
-  if (!EDIT_CARDS.length) return;
-  EDIT_CARDS[0].pinned = 10;
-  EDIT_CARDS[EDIT_CARDS.length - 1].pinned = 1;
-  renderDragList();
-  updateSaveBtn();
-}
-
-function resetPins() {
-  EDIT_CARDS.forEach(c => c.pinned = null);
-  renderDragList();
-  updateSaveBtn();
-}
-
-/* ── Render drag list ── */
-function renderDragList() {
-  const scores = computeScores();
-  const host = document.getElementById("dragList");
   host.innerHTML = "";
 
-  // Preview bar
-  const preview = document.getElementById("editPreview");
-  if (hasValidAnchors()) {
-    const parts = EDIT_CARDS.map((c, i) => {
-      const s = scores[i];
-      return `<span style="opacity:${c.pinned !== null ? 1 : 0.65}">${s !== null ? s.toFixed(1) : "?"}</span>`;
-    }).join(" → ");
-    preview.innerHTML = `Scores preview: ${parts}`;
-    preview.style.display = "block";
-  } else {
-    preview.style.display = "none";
-  }
-
   EDIT_CARDS.forEach((card, idx) => {
-    const score = scores[idx];
-    const isPinned = card.pinned !== null;
+    const effectiveScore = card.pending ?? card.saved;
+    const isPending      = card.pending !== null;
+    const cls            = colorClass(effectiveScore);
 
     const div = document.createElement("div");
-    div.className = "drag-card";
-    div.draggable = true;
+    div.className  = "edit-vote-card" + (isPending ? " is-pending" : "");
     div.dataset.idx = idx;
 
-    div.innerHTML = `
-      <span class="drag-handle">⠿</span>
-      <span class="drag-rank">${idx + 1}</span>
-      <span class="drag-title">${escapeHtml(card.title)}</span>
-      <div class="drag-score-wrap">
-        <span class="drag-computed ${isPinned ? "is-pinned" : ""}">
-          ${score !== null ? score.toFixed(1) : "—"}
-        </span>
-        <div>
-          <input
-            class="pin-input ${isPinned ? "pinned" : ""}"
-            type="number"
-            min="1" max="10" step="0.1"
-            placeholder="pin"
-            value="${isPinned ? card.pinned : ""}"
-            title="Pin a fixed score for this card"
-            oninput="onPinInput(${idx}, this)"
-            onclick="event.stopPropagation()"
-          />
-          <div class="pin-label">${isPinned ? "📌 pinned" : "optional"}</div>
-        </div>
-      </div>
-    `;
+    // Rank
+    const rankEl      = document.createElement("div");
+    rankEl.className  = "edit-vote-rank";
+    rankEl.textContent = String(idx + 1);
 
-    // Drag events
-    div.addEventListener("dragstart", onDragStart);
-    div.addEventListener("dragover",  onDragOver);
-    div.addEventListener("dragleave", onDragLeave);
-    div.addEventListener("drop",      onDrop);
-    div.addEventListener("dragend",   onDragEnd);
+    // Title
+    const titleEl      = document.createElement("div");
+    titleEl.className  = "edit-vote-title";
+    titleEl.textContent = card.title;
 
+    // Score badge
+    const scoreEl      = document.createElement("div");
+    scoreEl.className  = `edit-vote-score ${cls}`;
+    scoreEl.textContent = effectiveScore !== null ? Number(effectiveScore).toFixed(1) : "—";
+
+    // Vote buttons 1–10
+    const btnWrap     = document.createElement("div");
+    btnWrap.className = "edit-vote-btns";
+    for (let i = 1; i <= 10; i++) {
+      const btn        = document.createElement("button");
+      const isSelected = effectiveScore !== null && +parseFloat(effectiveScore).toFixed(1) === i;
+      btn.className    = "edit-vote-btn" + (isSelected ? " selected" : "");
+      btn.textContent  = String(i);
+      const capturedIdx = idx;
+      btn.onclick = () => onVoteClick(capturedIdx, i);
+      btnWrap.appendChild(btn);
+    }
+
+    div.appendChild(rankEl);
+    div.appendChild(titleEl);
+    div.appendChild(scoreEl);
+    div.appendChild(btnWrap);
     host.appendChild(div);
   });
 }
 
-/* ── Pin input handler ── */
-function onPinInput(idx, input) {
-  const val = input.value.trim();
-  if (val === "") {
-    EDIT_CARDS[idx].pinned = null;
-  } else {
-    const n = parseFloat(val);
-    if (!isNaN(n) && n >= 1 && n <= 10) {
-      EDIT_CARDS[idx].pinned = +n.toFixed(1);
-    } else {
-      EDIT_CARDS[idx].pinned = null;
-    }
-  }
-  // Auto-reorder: sort cards by pinned value desc (unpinned cards keep position relative to pinned neighbours)
-  autoReorderByPins();
+/* ── Vote click ── */
+function onVoteClick(idx, value) {
+  const card = EDIT_CARDS[idx];
+  // Toggle: clicking current pending value clears it (reverts to saved)
+  card.pending = (card.pending === value) ? null : value;
+  renderEditCards();
   updateSaveBtn();
 }
 
-/* ── Auto-reorder cards by pinned scores (desc) ── */
-function autoReorderByPins() {
-  // Separate pinned and unpinned
-  const pinned   = EDIT_CARDS.filter(c => c.pinned !== null).sort((a, b) => b.pinned - a.pinned);
-  const unpinned = EDIT_CARDS.filter(c => c.pinned === null);
+/* ══════════════════════════════════ DISTRIBUTE */
+function distributeScores() {
+  const topVal    = parseFloat(document.getElementById("distTop").value);
+  const bottomVal = parseFloat(document.getElementById("distBottom").value);
+  const statusEl  = document.getElementById("distributeStatus");
 
-  if (!pinned.length) {
-    // Nothing pinned — keep current order, just re-render
-    renderDragList();
-    return;
-  }
+  if (isNaN(topVal) || isNaN(bottomVal)) { statusEl.textContent = "Enter both values."; return; }
+  if (topVal < bottomVal)  { statusEl.textContent = "Top must be ≥ bottom."; return; }
+  if (topVal > 10 || bottomVal < 1) { statusEl.textContent = "Values must be 1–10."; return; }
 
-  // Merge: slot unpinned cards into gaps proportionally
-  // Strategy: interleave unpinned evenly between pinned ones
-  const total = EDIT_CARDS.length;
-  const result = [];
-  let unpinnedIdx = 0;
-  let pinnedIdx = 0;
+  const n = EDIT_CARDS.length;
+  if (!n) return;
 
-  // Simple stable merge: place pinned in sorted order, scatter unpinned in between
-  // Ratio: how many unpinned per pinned slot
-  const gaps = pinned.length + 1; // slots: before first, between each, after last
-  const perGap = Math.floor(unpinned.length / gaps);
-  const extra   = unpinned.length % gaps;
+  // Sort cards by current effective score first, then distribute
+  EDIT_CARDS.sort((a, b) => (b.pending ?? b.saved ?? 0) - (a.pending ?? a.saved ?? 0));
 
-  for (let g = 0; g < gaps; g++) {
-    // How many unpinned go in this gap
-    const count = perGap + (g < extra ? 1 : 0);
-    for (let k = 0; k < count; k++) {
-      if (unpinnedIdx < unpinned.length) result.push(unpinned[unpinnedIdx++]);
-    }
-    if (pinnedIdx < pinned.length) result.push(pinned[pinnedIdx++]);
-  }
-
-  EDIT_CARDS = result;
-  renderDragList();
-}
-
-function updateScoreDisplay() {
-  const scores = computeScores();
-  const cards = document.querySelectorAll(".drag-card");
-  const preview = document.getElementById("editPreview");
-
-  cards.forEach((div, idx) => {
-    const score = scores[idx];
-    const isPinned = EDIT_CARDS[idx].pinned !== null;
-    const computed = div.querySelector(".drag-computed");
-    if (computed) {
-      computed.textContent = score !== null ? score.toFixed(1) : "—";
-      computed.className = `drag-computed ${isPinned ? "is-pinned" : ""}`;
-    }
-    const inp = div.querySelector(".pin-input");
-    if (inp) {
-      inp.className = `pin-input ${isPinned ? "pinned" : ""}`;
-      const lbl = inp.nextElementSibling;
-      if (lbl) lbl.textContent = isPinned ? "📌 pinned" : "optional";
-    }
+  EDIT_CARDS.forEach((card, i) => {
+    card.pending = n === 1
+      ? +topVal.toFixed(1)
+      : +(topVal - (topVal - bottomVal) * (i / (n - 1))).toFixed(1);
   });
 
-  if (hasValidAnchors()) {
-    const parts = EDIT_CARDS.map((c, i) => {
-      const s = scores[i];
-      return `<span style="opacity:${c.pinned !== null ? 1 : 0.65}">${s !== null ? s.toFixed(1) : "?"}</span>`;
-    }).join(" → ");
-    preview.innerHTML = `Scores preview: ${parts}`;
-    preview.style.display = "block";
-  } else {
-    preview.style.display = "none";
-  }
-}
-
-/* ── Drag & drop ── */
-let dragSrcIdx = null;
-
-function onDragStart(e) {
-  dragSrcIdx = parseInt(e.currentTarget.dataset.idx);
-  e.currentTarget.classList.add("dragging");
-  e.dataTransfer.effectAllowed = "move";
-}
-
-function onDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = "move";
-  e.currentTarget.classList.add("drag-over");
-}
-
-function onDragLeave(e) {
-  e.currentTarget.classList.remove("drag-over");
-}
-
-function onDrop(e) {
-  e.preventDefault();
-  const targetIdx = parseInt(e.currentTarget.dataset.idx);
-  e.currentTarget.classList.remove("drag-over");
-
-  if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
-
-  // Move card and UNPIN it (dragging unpins)
-  const moved = EDIT_CARDS.splice(dragSrcIdx, 1)[0];
-  moved.pinned = null;  // dragging unpins the card
-  EDIT_CARDS.splice(targetIdx, 0, moved);
-
-  dragSrcIdx = null;
-  renderDragList();
+  statusEl.textContent = `✅ ${topVal} → ${bottomVal} across ${n} cards`;
+  renderEditCards();
   updateSaveBtn();
 }
 
-function onDragEnd(e) {
-  e.currentTarget.classList.remove("dragging");
-  document.querySelectorAll(".drag-card").forEach(c => c.classList.remove("drag-over"));
-  dragSrcIdx = null;
-}
-
-/* ══════════════════════════════
-   SAVE
-══════════════════════════════ */
+/* ══════════════════════════════════ SAVE */
 async function saveVotes() {
-  if (!hasValidAnchors()) return;
+  if (!hasPendingChanges()) return;
 
   const btn = document.getElementById("btnSaveVotes");
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = "Saving…";
 
-  const scores = computeScores();
-
-  // Safety check: all scores must be valid numbers
-  const hasNulls = scores.some(s => s === null || s === undefined || isNaN(s));
-  if (hasNulls) {
-    alert("Some scores could not be computed. Make sure top and bottom are pinned.");
-    btn.disabled = false;
-    btn.textContent = "Save";
-    return;
-  }
-
-  // Update all votes one by one
+  const toSave = EDIT_CARDS.filter(c => c.pending !== null);
   const errors = [];
-  for (let i = 0; i < EDIT_CARDS.length; i++) {
-    const score = +parseFloat(scores[i]).toFixed(1);
+
+  for (const card of toSave) {
     const { error } = await sb
       .from("votes")
-      .update({ vote: score, is_active: true })
-      .eq("id", EDIT_CARDS[i].vote_id);
-    if (error) errors.push(`${EDIT_CARDS[i].title}: ${error.message}`);
+      .update({ vote: card.pending, is_active: true })
+      .eq("id", card.vote_id);
+    if (error) errors.push(`${card.title}: ${error.message}`);
+    else { card.saved = card.pending; card.pending = null; }
   }
 
-  if (errors.length) {
-    alert("Some votes failed to save:\n" + errors.join("\n"));
-  } else {
-    btn.textContent = "Saved ✅";
-  }
+  if (errors.length) alert("Some votes failed:\n" + errors.join("\n"));
 
-  // Reload data and go back to normal view
-  await reloadVotes();
-  exitEditMode();
-}
+  btn.textContent = "Save changes";
 
-async function reloadVotes() {
-  const { data: cats } = await sb.from("categories").select("id,name,icon_url,for_places,for_products,is_active");
-  if (cats) cats.forEach(c => CAT_BY_ID[c.id] = c);
+  // Reload data in background, update normal view
+  await loadAllData();
+  renderNormalView();
 
-  const { data: brands } = await sb.from("brands").select("id,name");
-  if (brands) brands.forEach(b => BRAND_BY_ID[b.id] = b);
-
-  const { data, error } = await sb
-    .from("votes")
-    .select(`id, vote, updated_at, marker_id, is_active, markers (id, title, group_type, category_id, brand_id, is_active)`)
-    .eq("is_active", true)
-    .order("vote", { ascending: false });
-
-  if (!error) {
-    MY_VOTES = (data || []).filter(v => v.markers && v.markers.is_active);
-    renderNormalView();
-    renderEditCatChips();
-    updateSaveBtn();
-  }
+  // Stay in edit mode, refresh cards showing updated saved values
+  // Re-select same category to refresh
+  selectEditCategory(EDIT_CAT_ID);
+  updateSaveBtn();
 }
