@@ -50,6 +50,10 @@ async function initVotesPage() {
 }
 
 async function loadAllData() {
+  // Get current user id for filtering
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+
   const [catRes, brandRes, voteRes] = await Promise.all([
     sb.from("categories").select("id,name,icon_url,for_places,for_products,is_active"),
     sb.from("brands").select("id,name"),
@@ -57,6 +61,7 @@ async function loadAllData() {
       .select(`id,vote,updated_at,marker_id,is_active,
                markers(id,title,group_type,category_id,brand_id,is_active)`)
       .eq("is_active", true)
+      .eq("user_id", user.id)
       .order("vote", { ascending: false }),
   ]);
   if (catRes.data)   catRes.data.forEach(c => CAT_BY_ID[c.id] = c);
