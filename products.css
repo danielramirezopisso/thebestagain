@@ -19,7 +19,7 @@ body.products-page{
   align-items:flex-end;
   justify-content:space-between;
   gap:10px;
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   border-radius: var(--radius);
   background:#fff;
   padding:8px;
@@ -45,8 +45,8 @@ body.products-page{
 }
 .toolbar-label{
   font-size:11px;
-  font-weight:1000;
-  color:rgba(11,18,32,0.70);
+  font-weight: 700;
+  color:var(--muted);
   letter-spacing:0.2px;
 }
 .toolbar-inline{
@@ -67,19 +67,19 @@ body.products-page{
   align-items:center;
   gap:8px;
   padding:8px 10px;
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   border-radius:var(--radius);
   background:#fff;
   text-decoration:none;
   color:var(--text);
-  font-weight:900;
+  font-weight: 700;
   transition:transform .10s ease, box-shadow .10s ease;
-  box-shadow:0 6px 14px rgba(0,0,0,0.10);
+  box-shadow: var(--shadow);
 }
-.chip:hover{ transform:translateY(-1px); box-shadow:0 12px 26px rgba(0,0,0,0.12); }
+.chip:hover{ transform:none; box-shadow: var(--shadow); }
 .chip.active{
-  outline:3px solid rgba(11,92,255,0.14);
-  border-color:rgba(11,92,255,0.55);
+  outline:3px solid var(--accent-bg);
+  border-color:rgba(45,74,138,0.50);
 }
 .chip-ic{ width:18px; height:18px; }
 .chip-more{ justify-content:center; min-width:44px; }
@@ -89,15 +89,15 @@ body.products-page{
 .seg-btn{
   padding:8px 10px;
   border-radius:var(--radius);
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   background:#fff;
-  font-weight:1000;
-  box-shadow:0 6px 14px rgba(0,0,0,0.10);
+  font-weight: 700;
+  box-shadow: var(--shadow);
   cursor:pointer;
 }
-.seg-btn:hover{ transform:translateY(-1px); box-shadow:0 12px 26px rgba(0,0,0,0.12); }
+.seg-btn:hover{ transform:none; box-shadow: var(--shadow); }
 .seg-btn.active{
-  outline:3px solid rgba(0,0,0,0.10);
+  outline:3px solid var(--rule);
   border-color:rgba(0,0,0,0.35);
 }
 
@@ -128,7 +128,7 @@ body.products-page{
 
 /* lane card */
 .lane{
-  border: 1px solid rgba(0,0,0,0.18);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fff;
   box-shadow: var(--shadow);
@@ -156,18 +156,18 @@ body.products-page{
 
 .lane-pill{
   font-size:12px;
-  font-weight:1000;
+  font-weight: 700;
   padding: 4px 8px;
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   border-radius:999px;
-  background: rgba(0,0,0,0.04);
+  background: var(--faint);
   flex:0 0 auto;
 }
 
 .lane-ic{ width:22px; height:22px; flex:0 0 auto; }
 
 .lane-name{
-  font-weight:1000;
+  font-weight: 700;
   white-space:normal;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -177,8 +177,8 @@ body.products-page{
 
 .lane-count{
   font-size:12px;
-  color: rgba(11,18,32,0.65);
-  font-weight:900;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .lane-sort{
@@ -195,7 +195,7 @@ body.products-page{
   gap:10px;
 
   padding:10px 10px;
-  border:1px solid rgba(0,0,0,0.14);
+  border:1px solid var(--rule);
   border-radius: var(--radius);
   background:#fff;
   text-decoration:none;
@@ -204,7 +204,7 @@ body.products-page{
   transition: transform .10s ease, box-shadow .10s ease;
 }
 .item + .item{ margin-top: 8px; }
-.item:hover{ transform: translateY(-1px); box-shadow: 0 12px 26px rgba(0,0,0,0.12); }
+.item:hover{ transform: none; box-shadow: var(--shadow); }
 
 .item-left{
   display:flex;
@@ -216,9 +216,9 @@ body.products-page{
 .brand-ic-slot{
   width:28px;
   height:28px;
-  border:1px solid rgba(0,0,0,0.14);
+  border:1px solid var(--rule);
   border-radius: 8px;
-  background: rgba(0,0,0,0.03);
+  background: var(--faint);
   display:grid;
   place-items:center;
   flex: 0 0 auto;
@@ -230,7 +230,7 @@ body.products-page{
 }
 
 .item-name{
-  font-weight:1000;
+  font-weight: 700;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -242,42 +242,42 @@ body.products-page{
   height: 30px;
   padding: 0 8px;
   border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.18);
+  border: 1px solid var(--border);
   display:grid;
   place-items:center;
-  font-weight:1000;
+  font-weight: 700;
 }
 
 /* see more row */
 .see-more{
   margin-top: 10px;
   padding: 10px 10px;
-  border: 1px dashed rgba(0,0,0,0.22);
+  border: 1px dashed var(--border);
   border-radius: var(--radius);
-  background: rgba(0,0,0,0.02);
+  background: var(--faint);
   cursor:pointer;
-  font-weight:1000;
+  font-weight: 700;
 }
-.see-more:hover{ background: rgba(0,0,0,0.05); }
+.see-more:hover{ background: var(--faint); }
 
 /* add panel */
 .add-panel{
   min-height: 0;
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   border-radius: var(--radius);
   background:#fff;
   box-shadow: var(--shadow);
   padding: 12px;
   overflow:auto;
 }
-.panel-title{ font-weight:1000; margin-bottom:2px; }
+.panel-title{ font-weight: 700; margin-bottom:2px; }
 .panel-sub{ font-size:12px; margin-bottom:8px; }
 
 /* drawer overlay */
 .drawer-overlay{
   position:absolute;
   inset:0;
-  background: rgba(0,0,0,0.22);
+  background: var(--border);
   z-index: 50;
 }
 
@@ -290,10 +290,10 @@ body.products-page{
   width:360px;
   z-index: 60;
 
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   border-radius: var(--radius);
   background:#fff;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.22);
+  box-shadow: var(--shadow);
 
   display:flex;
   flex-direction:column;
@@ -320,16 +320,16 @@ body.products-page{
   display:flex;
   align-items:center;
   gap:10px;
-  font-weight:1000;
+  font-weight: 700;
 }
 
 .drawer-pill{
   font-size:12px;
-  font-weight:1000;
+  font-weight: 700;
   padding: 4px 8px;
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   border-radius:999px;
-  background: rgba(0,0,0,0.04);
+  background: var(--faint);
 }
 
 .drawer-actions{
@@ -351,7 +351,7 @@ body.products-page{
   gap:10px;
 
   padding:10px 10px;
-  border:1px solid rgba(0,0,0,0.14);
+  border:1px solid var(--rule);
   border-radius: var(--radius);
   background:#fff;
   text-decoration:none;
@@ -360,4 +360,4 @@ body.products-page{
   transition: transform .10s ease, box-shadow .10s ease;
 }
 .drawer-item + .drawer-item{ margin-top: 8px; }
-.drawer-item:hover{ transform: translateY(-1px); box-shadow: 0 12px 26px rgba(0,0,0,0.12); }
+.drawer-item:hover{ transform: none; box-shadow: var(--shadow); }
