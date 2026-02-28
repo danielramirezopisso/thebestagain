@@ -1,7 +1,7 @@
 /* Home theme: green background + one-screen layout */
 body.home-bg{
-  --page-bg:#40826D;     /* your green */
-  --header-bg:#52a089;   /* lighter header green */
+  --page-bg: #f4f1ec;
+  --header-bg: #f4f1ec;
   height:100vh;
   overflow:hidden;
 }
@@ -26,16 +26,16 @@ body.home-bg{
   margin:0;
   font-size:34px;
   letter-spacing:-0.8px;
-  color:#fff;
+  color: var(--text);
 }
 .home-tagline{
   margin:6px 0 0;
-  color:rgba(255,255,255,0.90);
+  color: var(--muted);
 }
 .home-hint{
   margin:8px 0 0;
   font-size:13px;
-  color:rgba(255,255,255,0.80);
+  color: var(--muted);
 }
 
 .home-actions{
@@ -48,7 +48,7 @@ body.home-bg{
 /* Make cards pop on green */
 body.home-bg .card{
   background:#fff;
-  border-color:rgba(0,0,0,0.22);
+  border-color:var(--border);
 }
 
 /* Cravings section */
@@ -65,7 +65,7 @@ body.home-bg .card{
   margin-top:10px;
 }
 .cravings-block-title{
-  font-weight:1000;
+  font-weight: 700;
   margin-bottom:8px;
 }
 
@@ -79,16 +79,16 @@ body.home-bg .card{
   align-items:center;
   gap:8px;
   padding:9px 10px;
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   border-radius:var(--radius);
   background:#fff;
   text-decoration:none;
   color:var(--text);
-  font-weight:1000;
+  font-weight: 700;
   transition:transform .10s ease, box-shadow .10s ease;
-  box-shadow:0 8px 18px rgba(0,0,0,0.10);
+  box-shadow: var(--shadow);
 }
-.chip:hover{ transform:translateY(-1px); box-shadow:0 14px 30px rgba(0,0,0,0.12); }
+.chip:hover{ transform:none; box-shadow: var(--shadow); }
 .chip-ic{ width:18px; height:18px; }
 .chip-more{ justify-content:center; min-width:44px; }
 
@@ -120,10 +120,10 @@ body.home-bg .card{
   display:grid;
   place-items:center;
   border-radius:var(--radius);
-  background:rgba(0,0,0,0.04);
-  border:1px solid rgba(0,0,0,0.14);
+  background:var(--faint);
+  border:1px solid var(--rule);
 }
-.spotlight-kicker{ font-weight:1000; }
+.spotlight-kicker{ font-weight: 700; }
 .spotlight-sub{ font-size:13px; }
 
 .spotlight-body{ margin-top:12px; flex:1; display:flex; align-items:center; }
@@ -142,11 +142,11 @@ body.home-bg .card{
   border:2px solid rgba(255,255,255,0.92);
   display:grid;
   place-items:center;
-  box-shadow:0 14px 30px rgba(0,0,0,0.18);
+  box-shadow: var(--shadow);
   flex:0 0 auto;
 }
 .spot-icon img{ width:34px; height:34px; }
-.spot-name{ font-size:22px; font-weight:1000; }
+.spot-name{ font-size:22px; font-weight: 700; }
 .spot-meta{ margin-top:6px; font-size:13px; }
 
 .spot-badges{
@@ -158,9 +158,9 @@ body.home-bg .card{
 .badge{
   padding:6px 10px;
   border-radius:var(--radius);
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   background:#fff;
-  font-weight:1000;
+  font-weight: 700;
   font-size:13px;
 }
 .badge-ghost{ opacity:0.75; }
@@ -189,17 +189,17 @@ body.home-bg .card{
   justify-content:space-between;
   gap:10px;
   padding:10px 10px;
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   border-radius:var(--radius);
   background:#fff;
   text-decoration:none;
   color:var(--text);
   transition:transform .10s ease, box-shadow .10s ease;
 }
-.recent-item:hover{ transform:translateY(-1px); box-shadow:0 16px 34px rgba(0,0,0,0.14); }
+.recent-item:hover{ transform:none; box-shadow: var(--shadow); }
 .recent-left{ display:flex; align-items:center; gap:10px; min-width:0; }
 .recent-title{
-  font-weight:1000;
+  font-weight: 700;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -208,11 +208,11 @@ body.home-bg .card{
 .recent-sub{ font-size:12px; margin-top:2px; }
 .recent-tag{
   font-size:12px;
-  border:1px solid rgba(0,0,0,0.18);
+  border:1px solid var(--border);
   border-radius:999px;
   padding:4px 8px;
-  background:rgba(0,0,0,0.04);
-  color:rgba(11,18,32,0.78);
+  background:var(--faint);
+  color:var(--muted);
 }
 
 .mini-marker{
@@ -223,6 +223,6 @@ body.home-bg .card{
   display:grid;
   place-items:center;
   flex:0 0 auto;
-  box-shadow:0 10px 22px rgba(0,0,0,0.16);
+  box-shadow: var(--shadow);
 }
 .mini-marker img{ width:18px; height:18px; }
