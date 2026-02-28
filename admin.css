@@ -10,11 +10,11 @@
 
 .admin-badge {
   padding: 6px 12px;
-  background: #0b1220;
+  background: var(--text);
   color: #fff;
   border-radius: 999px;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .admin-denied {
@@ -23,7 +23,7 @@
   text-align: center;
   padding: 40px;
   background: #fff;
-  border: 1px solid rgba(0,0,0,0.18);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
@@ -32,7 +32,7 @@
 /* Sections */
 .admin-section {
   background: var(--card);
-  border: 1px solid rgba(0,0,0,0.18);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px;
@@ -59,21 +59,21 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  border: 1px solid rgba(0,0,0,0.14);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   overflow: hidden;
   background: #fff;
 }
 .admin-table th, .admin-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+  border-bottom: 1px solid var(--rule);
   text-align: left;
   vertical-align: middle;
 }
 .admin-table th {
   font-size: 12px;
-  font-weight: 900;
-  color: rgba(11,18,32,0.65);
+  font-weight: 700;
+  color: var(--muted);
   background: rgba(0,0,0,0.03);
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -89,7 +89,7 @@
   padding: 3px 8px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 700;
 }
 .pill-active { background: #d1fae5; color: #065f46; }
 .pill-inactive { background: #fee2e2; color: #991b1b; }
@@ -104,8 +104,8 @@
 }
 .link-picker label {
   font-size: 12px;
-  font-weight: 900;
-  color: rgba(11,18,32,0.65);
+  font-weight: 700;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
@@ -121,16 +121,16 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(0,0,0,0.14);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: #fff;
   cursor: pointer;
   transition: box-shadow .10s ease, border-color .10s ease;
 }
-.brand-check-card:hover { box-shadow: 0 8px 18px rgba(0,0,0,0.10); }
+.brand-check-card:hover { box-shadow: var(--shadow); }
 .brand-check-card.linked {
-  border-color: rgba(11,92,255,0.50);
-  background: rgba(11,92,255,0.04);
+  border-color: rgba(45,74,138,0.40);
+  background: var(--accent-bg);
 }
 .brand-check-card input[type="checkbox"] {
   width: 16px;
@@ -139,7 +139,7 @@
   cursor: pointer;
   accent-color: var(--accent);
 }
-.brand-check-name { font-weight: 900; }
+.brand-check-name { font-weight: 700; }
 .brand-check-status { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
 .link-save-row {
@@ -162,7 +162,7 @@
 .modal-box {
   background: #fff;
   border-radius: var(--radius);
-  box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+  box-shadow: var(--shadow);
   padding: 20px;
   width: 100%;
   max-width: 460px;
@@ -180,7 +180,7 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
-  font-weight: 900;
+  font-weight: 700;
   font-size: 16px;
 }
 .modal-close {
@@ -211,7 +211,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 900;
+  font-weight: 700;
   cursor: pointer;
 }
 .checkbox-label input { width: auto; }
@@ -248,7 +248,7 @@
 
 /* Section title row consistency */
 .section-head {
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+  border-bottom: 1px solid var(--rule);
   padding-bottom: 12px;
   margin-bottom: 16px;
 }
