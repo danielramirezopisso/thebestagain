@@ -156,13 +156,7 @@ function renderChipRow(containerId, cats, moreHref) {
   }
 
   const chips = cats.map(c => {
-    const icon = iconForCategory(c.id);
-    return `
-      <a class="chip" href="list.html?category=${encodeURIComponent(c.id)}" title="Open list filtered by ${escapeHtml(c.name)}">
-        <img class="chip-ic" src="${escapeHtml(icon)}" alt="" />
-        <span>${escapeHtml(c.name)}</span>
-      </a>
-    `;
+    return `<a class="chip" href="list.html?category=${encodeURIComponent(c.id)}">${escapeHtml(c.name)}</a>`;
   });
 
   // Add "..." chip
