@@ -686,34 +686,49 @@ function formatTimeAgo(iso) {
 }
 
 async function loadComments() {
-  const card = document.getElementById("commentsCard");
   const list = document.getElementById("commentsList");
   if (!list) return;
 
-  // Fetch all active votes for this marker that have a comment, joined with profiles
+  // Step 1: fetch votes with comments
   const { data, error } = await sb
     .from("votes")
-    .select("id,vote,comment,updated_at,user_id,profiles(display_name)")
+    .select("id,vote,comment,updated_at,user_id")
     .eq("marker_id", MARKER_ID)
     .eq("is_active", true)
     .not("comment", "is", null)
     .neq("comment", "")
     .order("updated_at", { ascending: false });
 
-  if (error || !data?.length) {
+  if (error) {
+    console.error("loadComments error:", error.message);
+    list.innerHTML = `<p class="muted" style="font-size:13px;padding:4px 0;">Could not load comments.</p>`;
+    return;
+  }
+
+  if (!data?.length) {
     list.innerHTML = `<p class="muted" style="font-size:13px;padding:4px 0;">No comments yet.</p>`;
     return;
   }
 
+  // Step 2: fetch display names for those user_ids
+  const userIds = [...new Set(data.map(r => r.user_id))];
+  const { data: profiles } = await sb
+    .from("profiles")
+    .select("id,display_name")
+    .in("id", userIds);
+
+  const nameById = {};
+  (profiles || []).forEach(p => nameById[p.id] = p.display_name);
+
   const user = await maybeUser();
 
   list.innerHTML = data.map(row => {
-    const name     = row.profiles?.display_name || "A member";
-    const initial  = (name[0] || "?").toUpperCase();
-    const score    = Number(row.vote);
-    const cls      = colorClassMarker(score, 1);
-    const isOwn    = user && user.id === row.user_id;
-    const timeAgo  = formatTimeAgo(row.updated_at);
+    const name    = nameById[row.user_id] || "A member";
+    const initial = (name[0] || "?").toUpperCase();
+    const score   = Number(row.vote);
+    const cls     = colorClassMarker(score, 1);
+    const isOwn   = user && user.id === row.user_id;
+    const timeAgo = formatTimeAgo(row.updated_at);
 
     return `
       <div class="comment-row ${isOwn ? "comment-own" : ""}">
