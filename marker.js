@@ -4,7 +4,6 @@ let MARKER_ID = null;
 let CURRENT_MARKER = null;
 let CURRENT_VOTE = null;       // number | null (current user's vote value)
 let CURRENT_VOTE_ID = null;    // uuid of vote row
-let CURRENT_COMMENT = null;    // string | null (current user's saved comment)
 
 let CATEGORIES_ALL = [];
 let BRANDS = [];
@@ -356,7 +355,7 @@ async function renderRankingWidget(m) {
 async function loadMyVote(user) {
   const { data, error } = await sb
     .from("votes")
-    .select("id,vote,comment,is_active")
+    .select("id,vote,is_active")
     .eq("marker_id", MARKER_ID)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -366,20 +365,11 @@ async function loadMyVote(user) {
   if (data?.is_active) {
     CURRENT_VOTE    = Number(data.vote);
     CURRENT_VOTE_ID = data.id;
-    CURRENT_COMMENT = data.comment || null;
     setVoteStatus(`Your current vote: ${CURRENT_VOTE}`);
   } else {
     CURRENT_VOTE    = null;
     CURRENT_VOTE_ID = data?.id || null;
-    CURRENT_COMMENT = null;
     setVoteStatus("No vote yet.");
-  }
-
-  // Populate comment textarea
-  const ta = document.getElementById("myCommentInput");
-  if (ta) {
-    ta.value = CURRENT_COMMENT || "";
-    updateCommentCharCount();
   }
 
   renderVoteButtons();
@@ -393,24 +383,19 @@ async function saveMyVote() {
   const user = await requireAuth();
   if (!user) return;
 
-  const ta      = document.getElementById("myCommentInput");
-  const comment = ta ? (ta.value.trim() || null) : null;
-
   const { error } = await sb
     .from("votes")
     .upsert(
-      [{ marker_id: MARKER_ID, user_id: user.id, vote: CURRENT_VOTE, comment, is_active: true }],
+      [{ marker_id: MARKER_ID, user_id: user.id, vote: CURRENT_VOTE, is_active: true }],
       { onConflict: "marker_id,user_id" }
     );
 
   if (error) { setVoteStatus("Error: " + error.message); return; }
 
-  CURRENT_COMMENT = comment;
   setVoteStatus("Saved ✅");
   await refreshMarker();
   renderVoteButtons();
   renderRating(CURRENT_MARKER);
-  await loadComments();
 }
 
 async function clearMyVote() {
@@ -428,15 +413,11 @@ async function clearMyVote() {
 
   if (error) { setVoteStatus("Error: " + error.message); return; }
 
-  CURRENT_VOTE    = null;
-  CURRENT_COMMENT = null;
-  const ta = document.getElementById("myCommentInput");
-  if (ta) { ta.value = ""; updateCommentCharCount(); }
+  CURRENT_VOTE = null;
   setVoteStatus("Removed ✅");
   await refreshMarker();
   renderVoteButtons();
   renderRating(CURRENT_MARKER);
-  await loadComments();
 }
 
 async function refreshMarker() {
@@ -661,106 +642,340 @@ async function resolveCreatorName(m, user) {
 /* ══════════════════════════════
    COMMENTS
 ══════════════════════════════ */
-function updateCommentCharCount() {
-  const ta = document.getElementById("myCommentInput");
-  const el = document.getElementById("commentCharCount");
-  if (!ta || !el) return;
-  const len = ta.value.length;
-  el.textContent = `${len} / 500`;
-  el.style.color = len > 450 ? "#ef4444" : "";
-  // Hook oninput once
-  if (!ta.dataset.bound) {
-    ta.addEventListener("input", updateCommentCharCount);
-    ta.dataset.bound = "1";
-  }
-}
+
+const EMOJI_OPTIONS = ["👍","🔥","😂","😮","❤️","👎"];
 
 function formatTimeAgo(iso) {
   if (!iso) return "";
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60)   return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 60)    return "just now";
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 7 * 86400) return `${Math.floor(diff / 86400)}d ago`;
   return new Date(iso).toLocaleDateString(undefined, { day:"numeric", month:"short", year:"numeric" });
 }
 
-async function loadComments() {
+function colorClassComment(v) {
+  const x = Number(v ?? 0);
+  if (!x) return "rating-none";
+  if (x >= 9) return "rating-9-10";
+  if (x >= 7) return "rating-7-8";
+  if (x >= 5) return "rating-5-6";
+  if (x >= 3) return "rating-3-4";
+  return "rating-1-2";
+}
+
+async function initComments(user) {
+  const writeArea   = document.getElementById("commentWriteArea");
+  const loginPrompt = document.getElementById("commentLoginPrompt");
+  if (user) {
+    if (writeArea)   writeArea.style.display   = "block";
+    if (loginPrompt) loginPrompt.style.display = "none";
+    // Char counter
+    const ta = document.getElementById("newCommentInput");
+    if (ta) ta.addEventListener("input", () => {
+      const el = document.getElementById("newCommentCharCount");
+      if (el) {
+        el.textContent = `${ta.value.length} / 500`;
+        el.style.color = ta.value.length > 450 ? "#ef4444" : "";
+      }
+    });
+  } else {
+    if (writeArea)   writeArea.style.display   = "none";
+    if (loginPrompt) loginPrompt.style.display = "block";
+  }
+  await loadComments(user);
+}
+
+async function loadComments(user) {
   const list = document.getElementById("commentsList");
   if (!list) return;
 
-  // Step 1: fetch votes with comments
-  const { data, error } = await sb
-    .from("votes")
-    .select("id,vote,comment,updated_at,user_id")
+  // Fetch top-level comments (parent_id is null)
+  const { data: topComments, error } = await sb
+    .from("comments")
+    .select("id,body,created_at,updated_at,user_id,vote_id")
     .eq("marker_id", MARKER_ID)
     .eq("is_active", true)
-    .not("comment", "is", null)
-    .neq("comment", "")
-    .order("updated_at", { ascending: false });
+    .is("parent_id", null)
+    .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("loadComments error:", error.message);
-    list.innerHTML = `<p class="muted" style="font-size:13px;padding:4px 0;">Could not load comments.</p>`;
+  if (error) { console.error("loadComments:", error.message); return; }
+
+  // Update count badge
+  const countEl = document.getElementById("commentsCount");
+  if (countEl) countEl.textContent = topComments?.length
+    ? `${topComments.length} comment${topComments.length === 1 ? "" : "s"}`
+    : "";
+
+  if (!topComments?.length) {
+    list.innerHTML = `<p class="muted comment-empty">No comments yet. Be the first!</p>`;
     return;
   }
 
-  if (!data?.length) {
-    list.innerHTML = `<p class="muted" style="font-size:13px;padding:4px 0;">No comments yet.</p>`;
-    return;
-  }
+  // Fetch all replies for these comment ids
+  const topIds = topComments.map(c => c.id);
+  const { data: replies } = await sb
+    .from("comments")
+    .select("id,body,created_at,user_id,parent_id")
+    .eq("marker_id", MARKER_ID)
+    .eq("is_active", true)
+    .in("parent_id", topIds)
+    .order("created_at", { ascending: true });
 
-  // Step 2: fetch display names for those user_ids
-  const userIds = [...new Set(data.map(r => r.user_id))];
+  // Fetch reactions for all comments
+  const allIds = [...topIds, ...(replies || []).map(r => r.id)];
+  const { data: reactions } = await sb
+    .from("reactions")
+    .select("id,comment_id,user_id,emoji")
+    .in("comment_id", allIds);
+
+  // Fetch display names
+  const allUserIds = [...new Set([
+    ...topComments.map(c => c.user_id),
+    ...(replies || []).map(r => r.user_id),
+  ])];
   const { data: profiles } = await sb
     .from("profiles")
     .select("id,display_name")
-    .in("id", userIds);
+    .in("id", allUserIds);
+
+  // Fetch votes for score pills (only for comments that have a vote_id)
+  const voteIds = topComments.filter(c => c.vote_id).map(c => c.vote_id);
+  let voteMap = {};
+  if (voteIds.length) {
+    const { data: votes } = await sb
+      .from("votes").select("id,vote").in("id", voteIds);
+    (votes || []).forEach(v => voteMap[v.id] = v.vote);
+  }
 
   const nameById = {};
   (profiles || []).forEach(p => nameById[p.id] = p.display_name);
 
-  const user = await maybeUser();
+  const reactionsByComment = {};
+  (reactions || []).forEach(r => {
+    if (!reactionsByComment[r.comment_id]) reactionsByComment[r.comment_id] = [];
+    reactionsByComment[r.comment_id].push(r);
+  });
 
-  list.innerHTML = data.map(row => {
-    const name    = nameById[row.user_id] || "A member";
-    const initial = (name[0] || "?").toUpperCase();
-    const score   = Number(row.vote);
-    const cls     = colorClassMarker(score, 1);
-    const isOwn   = user && user.id === row.user_id;
-    const timeAgo = formatTimeAgo(row.updated_at);
+  const repliesByParent = {};
+  (replies || []).forEach(r => {
+    if (!repliesByParent[r.parent_id]) repliesByParent[r.parent_id] = [];
+    repliesByParent[r.parent_id].push(r);
+  });
 
-    return `
-      <div class="comment-row ${isOwn ? "comment-own" : ""}">
-        <div class="comment-avatar">${escapeHtml(initial)}</div>
-        <div class="comment-body">
-          <div class="comment-meta">
-            <span class="comment-author">${escapeHtml(name)}</span>
-            <span class="comment-score-pill ${cls}">${score.toFixed(1)}</span>
-            <span class="comment-time">${timeAgo}</span>
-            ${isOwn ? `<button class="comment-edit-btn" onclick="focusCommentInput()">Edit</button>` : ""}
-          </div>
-          <div class="comment-text">${escapeHtml(row.comment)}</div>
+  list.innerHTML = topComments.map(c =>
+    renderCommentRow(c, user, nameById, reactionsByComment, repliesByParent, voteMap, false)
+  ).join("");
+}
+
+function renderCommentRow(c, user, nameById, reactionsByComment, repliesByParent, voteMap, isReply) {
+  const name    = nameById[c.user_id] || "A member";
+  const initial = (name[0] || "?").toUpperCase();
+  const isOwn   = user && user.id === c.user_id;
+  const timeAgo = formatTimeAgo(c.created_at);
+
+  // Score pill (only top-level comments with a linked vote)
+  let scorePill = "";
+  if (!isReply && c.vote_id && voteMap[c.vote_id] != null) {
+    const score = Number(voteMap[c.vote_id]);
+    const cls   = colorClassComment(score);
+    scorePill   = `<span class="comment-score-pill ${cls}">${score.toFixed(1)}</span>`;
+  }
+
+  // Reactions summary
+  const myReactions = new Set(
+    (reactionsByComment[c.id] || [])
+      .filter(r => user && r.user_id === user.id)
+      .map(r => r.emoji)
+  );
+  const reactionCounts = {};
+  (reactionsByComment[c.id] || []).forEach(r => {
+    reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
+  });
+
+  const existingReactions = Object.entries(reactionCounts).map(([emoji, count]) => `
+    <button class="reaction-pill ${myReactions.has(emoji) ? "reacted" : ""}"
+      onclick="${user ? `toggleReaction('${c.id}','${emoji}')` : "location.href='login.html'"}"
+      title="${myReactions.has(emoji) ? "Remove reaction" : "React"}">
+      ${emoji} ${count}
+    </button>`).join("");
+
+  const addReactionBtn = user ? `
+    <div class="reaction-add-wrap">
+      <button class="reaction-add-btn" onclick="toggleEmojiPicker('${c.id}')">＋</button>
+      <div class="emoji-picker" id="picker-${c.id}" style="display:none;">
+        ${EMOJI_OPTIONS.map(e => `<button onclick="toggleReaction('${c.id}','${e}');toggleEmojiPicker('${c.id}')">${e}</button>`).join("")}
+      </div>
+    </div>` : "";
+
+  // Replies
+  const commentReplies = repliesByParent[c.id] || [];
+  const repliesHtml = commentReplies.map(r =>
+    renderCommentRow(r, user, nameById, reactionsByComment, {}, {}, true)
+  ).join("");
+
+  const replyArea = !isReply ? `
+    <div class="reply-area" id="reply-area-${c.id}" style="display:none;">
+      <textarea class="comment-textarea reply-textarea" placeholder="Write a reply…" rows="2" maxlength="500"
+        id="reply-input-${c.id}" oninput="updateReplyCount('${c.id}')"></textarea>
+      <div class="comment-write-foot">
+        <span id="reply-char-${c.id}" class="comment-char-count">0 / 500</span>
+        <button class="tba-btn tba-btn-primary comment-post-btn"
+          onclick="postReply('${c.id}')">Reply</button>
+      </div>
+    </div>` : "";
+
+  return `
+    <div class="comment-row ${isReply ? "comment-reply" : ""} ${isOwn ? "comment-own" : ""}" data-id="${c.id}">
+      <div class="comment-avatar ${isReply ? "avatar-sm" : ""}">${escapeHtml(initial)}</div>
+      <div class="comment-body">
+        <div class="comment-meta">
+          <span class="comment-author">${escapeHtml(name)}</span>
+          ${scorePill}
+          <span class="comment-time">${timeAgo}</span>
+          ${isOwn ? `<button class="comment-action-btn" onclick="deleteComment('${c.id}')">Delete</button>` : ""}
         </div>
-      </div>`;
-  }).join("");
+        <div class="comment-text">${escapeHtml(c.body)}</div>
+        <div class="comment-actions-row">
+          ${existingReactions}
+          ${addReactionBtn}
+          ${!isReply && user ? `<button class="comment-action-btn" onclick="toggleReplyArea('${c.id}')">↩ Reply</button>` : ""}
+        </div>
+        ${replyArea}
+        ${!isReply && repliesHtml ? `<div class="replies-list">${repliesHtml}</div>` : ""}
+      </div>
+    </div>`;
 }
 
-function colorClassMarker(v, cnt) {
-  if (!cnt || !v) return "rating-none";
-  if (v >= 9) return "rating-9-10";
-  if (v >= 7) return "rating-7-8";
-  if (v >= 5) return "rating-5-6";
-  if (v >= 3) return "rating-3-4";
-  return "rating-1-2";
+async function postComment() {
+  const ta   = document.getElementById("newCommentInput");
+  const body = ta?.value.trim();
+  if (!body) return;
+
+  const user = await requireAuth();
+  if (!user) return;
+
+  const btn = document.querySelector(".comment-post-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "Posting…"; }
+
+  // Find the user's vote_id for this marker (to link score)
+  const { data: voteRow } = await sb
+    .from("votes")
+    .select("id")
+    .eq("marker_id", MARKER_ID)
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  const { error } = await sb.from("comments").insert([{
+    marker_id: MARKER_ID,
+    user_id:   user.id,
+    vote_id:   voteRow?.id || null,
+    body,
+  }]);
+
+  if (btn) { btn.disabled = false; btn.textContent = "Post"; }
+
+  if (error) { alert("Error: " + error.message); return; }
+
+  ta.value = "";
+  const countEl = document.getElementById("newCommentCharCount");
+  if (countEl) countEl.textContent = "0 / 500";
+  await loadComments(user);
 }
 
-function focusCommentInput() {
-  const ta = document.getElementById("myCommentInput");
-  if (!ta) return;
-  ta.scrollIntoView({ behavior: "smooth", block: "center" });
-  ta.focus();
+async function postReply(parentId) {
+  const ta   = document.getElementById(`reply-input-${parentId}`);
+  const body = ta?.value.trim();
+  if (!body) return;
+
+  const user = await requireAuth();
+  if (!user) return;
+
+  const { error } = await sb.from("comments").insert([{
+    marker_id: MARKER_ID,
+    user_id:   user.id,
+    parent_id: parentId,
+    body,
+  }]);
+
+  if (error) { alert("Error: " + error.message); return; }
+
+  ta.value = "";
+  toggleReplyArea(parentId);
+  await loadComments(user);
 }
+
+async function deleteComment(commentId) {
+  if (!confirm("Delete this comment?")) return;
+  const { error } = await sb
+    .from("comments")
+    .update({ is_active: false })
+    .eq("id", commentId);
+  if (error) { alert("Error: " + error.message); return; }
+  const user = await maybeUser();
+  await loadComments(user);
+}
+
+async function toggleReaction(commentId, emoji) {
+  const user = await requireAuth();
+  if (!user) return;
+
+  // Check if already reacted
+  const { data: existing } = await sb
+    .from("reactions")
+    .select("id")
+    .eq("comment_id", commentId)
+    .eq("user_id", user.id)
+    .eq("emoji", emoji)
+    .maybeSingle();
+
+  if (existing) {
+    await sb.from("reactions").delete().eq("id", existing.id);
+  } else {
+    await sb.from("reactions").insert([{ comment_id: commentId, user_id: user.id, emoji }]);
+  }
+
+  await loadComments(user);
+}
+
+function toggleEmojiPicker(commentId) {
+  const picker = document.getElementById(`picker-${commentId}`);
+  if (!picker) return;
+  // Close all other pickers first
+  document.querySelectorAll(".emoji-picker").forEach(p => {
+    if (p !== picker) p.style.display = "none";
+  });
+  picker.style.display = picker.style.display === "none" ? "flex" : "none";
+}
+
+function toggleReplyArea(commentId) {
+  const area = document.getElementById(`reply-area-${commentId}`);
+  if (!area) return;
+  const isOpen = area.style.display !== "none";
+  area.style.display = isOpen ? "none" : "block";
+  if (!isOpen) {
+    const ta = document.getElementById(`reply-input-${commentId}`);
+    if (ta) ta.focus();
+  }
+}
+
+function updateReplyCount(commentId) {
+  const ta  = document.getElementById(`reply-input-${commentId}`);
+  const el  = document.getElementById(`reply-char-${commentId}`);
+  if (ta && el) {
+    el.textContent = `${ta.value.length} / 500`;
+    el.style.color = ta.value.length > 450 ? "#ef4444" : "";
+  }
+}
+
+// Close emoji pickers when clicking outside
+document.addEventListener("click", e => {
+  if (!e.target.closest(".reaction-add-wrap")) {
+    document.querySelectorAll(".emoji-picker").forEach(p => p.style.display = "none");
+  }
+});
 
 /* ══════════════════════════════
    INIT
@@ -819,8 +1034,7 @@ async function initMarkerPage() {
   if (m.group_type === "place") renderMiniMap(m);
 
   await renderRankingWidget(m);
-  await loadComments();
-  updateCommentCharCount();
+  await initComments(user);
 
   setStatus("");
 }
