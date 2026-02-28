@@ -47,6 +47,7 @@
 
 .votes-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
   border: 1px solid rgba(0,0,0,0.14);
@@ -55,6 +56,11 @@
   background: #fff;
   box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
+/* Fixed column widths — identical across all tables */
+.votes-table col.col-rank  { width: 48px; }
+.votes-table col.col-title { width: auto; }
+.votes-table col.col-score { width: 90px; }
+
 .votes-table th {
   padding: 9px 12px;
   font-size: 11px;
@@ -66,6 +72,9 @@
   border-bottom: 1px solid rgba(0,0,0,0.10);
   text-align: left;
 }
+.votes-table th:last-child,
+.votes-table td:last-child { text-align: right; }
+
 .votes-table td {
   padding: 10px 12px;
   border-bottom: 1px solid rgba(0,0,0,0.07);
