@@ -526,3 +526,57 @@ input:focus, select:focus, textarea:focus {
   padding: 6px 10px;
   font-size: 13px;
 }
+
+
+/* ══════════════════════════════
+   MOBILE — base.css
+   Breakpoints: 768px (tablet), 480px (phone)
+══════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Header: hide nav labels, show compact */
+  .topbar, .topbar-sticky {
+    padding: 0 16px;
+    height: 52px;
+    gap: 8px;
+  }
+
+  .brand { font-size: 15px; }
+
+  /* Collapse nav links to scrollable strip */
+  .nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+
+  .nav a {
+    padding: 0 8px;
+    font-size: 11px;
+    height: 52px;
+    white-space: nowrap;
+  }
+
+  /* Username hidden on mobile, just show bell + logout */
+  .header-user-row .muted { display: none; }
+  .header-user-row { gap: 6px; }
+
+  /* Container padding */
+  .container { padding: 16px 14px; }
+
+  /* Cards */
+  .card { padding: 14px; }
+
+  /* Notification panel full-width on mobile */
+  .notif-panel {
+    width: calc(100vw - 28px);
+    right: -60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav a { font-size: 10px; padding: 0 7px; }
+  .container { padding: 12px 12px; }
+}
