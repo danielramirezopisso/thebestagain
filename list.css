@@ -7,23 +7,29 @@
   gap: 12px;
   margin: 18px 0 10px;
 }
-.list-header h1 { margin: 0; }
+.list-header h1 { margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: -0.03em; }
 .list-count {
-  font-size: 13px;
-  font-weight: 700;
-  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
   background: var(--faint);
   border-radius: 999px;
   border: 1px solid var(--rule);
+  color: var(--muted);
   white-space: nowrap;
 }
 
 /* Filter card */
 .filter-card {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .filter-row {
@@ -38,13 +44,13 @@
 }
 
 .filter-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.08em;
   white-space: nowrap;
-  min-width: 52px;
+  min-width: 48px;
 }
 
 /* Search */
@@ -78,87 +84,10 @@
 }
 
 /* Type toggle */
-.type-toggle {
-  display: flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-}
-.type-btn {
-  padding: 9px 14px;
-  border: none;
-  border-right: 1px solid var(--rule);
-  border-radius: 0;
-  background: #fff;
-  font-weight: 700;
-  font-size: 13px;
-  box-shadow: none;
-  cursor: pointer;
-  color: var(--muted);
-  transition: background .10s ease, color .10s ease;
-}
-.type-btn:last-child { border-right: none; }
-.type-btn:hover { background: var(--faint); transform: none; box-shadow: none; }
-.type-btn.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent2);
-}
 
 /* Category chips */
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #fff;
-  text-decoration: none;
-  color: var(--text);
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  transition: transform .10s ease, box-shadow .10s ease;
-  box-shadow: var(--shadow);
-}
-.chip:hover { transform: none; box-shadow: var(--shadow); }
-.chip.active {
-  background: var(--text);
-  color: #fff;
-  border-color: var(--text);
-}
-.chip-ic { width: 16px; height: 16px; flex: 0 0 16px; object-fit: contain; display: block; }
-.chip-clear {
-  border-color: rgba(239,68,68,0.40);
-  color: #ef4444;
-}
-.chip-clear:hover { background: rgba(239,68,68,0.06); }
 
 /* Rating seg */
-.seg-row { display: flex; gap: 6px; flex-wrap: wrap; }
-.seg-btn {
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: #fff;
-  font-weight: 700;
-  font-size: 13px;
-  box-shadow: var(--shadow);
-  cursor: pointer;
-  transition: transform .10s ease, box-shadow .10s ease;
-}
-.seg-btn:hover { transform: none; box-shadow: var(--shadow); }
-.seg-btn.active {
-  outline: 3px solid var(--rule);
-  border-color: rgba(0,0,0,0.40);
-}
 
 /* Table card */
 .table-card { padding: 0; overflow: hidden; }
@@ -170,15 +99,15 @@
   background: #fff;
 }
 .list-table th {
-  padding: 11px 14px;
+  padding: 9px 14px;
   text-align: left;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.08em;
   background: var(--faint);
-  border-bottom: 2px solid var(--rule);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
   user-select: none;
 }
@@ -216,14 +145,14 @@
   border: 1px solid transparent;
 }
 .type-tag-place {
-  background: rgba(52,199,89,0.12);
-  color: #2e7d4f;
-  border-color: rgba(52,199,89,0.30);
+  background: var(--faint);
+  color: var(--muted);
+  border-color: var(--rule);
 }
 .type-tag-product {
-  background: var(--accent-bg);
-  color: var(--accent2);
-  border-color: rgba(45,74,138,0.25);
+  background: var(--faint);
+  color: var(--muted);
+  border-color: var(--rule);
 }
 
 /* Rating badge in table */
