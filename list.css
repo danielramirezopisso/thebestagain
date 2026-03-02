@@ -177,3 +177,31 @@
 }
 .list-empty-icon { font-size: 36px; margin-bottom: 10px; }
 .list-empty h3 { margin: 0 0 6px; }
+
+/* ══════════════════════════════
+   MOBILE — list.css
+══════════════════════════════ */
+@media (max-width: 768px) {
+  .list-header { flex-direction: column; align-items: flex-start; gap: 6px; margin: 12px 0 8px; }
+  .list-header h1 { font-size: 20px; }
+  .list-count { align-self: flex-start; }
+
+  /* Filter: stack label above chips */
+  .filter-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .filter-label { min-width: auto; }
+  .search-wrap { max-width: 100%; min-width: 0; width: 100%; }
+
+  /* Table: hide less important columns */
+  .list-table th:nth-child(3),
+  .list-table td:nth-child(3) { display: none; } /* hide address on mobile */
+
+  .list-table th, .list-table td { padding: 9px 10px; }
+  .list-table th { font-size: 9px; }
+}
+
+@media (max-width: 480px) {
+  /* Show only name + rating on very small screens */
+  .list-table th:nth-child(2),
+  .list-table td:nth-child(2) { display: none; } /* hide type tag */
+  .rating-votes { display: none; }
+}
