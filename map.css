@@ -108,3 +108,43 @@ body.map-page{
   transform: translateY(-2px) scale(1.06);
   box-shadow:0 18px 34px var(--border) !important;
 }
+
+/* ══════════════════════════════
+   MOBILE — map.css
+══════════════════════════════ */
+@media (max-width: 768px) {
+  .map-shell { padding: 6px 10px 10px; gap: 6px; }
+
+  /* Toolbar stacks vertically, scrollable */
+  .map-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .toolbar-left  { gap: 10px; }
+  .toolbar-right { width: 100%; justify-content: flex-end; }
+  .select-compact { width: 130px; }
+
+  /* Panels: full width at bottom instead of floating */
+  .map-panel {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    max-height: 55vh;
+    overflow-y: auto;
+    z-index: 800;
+  }
+  .map-panel-add       { right: 0; left: 0; }
+  .map-panel-selected  { right: 0; left: 0; bottom: 0; top: auto; }
+}
+
+@media (max-width: 480px) {
+  /* Chip rows scroll horizontally on very small screens */
+  .chip-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .chip-row::-webkit-scrollbar { display: none; }
+}
