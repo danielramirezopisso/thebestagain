@@ -681,3 +681,40 @@ body {
 .comment-score-pill.rating-3-4  { background: rgba(255,138,0,0.12);  border-color: rgba(255,138,0,0.35);  color: #a85500; }
 .comment-score-pill.rating-1-2  { background: rgba(255,59,48,0.10);  border-color: rgba(255,59,48,0.30);  color: #cc1a10; }
 .comment-score-pill.rating-none { background: rgba(0,0,0,0.05);      border-color: rgba(0,0,0,0.12);      color: #999;    }
+
+
+/* ══════════════════════════════
+   MOBILE — marker.css (extends existing 780px breakpoint)
+══════════════════════════════ */
+@media (max-width: 768px) {
+  .marker-page-container { padding: 0 12px 20px; }
+
+  /* Hero stacks */
+  .marker-hero { flex-direction: column; gap: 10px; padding: 12px 0; }
+  .hero-title { font-size: 20px; }
+  .hero-actions { flex-wrap: wrap; gap: 6px; }
+
+  /* Vote buttons: smaller, wrap tighter */
+  .vote-btns { gap: 4px; }
+  .vote-btn  { width: 32px; height: 32px; font-size: 12px; }
+
+  /* Ranking list font */
+  .rank-card { padding: 8px 10px; }
+
+  /* Crown offset */
+  .crown-wrap { top: -36px; }
+  .crown-svg  { width: 48px; height: 48px; }
+
+  /* Comment textarea full width */
+  .comment-textarea { font-size: 14px; }
+}
+
+@media (max-width: 480px) {
+  .hero-title { font-size: 18px; }
+  .vote-btn   { width: 28px; height: 28px; font-size: 11px; }
+  .m-card     { padding: 12px; }
+
+  /* Reactions wrap cleanly */
+  .comment-actions-row { gap: 4px; }
+  .reaction-pill { font-size: 12px; padding: 2px 6px; }
+}
