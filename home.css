@@ -375,3 +375,52 @@ body.home-bg {
   white-space: nowrap;
   color: var(--muted);
 }
+
+/* ══════════════════════════════
+   MOBILE — home.css
+══════════════════════════════ */
+@media (max-width: 768px) {
+  /* Home becomes scrollable, not fixed height */
+  body.home-bg { height: auto; overflow: auto; }
+
+  .home {
+    height: auto;
+    grid-template-rows: auto;
+    gap: 12px;
+    padding-top: 14px;
+    padding-bottom: 20px;
+    overflow: visible;
+  }
+
+  /* Hero stacks */
+  .home-hero {
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 14px;
+  }
+  .home-title { font-size: 26px; }
+  .home-actions { gap: 6px; }
+
+  /* Cravings single column */
+  .cravings-split { grid-template-columns: 1fr; gap: 10px; }
+
+  /* Bottom grid stacks */
+  .home-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Recent list no longer needs overflow scroll */
+  .recent-list { overflow: visible; max-height: none; }
+  .spotlight { min-height: auto; }
+  .recent    { min-height: auto; }
+
+  .spot-name { font-size: 17px; }
+}
+
+@media (max-width: 480px) {
+  .home-title { font-size: 22px; }
+  .spot-main { gap: 12px; }
+  .spot-icon { width: 52px; height: 52px; }
+  .spot-icon img { width: 24px; height: 24px; }
+}
