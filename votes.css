@@ -320,3 +320,46 @@
   transform: scale(1.10);
   box-shadow: var(--shadow);
 }
+
+/* ══════════════════════════════
+   MOBILE — votes.css
+══════════════════════════════ */
+@media (max-width: 768px) {
+  /* Already has 700px breakpoint — extend it */
+  .edit-sidebar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    width: 100%;
+    max-height: 45vh;
+    overflow-y: auto;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-top: 2px solid var(--line);
+    z-index: 200;
+    display: none; /* hidden by default, toggle via JS — or just show stacked */
+  }
+
+  /* Simpler: just stack sidebar above cards on small screens */
+  .edit-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .edit-sidebar {
+    position: static;
+    max-height: 180px;
+    overflow-y: auto;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .edit-vote-btn { width: 30px; height: 30px; font-size: 12px; }
+
+  /* Distribute tool stacks */
+  .distribute-tool { flex-direction: column; gap: 8px; }
+}
+
+@media (max-width: 480px) {
+  .edit-vote-btn { width: 26px; height: 26px; font-size: 11px; }
+}
