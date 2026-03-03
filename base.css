@@ -571,6 +571,8 @@ input:focus, select:focus, textarea:focus {
     padding: 0 14px;
     height: 52px;
     gap: 8px;
+    position: relative;
+    z-index: 1500;
   }
   .brand { font-size: 18px; flex-shrink: 0; }
 
@@ -586,7 +588,7 @@ input:focus, select:focus, textarea:focus {
     background: var(--card);
     border-bottom: 2px solid var(--line);
     flex-direction: column;
-    z-index: 300;
+    z-index: 2000;
     box-shadow: 0 8px 24px rgba(26,23,20,0.14);
     overflow: visible;
     padding: 4px 0;
