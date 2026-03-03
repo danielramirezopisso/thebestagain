@@ -531,114 +531,118 @@ input:focus, select:focus, textarea:focus {
    BURGER + SHARED MOBILE — base.css
 ══════════════════════════════ */
 
-/* Burger button — hidden on desktop */
+/* nav-right: groups auth + burger on the right */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Burger — hidden on desktop */
 .burger {
   display: none;
   background: none;
   border: none;
   box-shadow: none;
-  font-size: 20px;
+  font-size: 22px;
+  line-height: 1;
   cursor: pointer;
   padding: 4px 6px;
   color: var(--text);
-  line-height: 1;
+  border-radius: var(--radius);
   flex-shrink: 0;
 }
 .burger:hover { background: var(--faint); transform: none; box-shadow: none; }
 
-/* nav-right groups bell + burger */
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-/* desktop-only: shown on desktop, hidden on mobile */
+/* desktop-only */
 .desktop-only { display: block; }
+
+/* Filter collapsible — always open on desktop */
+.filter-toggle-btn { display: none; }
+.filter-collapsible { display: block; }
 
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }
 
-  /* Header */
+  /* ── Header ── */
   .topbar, .topbar-sticky {
     padding: 0 14px;
-    height: 50px;
-    gap: 0;
-    justify-content: space-between;
+    height: 52px;
+    gap: 8px;
   }
-  .brand { font-size: 17px; letter-spacing: -0.03em; }
+  .brand { font-size: 18px; flex-shrink: 0; }
 
-  /* Show burger, hide desktop nav */
-  .burger { display: flex; align-items: center; }
+  /* Show burger */
+  .burger { display: flex; align-items: center; justify-content: center; }
 
-  /* Nav becomes a dropdown */
+  /* Nav: hidden dropdown */
   .nav {
     display: none;
     position: fixed;
-    top: 50px;
-    left: 0;
-    right: 0;
+    top: 52px;
+    left: 0; right: 0;
     background: var(--card);
     border-bottom: 2px solid var(--line);
     flex-direction: column;
-    gap: 0;
-    z-index: 200;
-    box-shadow: 0 8px 24px rgba(26,23,20,0.12);
+    z-index: 300;
+    box-shadow: 0 8px 24px rgba(26,23,20,0.14);
     overflow: visible;
+    padding: 4px 0;
   }
   .nav.nav-open { display: flex; }
-
   .nav a {
     height: 48px;
     padding: 0 20px;
     font-size: 14px;
     font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
     border-bottom: 1px solid var(--rule);
-    border-bottom-color: none;
+    border-bottom-color: var(--rule);
     margin-bottom: 0;
     width: 100%;
-    border-bottom: 1px solid var(--rule);
+    color: var(--text);
   }
   .nav a:last-child { border-bottom: none; }
-  .nav a.active { border-bottom-color: var(--rule); color: var(--accent); font-weight: 700; }
+  .nav a.active { color: var(--accent); font-weight: 700; }
   .nav a:hover { background: var(--faint); }
 
-  /* username hidden on mobile */
-  .header-user-row .muted { display: none; }
-  .header-user-row a { font-size: 12px; }
-
-  .container { padding: 14px 12px; }
-  .card { padding: 12px; }
+  /* Container — ensure padding, no edge bleed */
+  .container { padding: 16px 14px; }
+  .card { padding: 14px; }
 
   /* Notification panel */
-  .notif-panel { width: calc(100vw - 28px); right: -40px; }
+  .notif-panel { width: calc(100vw - 28px); right: -30px; }
 
-  /* Collapsible filters */
+  /* ── Collapsible filter toggle ── */
   .filter-toggle-btn {
     display: flex;
     width: 100%;
     align-items: center;
     justify-content: space-between;
-    padding: 9px 12px;
+    padding: 9px 14px;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     font-size: 13px;
     font-weight: 600;
+    letter-spacing: 0.01em;
     cursor: pointer;
     margin-bottom: 8px;
     box-shadow: none;
+    color: var(--text);
   }
-  .filter-toggle-btn:hover { background: var(--faint); transform: none; }
-  .filter-toggle-btn .filter-toggle-arrow { transition: transform .2s; }
-  .filter-toggle-btn.open .filter-toggle-arrow { transform: rotate(180deg); }
+  .filter-toggle-btn:hover { background: var(--faint); transform: none; box-shadow: none; }
+  .filter-toggle-btn .filter-toggle-arrow { font-size: 11px; color: var(--muted); }
+  .filter-toggle-btn.open .filter-toggle-arrow { }
 
   .filter-collapsible { display: none; }
   .filter-collapsible.open { display: block; }
 }
 
 @media (max-width: 480px) {
-  .brand { font-size: 15px; }
-  .container { padding: 10px 10px; }
+  .brand { font-size: 16px; }
+  .container { padding: 12px 10px; }
 }
