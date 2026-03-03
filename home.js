@@ -276,12 +276,13 @@ function renderSpotlight(m) {
   body.classList.add("fade-in");
 
   // For products, prefer brand icon; fall back to category icon
-  const brandIconRaw = (!isPlace && m.brand_id) ? (BRAND[String(m.brand_id)]?.icon_url || '') : '';
-  const brandIconUrl = brandIconRaw
-    ? (brandIconRaw.startsWith('http') ? brandIconRaw
-        : `https://danielramirezopisso.github.io/thebestagain/icons/brands/${brandIconRaw}`)
-    : '';
-  const spotImgSrc = brandIconUrl || icon;
+  let spotImgSrc = icon;
+  if (!isPlace && m.brand_id) {
+    const bRaw = BRAND[String(m.brand_id)]?.icon_url || '';
+    if (bRaw) {
+      spotImgSrc = normalizeIconUrl(bRaw) || icon;
+    }
+  }
 
   body.innerHTML = `
     <div class="spot-main">
