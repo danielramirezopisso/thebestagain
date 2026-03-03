@@ -296,7 +296,8 @@
 .edit-vote-btns {
   display: flex;
   gap: 4px;
-  flex: 0 0 auto;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 .edit-vote-btn {
   width: 32px;
@@ -345,8 +346,25 @@
   .edit-panel { overflow: visible; height: auto; }
 
   /* Vote buttons: wrap properly */
-  .edit-vote-btns { flex-wrap: wrap; gap: 4px; }
-  .edit-vote-btn  { width: 30px; height: 30px; font-size: 12px; }
+  .edit-vote-btns {
+    flex-wrap: wrap;
+    gap: 3px;
+    max-width: 100%;
+  }
+  .edit-vote-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+    flex: 0 0 auto;
+  }
+  /* edit card: allow wrapping so buttons don't overflow */
+  .edit-vote-card {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .edit-vote-score {
+    flex-shrink: 0;
+  }
 
   /* Distribute tool */
   .distribute-tool { flex-wrap: wrap; gap: 8px; }
