@@ -300,7 +300,6 @@ body.products-page{
    MOBILE — products.css
 ══════════════════════════════ */
 @media (max-width: 768px) {
-  /* Switch from fixed-height to normal scrollable page */
   body.products-page { height: auto; overflow: auto; }
 
   .products-shell {
@@ -310,48 +309,40 @@ body.products-page{
     gap: 8px;
   }
 
-  /* Toolbar stacks, chips scroll */
+  /* Toolbar: stacks */
   .products-toolbar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     padding: 8px 10px;
-    gap: 6px;
+    gap: 0;
   }
-  .toolbar-right { width: 100%; justify-content: flex-end; }
+  .toolbar-right { width: 100%; justify-content: flex-end; margin-top: 6px; }
 
+  /* Chip rows: horizontal scroll */
   .chip-row {
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
     max-width: 100%;
-    padding-bottom: 2px;
+    padding-bottom: 3px;
+    scrollbar-width: none;
   }
   .chip-row::-webkit-scrollbar { display: none; }
 
-  /* Product area: single column, normal scroll */
+  /* Layout: single column, scrollable */
   .products-area {
-    grid-template-columns: 1fr;
-    height: auto;
-    overflow: visible;
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    overflow: visible !important;
     gap: 12px;
   }
-
   .lanes-grid {
-    grid-template-columns: 1fr;
-    height: auto;
-    overflow: visible;
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    overflow: visible !important;
     padding-right: 0;
   }
+  .add-panel { height: auto !important; max-height: none !important; overflow: visible !important; }
 
-  .add-panel { max-height: none; overflow: visible; height: auto; }
-
-  /* Drawer full screen */
-  .drawer {
-    width: 100%;
-    border-radius: var(--radius) var(--radius) 0 0;
-    height: 85vh;
-  }
-}
-@media (max-width: 480px) {
-  .select-compact { width: 100%; }
+  .drawer { width: 100%; border-radius: var(--radius) var(--radius) 0 0; height: 85vh; }
 }
