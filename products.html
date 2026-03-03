@@ -18,7 +18,6 @@
       <a href="map.html">Map</a>
       <a class="active" href="products.html">Products</a>
       <a href="my-votes.html">My Votes</a>
-      <a href="admin.html">Admin</a>
       <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
     </nav>
   </header>
@@ -109,5 +108,23 @@
   <script>renderAuthHeader();</script>
 
   <script src="products.js?v=202"></script>
+
+  <script>
+  function toggleNav() {
+    const nav = document.getElementById('mainNav');
+    const btn = document.getElementById('burgerBtn');
+    const open = nav.classList.toggle('nav-open');
+    btn.innerHTML = open ? '&#10005;' : '&#9776;';
+  }
+  // Close nav when a link is clicked
+  document.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('mainNav');
+    if (nav) nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      nav.classList.remove('nav-open');
+      const btn = document.getElementById('burgerBtn');
+      if (btn) btn.innerHTML = '&#9776;';
+    }));
+  });
+  </script>
 </body>
 </html>
