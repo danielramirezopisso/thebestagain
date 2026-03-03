@@ -300,40 +300,58 @@ body.products-page{
    MOBILE — products.css
 ══════════════════════════════ */
 @media (max-width: 768px) {
-  .products-shell { padding: 6px 10px 10px; gap: 6px; }
+  /* Switch from fixed-height to normal scrollable page */
+  body.products-page { height: auto; overflow: auto; }
 
-  /* Toolbar stacks */
+  .products-shell {
+    height: auto;
+    overflow: visible;
+    padding: 6px 8px 24px;
+    gap: 8px;
+  }
+
+  /* Toolbar stacks, chips scroll */
   .products-toolbar {
     flex-direction: column;
     align-items: flex-start;
     padding: 8px 10px;
-    gap: 8px;
+    gap: 6px;
   }
   .toolbar-right { width: 100%; justify-content: flex-end; }
 
-  /* Area: single column, add panel goes below */
+  .chip-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    padding-bottom: 2px;
+  }
+  .chip-row::-webkit-scrollbar { display: none; }
+
+  /* Product area: single column, normal scroll */
   .products-area {
     grid-template-columns: 1fr;
-    overflow: visible;
     height: auto;
+    overflow: visible;
+    gap: 12px;
   }
 
-  /* Lanes: 1 column */
   .lanes-grid {
     grid-template-columns: 1fr;
-    overflow: visible;
     height: auto;
+    overflow: visible;
     padding-right: 0;
   }
 
-  /* Add panel below lanes */
-  .add-panel { max-height: none; overflow: visible; }
+  .add-panel { max-height: none; overflow: visible; height: auto; }
 
   /* Drawer full screen */
-  .drawer { width: 100%; border-radius: var(--radius) var(--radius) 0 0; }
+  .drawer {
+    width: 100%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    height: 85vh;
+  }
 }
-
 @media (max-width: 480px) {
-  .chip-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
-  .chip-row::-webkit-scrollbar { display: none; }
+  .select-compact { width: 100%; }
 }
