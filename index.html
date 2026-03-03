@@ -29,7 +29,7 @@
       <div>
         <h1 class="home-title">The Best Again</h1>
         <p class="home-tagline">A personal hunt for the best bites &amp; products — one surprise at a time.</p>
-        <p class="home-hint muted">Shortcuts: <b>M</b> Map · <b>L</b> List · <b>P</b> Products · <b>R</b> Surprise</p>
+        <p class="home-hint muted desktop-only">Shortcuts: <b>M</b> Map · <b>L</b> List · <b>P</b> Products · <b>R</b> Surprise</p>
       </div>
       <div class="home-actions">
         <a class="tba-btn tba-btn-primary" href="map.html">🗺 Map</a>
@@ -90,5 +90,23 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
   <script src="home.js?v=2"></script>
+
+  <script>
+  function toggleNav() {
+    const nav = document.getElementById('mainNav');
+    const btn = document.getElementById('burgerBtn');
+    const open = nav.classList.toggle('nav-open');
+    btn.innerHTML = open ? '&#10005;' : '&#9776;';
+  }
+  // Close nav when a link is clicked
+  document.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('mainNav');
+    if (nav) nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      nav.classList.remove('nav-open');
+      const btn = document.getElementById('burgerBtn');
+      if (btn) btn.innerHTML = '&#9776;';
+    }));
+  });
+  </script>
 </body>
 </html>
