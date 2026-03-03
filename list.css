@@ -188,14 +188,15 @@
   .filter-label { min-width: auto; }
   .search-wrap { max-width: 100%; min-width: 0; width: 100%; }
 
-  /* Hide address column — too wide on mobile */
-  .col-address, .list-table th.col-address, .list-table td.col-address { display: none; }
+  /* Column visibility on mobile — keep title, cat, votes, rating */
+  .col-type    { display: none; }
+  .col-address { display: none; }
 
-  .list-table th, .list-table td { padding: 9px 10px; font-size: 12px; }
+  .list-table th, .list-table td { padding: 9px 10px; }
   .list-table th { font-size: 9px; }
 }
 @media (max-width: 480px) {
-  /* Hide type tag column on very small screens */
-  .col-type, .list-table th.col-type, .list-table td.col-type { display: none; }
+  /* On very small screens also hide type */
+  .col-type  { display: none; }
   .rating-votes { display: none; }
 }
