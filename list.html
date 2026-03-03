@@ -36,7 +36,11 @@
     </div>
 
     <!-- FILTERS -->
-    <section class="card filter-card">
+    <div id="listFilterWrap">
+      <button class="filter-toggle-btn" id="listFilterToggle" style="display:none;">
+        Filters <span class="filter-toggle-arrow">▼</span>
+      </button>
+      <section class="card filter-card filter-collapsible open" id="listFilterBody">
 
       <!-- Row 1: Search + Type toggle -->
       <div class="filter-row">
@@ -64,7 +68,8 @@
         <button id="btnClearFilters" class="chip chip-clear" style="display:none; margin-left:auto;" onclick="clearListFilters()">✕ Clear all</button>
       </div>
 
-    </section>
+      </section>
+    </div><!-- /listFilterWrap -->
 
     <!-- TABLE -->
     <section class="card table-card">
