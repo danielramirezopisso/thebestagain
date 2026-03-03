@@ -13,21 +13,29 @@
 </head>
 
 <body class="map-page" onload="initMap()">
-  <header class="topbar topbar-sticky">
+    <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
-    <nav class="nav">
+    <nav class="nav" id="mainNav">
       <a href="index.html">Home</a>
       <a href="list.html">List</a>
       <a class="active" href="map.html">Map</a>
       <a href="products.html">Products</a>
       <a href="my-votes.html">My Votes</a>
-      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
+      <a href="admin.html" id="adminNavLink" style="display:none;">Admin</a>
     </nav>
+    <div class="nav-right">
+      <span id="authStatus" class="auth-pill"></span>
+      <button class="burger" id="burgerBtn" onclick="toggleNav()" aria-label="Menu" aria-expanded="false">&#9776;</button>
+    </div>
   </header>
 
   <main class="map-shell">
     <!-- TOOLBAR (compact, no Apply) -->
-    <section class="map-toolbar map-toolbar-compact">
+    <section class="map-toolbar map-toolbar-compact" id="mapToolbarWrap">
+      <button class="filter-toggle-btn" id="mapFilterToggle" style="display:none;">
+        Filters <span class="filter-toggle-arrow">▼</span>
+      </button>
+      <div class="filter-collapsible open" id="mapFilterBody">
       <div class="toolbar-left">
         <div class="toolbar-block">
           <div class="toolbar-label">Category</div>
@@ -148,6 +156,22 @@
       const btn = document.getElementById('burgerBtn');
       if (btn) btn.innerHTML = '&#9776;';
     }));
+  });
+  </script>
+
+  <script>
+  window.addEventListener('load', function() {
+    if (window.innerWidth > 768) return;
+    const btn = document.getElementById('mapFilterToggle');
+    const body = document.getElementById('mapFilterBody');
+    if (!btn || !body) return;
+    btn.style.display = 'flex';
+    body.classList.remove('open'); // collapsed by default on mobile
+    btn.addEventListener('click', () => {
+      const open = body.classList.toggle('open');
+      btn.classList.toggle('open', open);
+      btn.querySelector('.filter-toggle-arrow').textContent = open ? '▲' : '▼';
+    });
   });
   </script>
 </body>
