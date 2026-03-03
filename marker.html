@@ -10,17 +10,20 @@
 </head>
 
 <body onload="initMarkerPage()">
-  <header class="topbar topbar-sticky">
+    <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
-    <nav class="nav">
+    <nav class="nav" id="mainNav">
       <a href="index.html">Home</a>
       <a href="list.html">List</a>
       <a href="map.html">Map</a>
       <a href="products.html">Products</a>
       <a href="my-votes.html">My Votes</a>
-      <a href="admin.html">Admin</a>
-      <span id="authStatus" class="auth-pill" style="margin-left:12px;"></span>
+      <a href="admin.html" id="adminNavLink" style="display:none;">Admin</a>
     </nav>
+    <div class="nav-right">
+      <span id="authStatus" class="auth-pill"></span>
+      <button class="burger" id="burgerBtn" onclick="toggleNav()" aria-label="Menu" aria-expanded="false">&#9776;</button>
+    </div>
   </header>
 
   <main class="marker-page-container">
@@ -177,5 +180,23 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
   <script src="marker.js?v=7"></script>
+
+  <script>
+  function toggleNav() {
+    const nav = document.getElementById('mainNav');
+    const btn = document.getElementById('burgerBtn');
+    const open = nav.classList.toggle('nav-open');
+    btn.innerHTML = open ? '&#10005;' : '&#9776;';
+  }
+  // Close nav when a link is clicked
+  document.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('mainNav');
+    if (nav) nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      nav.classList.remove('nav-open');
+      const btn = document.getElementById('burgerBtn');
+      if (btn) btn.innerHTML = '&#9776;';
+    }));
+  });
+  </script>
 </body>
 </html>
