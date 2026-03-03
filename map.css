@@ -113,38 +113,48 @@ body.map-page{
    MOBILE — map.css
 ══════════════════════════════ */
 @media (max-width: 768px) {
-  .map-shell { padding: 6px 10px 10px; gap: 6px; }
+  body.map-page { height: 100vh; overflow: hidden; }
 
-  /* Toolbar stacks vertically, scrollable */
+  .map-shell {
+    height: calc(100vh - 50px);
+    padding: 6px 8px 8px;
+    gap: 6px;
+  }
+
+  /* Toolbar: compact, chips scroll horizontally */
   .map-toolbar {
     flex-direction: column;
     align-items: flex-start;
     padding: 8px 10px;
-    gap: 8px;
+    gap: 6px;
+    overflow: visible;
   }
-  .toolbar-left  { gap: 10px; }
-  .toolbar-right { width: 100%; justify-content: flex-end; }
-  .select-compact { width: 130px; }
+  .toolbar-left { gap: 8px; width: 100%; }
+  .toolbar-right { width: 100%; }
 
-  /* Panels: full width at bottom instead of floating */
+  /* Chip rows: horizontal scroll, never overflow page */
+  .chip-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    padding-bottom: 2px;
+  }
+  .chip-row::-webkit-scrollbar { display: none; }
+
+  .select-compact { width: 120px; font-size: 12px; }
+
+  /* Panels slide up from bottom */
   .map-panel {
     position: fixed;
-    top: auto;
+    top: auto !important;
     bottom: 0;
     left: 0;
     right: 0;
-    width: 100%;
+    width: 100% !important;
     border-radius: var(--radius) var(--radius) 0 0;
     max-height: 55vh;
     overflow-y: auto;
     z-index: 800;
   }
-  .map-panel-add       { right: 0; left: 0; }
-  .map-panel-selected  { right: 0; left: 0; bottom: 0; top: auto; }
-}
-
-@media (max-width: 480px) {
-  /* Chip rows scroll horizontally on very small screens */
-  .chip-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
-  .chip-row::-webkit-scrollbar { display: none; }
 }
