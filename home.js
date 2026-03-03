@@ -51,7 +51,7 @@ function fmtOverall(avg, cnt) {
 function markerLabel(m) {
   const catName = CAT[String(m.category_id)]?.name || m.category_id || "";
   if (m.group_type === "product") {
-    const brandName = BRAND[String(m.brand_id)] || "";
+    const brandName = BRAND[String(m.brand_id)]?.name || "";
     // product title is category + brand
     return `${catName} · ${brandName}`.trim();
   }
@@ -101,13 +101,13 @@ async function loadLookups() {
   // Brands
   const { data: brands, error: bErr } = await sb
     .from("brands")
-    .select("id,name,is_active")
+    .select("id,name,icon_url,is_active")
     .eq("is_active", true)
     .order("id", { ascending: true });
 
   if (!bErr && brands) {
     BRAND = {};
-    brands.forEach(b => { BRAND[String(b.id)] = b.name; });
+    brands.forEach(b => { BRAND[String(b.id)] = { name: b.name, icon_url: b.icon_url || '' }; });
   }
 }
 
@@ -264,7 +264,7 @@ function renderSpotlight(m) {
 
   const line2 = isPlace
     ? (m.address ? `📍 ${m.address}` : "📍 No address yet")
-    : `🏷️ ${BRAND[String(m.brand_id)] || "Unknown brand"}`;
+    : `${BRAND[String(m.brand_id)]?.name || "Unknown brand"}`;
 
   sub.textContent = isPlace ? "Random place from your world." : "Random product from your stash.";
 
@@ -275,10 +275,18 @@ function renderSpotlight(m) {
   void body.offsetWidth;
   body.classList.add("fade-in");
 
+  // For products, prefer brand icon; fall back to category icon
+  const brandIconRaw = (!isPlace && m.brand_id) ? (BRAND[String(m.brand_id)]?.icon_url || '') : '';
+  const brandIconUrl = brandIconRaw
+    ? (brandIconRaw.startsWith('http') ? brandIconRaw
+        : `https://danielramirezopisso.github.io/thebestagain/icons/brands/${brandIconRaw}`)
+    : '';
+  const spotImgSrc = brandIconUrl || icon;
+
   body.innerHTML = `
     <div class="spot-main">
       <div class="spot-icon ${cls}">
-        <img src="${escapeHtml(icon)}" alt="" />
+        <img src="${escapeHtml(spotImgSrc)}" alt="" />
       </div>
 
       <div class="spot-info">
