@@ -248,12 +248,11 @@ function renderTable() {
     <table class="list-table">
       <thead>
         <tr>
-          <th class="${thClass('title')}"   onclick="setSort('title')">Title</th>
-          <th class="${thClass('type')}"    onclick="setSort('type')">Type</th>
-          <th class="${thClass('category')}" onclick="setSort('category')">Category</th>
-          <th>Info</th>
-          <th class="${thClass('votes')}"   onclick="setSort('votes')">Votes</th>
-          <th class="${thClass('rating')}"  onclick="setSort('rating')">Rating</th>
+          <th class="${thClass('title')} col-title" onclick="setSort('title')">Title</th>
+          <th class="${thClass('type')} col-type"   onclick="setSort('type')">Type</th>
+          <th class="${thClass('category')} col-cat" onclick="setSort('category')">Category</th>
+          <th class="${thClass('votes')} col-votes"  onclick="setSort('votes')">Votes</th>
+          <th class="${thClass('rating')} col-rating" onclick="setSort('rating')">Rating</th>
         </tr>
       </thead>
       <tbody>
@@ -281,12 +280,11 @@ function renderTable() {
 
           return `
             <tr onclick="window.location.href='marker.html?id=${encodeURIComponent(m.id)}'">
-              <td><b>${escapeHtml(m.title)}</b></td>
-              <td>${typeTag}</td>
-              <td>${escapeHtml(cat)}</td>
-              <td>${info}</td>
-              <td><span class="rating-votes">${escapeHtml(votesTxt)}</span></td>
-              <td>
+              <td class="col-title"><b>${escapeHtml(m.title)}</b></td>
+              <td class="col-type">${typeTag}</td>
+              <td class="col-cat">${escapeHtml(cat)}</td>
+              <td class="col-votes"><span class="rating-votes">${escapeHtml(votesTxt)}</span></td>
+              <td class="col-rating">
                 <div class="rating-cell">
                   <div class="rating-dot" style="background:${dot};"></div>
                   <span class="rating-val">${escapeHtml(ratingTxt)}</span>
