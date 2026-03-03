@@ -275,23 +275,26 @@ function renderSpotlight(m) {
   void body.offsetWidth;
   body.classList.add("fade-in");
 
-  // For products, prefer brand icon; fall back to category icon
-  let spotImgSrc = icon;
+  // Category SVG always goes in the coloured circle
+  // Brand PNG shown separately below the name for products
+  let brandImgHtml = '';
   if (!isPlace && m.brand_id) {
     const bRaw = BRAND[String(m.brand_id)]?.icon_url || '';
-    if (bRaw) {
-      spotImgSrc = normalizeIconUrl(bRaw) || icon;
+    const bUrl = bRaw ? normalizeIconUrl(bRaw) : '';
+    if (bUrl) {
+      brandImgHtml = `<img class="spot-brand-img" src="${escapeHtml(bUrl)}" alt="${escapeHtml(BRAND[String(m.brand_id)]?.name || '')}" />`;
     }
   }
 
   body.innerHTML = `
     <div class="spot-main">
       <div class="spot-icon ${cls}">
-        <img src="${escapeHtml(spotImgSrc)}" alt="" />
+        <img src="${escapeHtml(icon)}" alt="" />
       </div>
 
       <div class="spot-info">
         <div class="spot-name">${escapeHtml(markerLabel(m))}</div>
+        ${brandImgHtml}
         <div class="spot-meta muted">${escapeHtml(line2)}</div>
 
         <div class="spot-badges">
