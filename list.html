@@ -75,5 +75,48 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
   <script src="list.js?v=3"></script>
+
+  <script>
+  function toggleNav() {
+    const nav = document.getElementById('mainNav');
+    const btn = document.getElementById('burgerBtn');
+    const open = nav.classList.toggle('nav-open');
+    btn.innerHTML = open ? '&#10005;' : '&#9776;';
+  }
+  // Close nav when a link is clicked
+  document.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('mainNav');
+    if (nav) nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      nav.classList.remove('nav-open');
+      const btn = document.getElementById('burgerBtn');
+      if (btn) btn.innerHTML = '&#9776;';
+    }));
+  });
+  </script>
+
+  <script>
+  // Collapsible filters on mobile
+  function initFilterToggle() {
+    if (window.innerWidth > 768) return;
+    document.querySelectorAll('.filter-collapsible-wrap').forEach(wrap => {
+      const btn = wrap.querySelector('.filter-toggle-btn');
+      const body = wrap.querySelector('.filter-collapsible');
+      if (!btn || !body) return;
+      btn.addEventListener('click', () => {
+        const open = body.classList.toggle('open');
+        btn.classList.toggle('open', open);
+        btn.querySelector('.filter-toggle-arrow').textContent = open ? '▲' : '▼';
+      });
+    });
+  }
+  window.addEventListener('load', () => {
+    initFilterToggle();
+    if (window.innerWidth <= 768) {
+      const btn = document.getElementById('filterToggleBtn');
+      if (btn) btn.style.display = 'flex';
+    }
+  });
+  window.addEventListener('resize', initFilterToggle);
+  </script>
 </body>
 </html>
