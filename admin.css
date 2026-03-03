@@ -262,3 +262,15 @@
   vertical-align: middle;
   margin-right: 6px;
 }
+
+/* ══════════════════════════════
+   MOBILE — admin.css
+══════════════════════════════ */
+@media (max-width: 768px) {
+  /* Wrap tables in scrollable container */
+  .card { overflow-x: auto; }
+  .table { min-width: 600px; }
+  .admin-tabs { flex-wrap: wrap; }
+  .admin-tab { font-size: 12px; padding: 7px 10px; }
+  .col-icon, .col-flag { display: none; }
+}
