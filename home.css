@@ -240,6 +240,15 @@ body.home-bg {
   color: var(--muted);
 }
 
+.spot-brand-img {
+  display: block;
+  height: 28px;
+  max-width: 120px;
+  object-fit: contain;
+  margin: 6px 0 2px;
+  opacity: 0.9;
+}
+
 .spot-badges {
   margin-top: 10px;
   display: flex;
