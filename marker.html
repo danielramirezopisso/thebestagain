@@ -42,6 +42,23 @@
       <div class="hero-actions" id="heroActions"></div>
     </div>
 
+
+    <!-- ── PHOTOS ── -->
+    <div class="card m-card photos-card" id="photosCard" style="display:none;">
+      <div class="m-card-head-row">
+        <span class="m-card-head">Photos</span>
+        <span id="photosCount" class="muted" style="font-size:12px;"></span>
+      </div>
+      <div class="photo-strip-wrap">
+        <div class="photo-strip" id="photoStrip"></div>
+        <label class="photo-upload-btn tba-btn" id="photoUploadLabel" style="display:none;">
+          + Add photo
+          <input type="file" id="photoFileInput" accept="image/*" style="display:none;" onchange="uploadPhoto(this)" />
+        </label>
+      </div>
+      <p id="photoStatus" class="muted" style="font-size:12px; margin-top:6px;"></p>
+    </div>
+
     <!-- ── MAIN GRID ── -->
     <div class="marker-grid" id="markerGrid">
 
@@ -198,5 +215,25 @@
     }));
   });
   </script>
+
+  <!-- ── PHOTO LIGHTBOX ── -->
+  <div id="photoLightbox" class="lightbox-overlay" style="display:none;" onclick="if(event.target===this)closeLightbox()">
+    <div class="lightbox-inner">
+      <!-- Left thumbnail strip -->
+      <div class="lightbox-thumbs" id="lightboxThumbs"></div>
+      <!-- Main view -->
+      <div class="lightbox-main">
+        <button class="lightbox-close" onclick="closeLightbox()">&#10005;</button>
+        <button class="lightbox-nav lightbox-prev" id="lightboxPrev" onclick="lightboxNav(-1)">&#8592;</button>
+        <div class="lightbox-img-wrap">
+          <img id="lightboxImg" src="" alt="" />
+        </div>
+        <button class="lightbox-nav lightbox-next" id="lightboxNext" onclick="lightboxNav(1)">&#8594;</button>
+        <div class="lightbox-dots" id="lightboxDots"></div>
+        <div class="lightbox-caption" id="lightboxCaption"></div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
