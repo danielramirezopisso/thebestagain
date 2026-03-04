@@ -86,3 +86,39 @@ async function checkAlreadyLoggedIn() {
   const user = await maybeUser();
   if (user) window.location.href = "index.html";
 }
+
+function showForgot() {
+  const sec = document.getElementById('forgotSection');
+  if (!sec) return;
+  sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+  if (sec.style.display === 'block') {
+    // Pre-fill email from login field if typed
+    const email = document.getElementById('l_email')?.value?.trim();
+    if (email) document.getElementById('f_email').value = email;
+    document.getElementById('f_email').focus();
+  }
+}
+
+async function doForgot() {
+  const email = document.getElementById('f_email').value.trim();
+  const status = document.getElementById('forgotStatus');
+  if (!email) { status.textContent = 'Please enter your email.'; return; }
+
+  status.textContent = 'Sending…';
+  status.style.color = 'var(--muted)';
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/reset-password.html'
+  });
+
+  if (error) {
+    status.style.color = '#c0392b';
+    status.textContent = error.message || 'Something went wrong.';
+    return;
+  }
+
+  status.style.color = '#2e7d4f';
+  status.textContent = '✅ Reset link sent — check your inbox.';
+  document.getElementById('f_email').disabled = true;
+  document.querySelector('#forgotSection .auth-btn').disabled = true;
+}
