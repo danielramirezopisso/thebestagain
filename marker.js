@@ -528,7 +528,6 @@ function fillEditForm() {
   document.getElementById("e_group_type").value = m.group_type || "place";
   renderCategoryOptions(m.group_type || "place", m.category_id);
   renderBrandOptions(m.brand_id, m.category_id);
-  fillSelect1to10("e_rating", Number(m.rating_manual) || 7);
   showBrandRow(m.group_type === "product");
   setTitleReadonly(m.group_type === "product");
   document.getElementById("e_address").value = m.address || "";
@@ -575,7 +574,6 @@ async function saveEdits() {
   const brand_id = group_type === "product"
     ? (parseInt(document.getElementById("e_brand").value) || null)
     : null;
-  const rating_manual = Number(document.getElementById("e_rating").value);
 
   let title = document.getElementById("e_title").value.trim();
   if (group_type === "product") {
@@ -586,7 +584,7 @@ async function saveEdits() {
 
   const { data, error } = await sb
     .from("markers")
-    .update({ title, group_type, category_id, brand_id, rating_manual, address, lat, lon })
+    .update({ title, group_type, category_id, brand_id, address, lat, lon })
     .eq("id", MARKER_ID)
     .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
     .single();
@@ -606,21 +604,43 @@ async function saveEdits() {
 }
 
 async function deactivateMarker() {
-  if (!confirm("Deactivate this marker? It will be hidden from list and map.")) return;
+  if (!confirm("Deactivate this marker? It will be hidden everywhere and all related votes, comments and photos will also be deactivated.")) return;
   setStatus("Deactivating…");
 
-  const { data, error } = await sb
-    .from("markers")
-    .update({ is_active: false })
-    .eq("id", MARKER_ID)
-    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
-    .single();
+  // Cascade soft-delete to all related tables
+  const steps = [
+    // marker itself
+    sb.from("markers").update({ is_active: false }).eq("id", MARKER_ID),
+    // votes
+    sb.from("votes").update({ is_active: false }).eq("marker_id", MARKER_ID),
+    // comments (top-level + replies share marker_id)
+    sb.from("comments").update({ is_active: false }).eq("marker_id", MARKER_ID),
+    // photos
+    sb.from("marker_photos").update({ is_active: false }).eq("marker_id", MARKER_ID),
+  ];
 
-  if (error) { setStatus("Error: " + error.message); return; }
-  CURRENT_MARKER = data;
-  const user = await maybeUser();
-  renderHero(data, user);
-  setStatus("Deactivated ✅");
+  const results = await Promise.all(steps);
+  const failed  = results.filter(r => r.error);
+
+  if (failed.length) {
+    setStatus("Error: " + failed.map(r => r.error.message).join("; "));
+    return;
+  }
+
+  // Re-fetch marker to update UI state
+  const { data, error: fetchErr } = await sb
+    .from("markers")
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
+    .eq("id", MARKER_ID)
+    .maybeSingle();
+
+  if (!fetchErr && data) {
+    CURRENT_MARKER = data;
+    const user = await maybeUser();
+    renderHero(data, user);
+  }
+
+  setStatus("Deactivated ✅ — marker and all related data hidden.");
 }
 
 /* ══════════════════════════════
