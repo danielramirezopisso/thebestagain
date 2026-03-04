@@ -926,3 +926,26 @@ body {
 
   .photo-thumb-wrap { width: 80px; height: 64px; }
 }
+
+/* ══════════════════════════════
+   INACTIVE MARKER BANNER
+══════════════════════════════ */
+.inactive-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(192,57,43,0.07);
+  border: 1px solid rgba(192,57,43,0.25);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+}
+.inactive-banner-icon { font-size: 22px; flex-shrink: 0; }
+.inactive-banner strong { font-size: 14px; font-weight: 700; color: #c0392b; display: block; }
+.inactive-banner-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.inactive-reactivate-btn { margin-left: auto; flex-shrink: 0; }
+
+@media (max-width: 480px) {
+  .inactive-banner { flex-wrap: wrap; }
+  .inactive-reactivate-btn { margin-left: 0; width: 100%; justify-content: center; }
+}
