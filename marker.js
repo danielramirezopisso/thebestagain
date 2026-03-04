@@ -74,11 +74,16 @@ function brandsForCategory(category_id) {
 function renderHero(m, user) {
   document.title = `${m.title} — The Best Again`;
 
-  // Category icon
+  // Category icon — use absolute URL to avoid relative path race on load
   const cat = getCategoryById(m.category_id);
-  const iconHtml = cat?.icon_url
-    ? `<img src="${escapeHtml(cat.icon_url)}" alt="" />`
-    : "📦";
+  const rawIconUrl = cat?.icon_url || '';
+  const absIconUrl = rawIconUrl
+    ? (rawIconUrl.startsWith('http') ? rawIconUrl
+        : window.location.href.replace(/\/[^/]*(\?.*)?$/, '/') + rawIconUrl)
+    : '';
+  const iconHtml = absIconUrl
+    ? `<img src="${escapeHtml(absIconUrl)}" alt="" onerror="this.style.display='none'" />`
+    : '📦';
   document.getElementById("heroCatIcon").innerHTML = iconHtml;
 
   // Type tag
@@ -1039,12 +1044,7 @@ async function initMarkerPage() {
 
   const user = await maybeUser();
 
-  // Show vote card only if logged in
-  if (user) {
-    document.getElementById("voteCard").style.display = "block";
-  }
-
-  // Load reference data in parallel
+  // Load reference data in parallel — don't show voteCard yet, wait until we know is_active
   const [cbRes, catRes, brandRes, markerRes] = await Promise.all([
     sb.from("category_brands").select("category_id,brand_id,is_active").eq("is_active", true),
     sb.from("categories").select("id,name,icon_url,is_active,for_places,for_products").eq("is_active", true).order("name"),
@@ -1068,43 +1068,41 @@ async function initMarkerPage() {
 
   const m = CURRENT_MARKER;
 
-  // ── INACTIVE MARKER ── show banner, skip most UI
+  // ── INACTIVE MARKER ── show banner, skip all further UI
   if (!m.is_active) {
     document.getElementById('markerTitle').textContent = m.title;
     document.getElementById('voteCard').style.display    = 'none';
     document.getElementById('rankingCard').style.display = 'none';
+    document.getElementById('commentsCard').style.display = 'none';
+    document.getElementById('photosCard') && (document.getElementById('photosCard').style.display = 'none');
 
-    // Show a prominent deactivated banner
-    const banner = document.createElement('div');
-    banner.className = 'inactive-banner';
+    // Render banner in pageStatus — nothing else overwrites this
+    const banner = document.getElementById('pageStatus');
     banner.innerHTML = `
-      <span class="inactive-banner-icon">🚫</span>
-      <div>
-        <strong>This marker has been deactivated</strong>
-        <div class="inactive-banner-sub">It is no longer shown in the map, list or rankings.</div>
-      </div>
-      ${user ? `<button class="tba-btn tba-btn-primary inactive-reactivate-btn" onclick="reactivateMarker()">Reactivate</button>` : ''}
-    `;
-    const container = document.querySelector('.marker-page-container');
-    container.insertBefore(banner, container.querySelector('#markerHero'));
+      <div class="inactive-banner">
+        <span class="inactive-banner-icon">🚫</span>
+        <div>
+          <strong>This marker has been deactivated</strong>
+          <div class="inactive-banner-sub">It is no longer shown in the map, list or rankings.</div>
+        </div>
+        ${user ? `<button class="tba-btn tba-btn-primary inactive-reactivate-btn" onclick="reactivateMarker()">Reactivate</button>` : ''}
+      </div>`;
 
-    // Still render hero (title/type) and details, but no crown, no ranking, no voting
+    // Still render hero and details so title/category are visible
     const creatorName = await resolveCreatorName(m, user);
     renderHero(m, user);
     renderDetails(m, creatorName);
-    setStatus('');
     return;
   }
-  BRANDS          = brandRes.data || [];
-  CURRENT_MARKER  = markerRes.data;
-
-  const m = CURRENT_MARKER;
 
   // Resolve creator name
   const creatorName = await resolveCreatorName(m, user);
 
-  // Load my vote if logged in
-  if (user) await loadMyVote(user);
+  // Load my vote if logged in (only for active markers)
+  if (user) {
+    document.getElementById("voteCard").style.display = "block";
+    await loadMyVote(user);
+  }
 
   // Render all sections
   renderHero(m, user);
