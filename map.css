@@ -175,3 +175,117 @@ body.map-page{
 @media (max-width: 768px) {
   .sel-photo { height: 110px; }
 }
+
+/* ══════════════════════════════
+   LOCATION SEARCH BAR
+══════════════════════════════ */
+.map-search-wrap {
+  position: relative;
+  z-index: 600;
+  margin: 0 0 6px;
+}
+
+.map-search-box {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 10px;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(26,23,20,0.08);
+}
+
+.map-search-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.map-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 9px 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+}
+.map-search-input::placeholder { color: var(--muted); }
+
+.map-search-clear {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  line-height: 1;
+}
+.map-search-clear:hover { background: var(--faint); color: var(--text); transform: none; box-shadow: none; }
+
+/* Dropdown results */
+.map-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(26,23,20,0.12);
+  overflow: hidden;
+  z-index: 700;
+}
+
+.map-search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 9px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--rule);
+  transition: background .08s;
+}
+.map-search-result:last-child { border-bottom: none; }
+.map-search-result:hover,
+.map-search-result.active { background: var(--accent-bg); }
+
+.map-sr-main {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.map-sr-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.map-search-loading,
+.map-search-empty {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Search pin on map */
+.search-pin {
+  font-size: 28px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  animation: pinDrop .2s ease;
+}
+@keyframes pinDrop {
+  from { transform: translateY(-8px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .map-search-input { font-size: 16px; } /* prevent iOS zoom on focus */
+}
