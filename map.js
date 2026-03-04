@@ -521,3 +521,135 @@ async function saveMapMarker() {
 
   window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
 }
+
+/* ══════════════════════════════════════════════════════
+   LOCATION SEARCH — Nominatim (OpenStreetMap, free)
+══════════════════════════════════════════════════════ */
+
+let searchDebounce = null;
+let searchResults  = [];
+let searchActive   = -1; // keyboard selection index
+
+function onMapSearchInput() {
+  const val = document.getElementById('mapSearchInput').value.trim();
+  document.getElementById('mapSearchClear').style.display = val ? 'flex' : 'none';
+  clearTimeout(searchDebounce);
+  if (!val) { hideSearchResults(); return; }
+  searchDebounce = setTimeout(() => nominatimSearch(val), 350);
+}
+
+async function nominatimSearch(q) {
+  const res = document.getElementById('mapSearchResults');
+  res.style.display = 'block';
+  res.innerHTML = '<div class="map-search-loading">Searching…</div>';
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`;
+    const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const data = await r.json();
+
+    searchResults = data;
+    searchActive  = -1;
+
+    if (!data.length) {
+      res.innerHTML = '<div class="map-search-empty">No results found.</div>';
+      return;
+    }
+
+    res.innerHTML = data.map((d, i) => {
+      const name    = d.display_name || '';
+      // Bold the first part (place name), mute the rest
+      const parts   = name.split(', ');
+      const main    = escapeHtml(parts[0]);
+      const sub     = escapeHtml(parts.slice(1, 3).join(', '));
+      return `
+        <div class="map-search-result" data-idx="${i}"
+             onmousedown="selectSearchResult(${i})"
+             onmouseover="highlightResult(${i})">
+          <span class="map-sr-main">${main}</span>
+          ${sub ? `<span class="map-sr-sub">${sub}</span>` : ''}
+        </div>`;
+    }).join('');
+
+  } catch(e) {
+    res.innerHTML = '<div class="map-search-empty">Search unavailable.</div>';
+  }
+}
+
+function highlightResult(idx) {
+  searchActive = idx;
+  document.querySelectorAll('.map-search-result').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+}
+
+function selectSearchResult(idx) {
+  const d = searchResults[idx];
+  if (!d) return;
+
+  const lat = parseFloat(d.lat);
+  const lon = parseFloat(d.lon);
+
+  // Fly to location
+  if (d.boundingbox) {
+    const [s, n, w, e] = d.boundingbox.map(Number);
+    MAP.fitBounds([[s, w], [n, e]], { maxZoom: 17, padding: [30, 30] });
+  } else {
+    MAP.setView([lat, lon], 16);
+  }
+
+  // Place a temporary pin
+  if (window._searchPin) window._searchPin.remove();
+  window._searchPin = L.marker([lat, lon], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div class="search-pin">📍</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 32]
+    })
+  }).addTo(MAP);
+
+  // Update input + hide results
+  document.getElementById('mapSearchInput').value = d.display_name.split(', ').slice(0, 2).join(', ');
+  hideSearchResults();
+}
+
+function onMapSearchKey(e) {
+  const items = document.querySelectorAll('.map-search-result');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    highlightResult(Math.min(searchActive + 1, items.length - 1));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    highlightResult(Math.max(searchActive - 1, 0));
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (searchActive >= 0) selectSearchResult(searchActive);
+    else if (searchResults.length) selectSearchResult(0);
+  } else if (e.key === 'Escape') {
+    clearMapSearch();
+  }
+}
+
+function clearMapSearch() {
+  document.getElementById('mapSearchInput').value = '';
+  document.getElementById('mapSearchClear').style.display = 'none';
+  hideSearchResults();
+  if (window._searchPin) { window._searchPin.remove(); window._searchPin = null; }
+}
+
+function hideSearchResults() {
+  const res = document.getElementById('mapSearchResults');
+  if (res) res.style.display = 'none';
+  searchResults = [];
+  searchActive  = -1;
+}
+
+// Close results when clicking elsewhere
+document.addEventListener('click', e => {
+  if (!document.getElementById('mapSearchWrap')?.contains(e.target)) {
+    hideSearchResults();
+  }
+});
