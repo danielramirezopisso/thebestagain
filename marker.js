@@ -686,6 +686,7 @@ async function initComments(user) {
     if (loginPrompt) loginPrompt.style.display = "block";
   }
   await loadComments(user);
+  await loadPhotos(MARKER_ID);
 }
 
 async function loadComments(user) {
@@ -1060,3 +1061,206 @@ async function initMarkerPage() {
 
   setStatus("");
 }
+
+/* ══════════════════════════════════════════════════════
+   PHOTOS — strip + lightbox
+══════════════════════════════════════════════════════ */
+
+const SUPABASE_STORAGE_URL = `${SUPABASE_URL}/storage/v1/object/public/marker-photos/`;
+const MAX_PHOTOS = 10;
+
+let PHOTOS = [];          // [{id, storage_path, user_id, created_at}]
+let LIGHTBOX_IDX = 0;
+let CURRENT_USER_ID = null;
+
+function photoPublicUrl(path) {
+  return SUPABASE_STORAGE_URL + encodeURIComponent(path).replace(/%2F/g, '/');
+}
+
+async function loadPhotos(markerId) {
+  const user = await maybeUser();
+  CURRENT_USER_ID = user?.id || null;
+
+  const { data, error } = await sb
+    .from('marker_photos')
+    .select('id, storage_path, user_id, created_at')
+    .eq('marker_id', markerId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+    .limit(MAX_PHOTOS);
+
+  if (error) { console.error('Photos load error:', error); return; }
+
+  PHOTOS = data || [];
+  renderPhotoStrip(markerId);
+}
+
+function renderPhotoStrip(markerId) {
+  const card   = document.getElementById('photosCard');
+  const strip  = document.getElementById('photoStrip');
+  const count  = document.getElementById('photosCount');
+  const label  = document.getElementById('photoUploadLabel');
+  if (!card || !strip) return;
+
+  card.style.display = 'block';
+
+  // Show upload button for logged-in users if under limit
+  if (CURRENT_USER_ID && PHOTOS.length < MAX_PHOTOS) {
+    label.style.display = 'inline-flex';
+  } else {
+    label.style.display = 'none';
+  }
+
+  count.textContent = PHOTOS.length ? `${PHOTOS.length} photo${PHOTOS.length > 1 ? 's' : ''}` : '';
+
+  if (!PHOTOS.length) {
+    strip.innerHTML = '<span class="photo-empty muted">No photos yet.</span>';
+    return;
+  }
+
+  strip.innerHTML = PHOTOS.map((p, i) => {
+    const url = photoPublicUrl(p.storage_path);
+    const canDelete = CURRENT_USER_ID && p.user_id === CURRENT_USER_ID;
+    return `
+      <div class="photo-thumb-wrap" data-idx="${i}">
+        <img class="photo-thumb" src="${escapeHtml(url)}" alt="Photo ${i+1}" loading="lazy"
+             onclick="openLightbox(${i})" />
+        ${canDelete ? `<button class="photo-delete-btn" title="Delete" onclick="deletePhoto(event,'${escapeHtml(p.id)}',${i})">&#10005;</button>` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function uploadPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const user = await maybeUser();
+  if (!user) { window.location.href = 'login.html'; return; }
+  if (PHOTOS.length >= MAX_PHOTOS) { setPhotoStatus(`Max ${MAX_PHOTOS} photos reached.`); return; }
+
+  // Validate type + size (5MB max)
+  if (!file.type.startsWith('image/')) { setPhotoStatus('Please select an image file.'); return; }
+  if (file.size > 5 * 1024 * 1024) { setPhotoStatus('Image must be under 5MB.'); return; }
+
+  setPhotoStatus('Uploading…');
+
+  const ext  = file.name.split('.').pop().toLowerCase() || 'jpg';
+  const path = `${MARKER_ID}/${user.id}_${Date.now()}.${ext}`;
+
+  const { error: upErr } = await sb.storage
+    .from('marker-photos')
+    .upload(path, file, { upsert: false, contentType: file.type });
+
+  if (upErr) { setPhotoStatus('Upload failed: ' + upErr.message); return; }
+
+  // Insert db row (soft-delete ready)
+  const { error: dbErr } = await sb
+    .from('marker_photos')
+    .insert([{ marker_id: MARKER_ID, user_id: user.id, storage_path: path, is_active: true }]);
+
+  if (dbErr) {
+    setPhotoStatus('Saved to storage but DB failed: ' + dbErr.message);
+    return;
+  }
+
+  setPhotoStatus('');
+  input.value = ''; // reset input
+  await loadPhotos(MARKER_ID);
+}
+
+async function deletePhoto(e, photoId, idx) {
+  e.stopPropagation();
+  if (!confirm('Delete this photo?')) return;
+
+  const path = PHOTOS[idx]?.storage_path;
+
+  // Soft delete — just mark inactive in DB
+  const { error } = await sb
+    .from('marker_photos')
+    .update({ is_active: false })
+    .eq('id', photoId);
+
+  if (error) { setPhotoStatus('Delete failed: ' + error.message); return; }
+
+  setPhotoStatus('');
+  await loadPhotos(MARKER_ID);
+}
+
+function setPhotoStatus(msg) {
+  const el = document.getElementById('photoStatus');
+  if (el) el.textContent = msg;
+}
+
+/* ── LIGHTBOX ── */
+function openLightbox(idx) {
+  if (!PHOTOS.length) return;
+  LIGHTBOX_IDX = idx;
+  document.getElementById('photoLightbox').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  renderLightbox();
+}
+
+function closeLightbox() {
+  document.getElementById('photoLightbox').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function lightboxNav(dir) {
+  LIGHTBOX_IDX = (LIGHTBOX_IDX + dir + PHOTOS.length) % PHOTOS.length;
+  renderLightbox();
+}
+
+function renderLightbox() {
+  const p   = PHOTOS[LIGHTBOX_IDX];
+  const url = photoPublicUrl(p.storage_path);
+  const total = PHOTOS.length;
+
+  // Main image
+  document.getElementById('lightboxImg').src = url;
+
+  // Caption
+  document.getElementById('lightboxCaption').textContent =
+    `${LIGHTBOX_IDX + 1} / ${total}`;
+
+  // Prev/next visibility
+  document.getElementById('lightboxPrev').style.display = total > 1 ? 'flex' : 'none';
+  document.getElementById('lightboxNext').style.display = total > 1 ? 'flex' : 'none';
+
+  // Thumbnail strip (desktop)
+  const thumbsEl = document.getElementById('lightboxThumbs');
+  thumbsEl.innerHTML = PHOTOS.map((ph, i) => {
+    const u = photoPublicUrl(ph.storage_path);
+    return `<img class="lightbox-thumb${i === LIGHTBOX_IDX ? ' active' : ''}"
+                 src="${escapeHtml(u)}" alt=""
+                 onclick="LIGHTBOX_IDX=${i}; renderLightbox();" loading="lazy" />`;
+  }).join('');
+
+  // Scroll active thumb into view
+  const activeTh = thumbsEl.querySelector('.lightbox-thumb.active');
+  if (activeTh) activeTh.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+  // Dots (mobile)
+  document.getElementById('lightboxDots').innerHTML = PHOTOS.map((_, i) =>
+    `<span class="lightbox-dot${i === LIGHTBOX_IDX ? ' active' : ''}"></span>`
+  ).join('');
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (document.getElementById('photoLightbox').style.display === 'none') return;
+  if (e.key === 'ArrowRight') lightboxNav(1);
+  if (e.key === 'ArrowLeft')  lightboxNav(-1);
+  if (e.key === 'Escape')     closeLightbox();
+});
+
+// Touch swipe on mobile
+(function() {
+  let tx = 0;
+  const lb = () => document.getElementById('photoLightbox');
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (lb().style.display === 'none') return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) lightboxNav(dx < 0 ? 1 : -1);
+  });
+})();
