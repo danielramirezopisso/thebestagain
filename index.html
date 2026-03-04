@@ -111,5 +111,22 @@
     }));
   });
   </script>
+
+  <!-- ── QUICK VOTE MODAL ── -->
+  <div id="voteModal" class="vote-modal-overlay" onclick="if(event.target===this)closeVoteModal()">
+    <div class="vote-modal-box">
+      <div class="vote-modal-head">
+        <span class="vote-modal-title" id="voteModalTitle"></span>
+        <button class="vote-modal-close" onclick="closeVoteModal()">&#10005;</button>
+      </div>
+      <p class="vote-modal-hint">How good is it?</p>
+      <div class="vote-modal-btns" id="voteModalBtns"></div>
+      <p class="vote-modal-status" id="voteModalStatus"></p>
+      <button class="tba-btn tba-btn-primary vote-modal-submit" id="voteModalSubmit" onclick="submitVoteModal()">
+        Save vote
+      </button>
+    </div>
+  </div>
+
 </body>
 </html>
