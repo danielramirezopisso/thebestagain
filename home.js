@@ -232,7 +232,7 @@ function pickRandomMarker() {
   return chosen;
 }
 
-function renderSpotlight(m) {
+async function renderSpotlight(m) {
   const body = document.getElementById("spotBody");
   const sub = document.getElementById("spotSub");
   const status = document.getElementById("spotStatus");
@@ -286,6 +286,21 @@ function renderSpotlight(m) {
     }
   }
 
+  // Fetch user's existing vote for this marker
+  let myVoteLabel = '★ Vote';
+  const user = await maybeUser();
+  if (user) {
+    const { data: vd } = await sb
+      .from('votes')
+      .select('vote, is_active')
+      .eq('marker_id', m.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (vd?.is_active && vd?.vote != null) {
+      myVoteLabel = `★ My vote: ${vd.vote}`;
+    }
+  }
+
   body.innerHTML = `
     <div class="spot-main">
       <div class="spot-icon ${cls}">
@@ -299,7 +314,9 @@ function renderSpotlight(m) {
 
         <div class="spot-badges">
           <span class="badge ${cls}">${escapeHtml(over)}</span>
-          <span class="badge badge-ghost">${escapeHtml(quip)}</span>
+          <button class="spot-vote-btn tba-btn" id="spotVoteBtn" onclick="openVoteModal('${escapeHtml(m.id)}', '${escapeHtml(markerLabel(m))}')">
+            ${escapeHtml(myVoteLabel)}
+          </button>
         </div>
 
         <div class="spot-actions">
@@ -316,4 +333,97 @@ function renderSpotlight(m) {
 function surpriseMe() {
   const m = pickRandomMarker();
   renderSpotlight(m);
+}
+
+/* ══════════════════════════════
+   QUICK VOTE MODAL
+══════════════════════════════ */
+let VOTE_MODAL_MARKER_ID = null;
+
+async function openVoteModal(markerId, markerName) {
+  const user = await maybeUser();
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  VOTE_MODAL_MARKER_ID = markerId;
+
+  // Set title
+  document.getElementById('voteModalTitle').textContent = markerName;
+
+  // Load existing vote if any
+  const { data } = await sb
+    .from('votes')
+    .select('vote, is_active')
+    .eq('marker_id', markerId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const current = (data?.is_active && data?.vote) ? Number(data.vote) : null;
+
+  // Render buttons 1–10
+  const wrap = document.getElementById('voteModalBtns');
+  wrap.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    btn.className = 'vote-modal-btn' + (i === current ? ' selected' : '');
+    btn.dataset.val = i;
+    btn.onclick = () => selectVoteBtn(btn, i);
+    wrap.appendChild(btn);
+  }
+
+  document.getElementById('voteModalStatus').textContent = current
+    ? `Your current vote: ${current}`
+    : 'No vote yet — pick a score.';
+
+  document.getElementById('voteModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function selectVoteBtn(btn, val) {
+  document.querySelectorAll('.vote-modal-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('voteModalStatus').textContent = `Score: ${val}`;
+}
+
+function closeVoteModal() {
+  document.getElementById('voteModal').classList.remove('open');
+  document.body.style.overflow = '';
+  VOTE_MODAL_MARKER_ID = null;
+}
+
+async function submitVoteModal() {
+  const selected = document.querySelector('.vote-modal-btn.selected');
+  if (!selected) {
+    document.getElementById('voteModalStatus').textContent = 'Pick a score first.';
+    return;
+  }
+
+  const score = parseInt(selected.dataset.val);
+  const user = await maybeUser();
+  if (!user) { window.location.href = 'login.html'; return; }
+
+  document.getElementById('voteModalStatus').textContent = 'Saving…';
+  document.getElementById('voteModalSubmit').disabled = true;
+
+  const { error } = await sb
+    .from('votes')
+    .upsert(
+      [{ marker_id: VOTE_MODAL_MARKER_ID, user_id: user.id, vote: score, is_active: true }],
+      { onConflict: 'marker_id,user_id' }
+    );
+
+  if (error) {
+    document.getElementById('voteModalStatus').textContent = 'Error: ' + error.message;
+    document.getElementById('voteModalSubmit').disabled = false;
+    return;
+  }
+
+  document.getElementById('voteModalStatus').textContent = '✅ Vote saved!';
+  // Update the vote button label in the spotlight
+  const spotBtn = document.getElementById('spotVoteBtn');
+  if (spotBtn) spotBtn.textContent = `★ My vote: ${score}`;
+  setTimeout(closeVoteModal, 900);
 }
