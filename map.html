@@ -66,6 +66,25 @@
       </div>
     </section>
 
+
+    <!-- LOCATION SEARCH -->
+    <div class="map-search-wrap" id="mapSearchWrap">
+      <div class="map-search-box">
+        <span class="map-search-icon">🔍</span>
+        <input
+          id="mapSearchInput"
+          class="map-search-input"
+          type="text"
+          placeholder="Search a place or address… e.g. Dry Milano"
+          autocomplete="off"
+          oninput="onMapSearchInput()"
+          onkeydown="onMapSearchKey(event)"
+        />
+        <button class="map-search-clear" id="mapSearchClear" style="display:none;" onclick="clearMapSearch()">&#10005;</button>
+      </div>
+      <div class="map-search-results" id="mapSearchResults" style="display:none;"></div>
+    </div>
+
     <!-- MAP AREA -->
     <section class="map-area">
       <!-- Add panel (moved to RIGHT) -->
