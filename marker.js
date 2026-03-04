@@ -604,28 +604,17 @@ async function saveEdits() {
 }
 
 async function deactivateMarker() {
-  if (!confirm("Deactivate this marker? It will be hidden everywhere and all related votes, comments and photos will also be deactivated.")) return;
+  if (!confirm("Deactivate this marker? It will be hidden from list and map.")) return;
   setStatus("Deactivating…");
 
-  // Cascade soft-delete to all related tables
-  const steps = [
-    // marker itself
-    sb.from("markers").update({ is_active: false }).eq("id", MARKER_ID),
-    // votes
-    sb.from("votes").update({ is_active: false }).eq("marker_id", MARKER_ID),
-    // comments (top-level + replies share marker_id)
-    sb.from("comments").update({ is_active: false }).eq("marker_id", MARKER_ID),
-    // photos
-    sb.from("marker_photos").update({ is_active: false }).eq("marker_id", MARKER_ID),
-  ];
+  // Deactivate the marker — related votes/comments/photos are hidden
+  // automatically since all queries filter on the marker being active
+  const { error } = await sb
+    .from("markers")
+    .update({ is_active: false })
+    .eq("id", MARKER_ID);
 
-  const results = await Promise.all(steps);
-  const failed  = results.filter(r => r.error);
-
-  if (failed.length) {
-    setStatus("Error: " + failed.map(r => r.error.message).join("; "));
-    return;
-  }
+  if (error) { setStatus("Error: " + error.message); return; }
 
   // Re-fetch marker to update UI state
   const { data, error: fetchErr } = await sb
