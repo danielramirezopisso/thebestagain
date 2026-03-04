@@ -621,7 +621,8 @@ async function deactivateMarker() {
     .from("markers")
     .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
     .eq("id", MARKER_ID)
-    .maybeSingle();
+    .limit(1)
+    .then(r => ({ data: r.data?.[0] || null, error: r.error }));
 
   if (!fetchErr && data) {
     CURRENT_MARKER = data;
