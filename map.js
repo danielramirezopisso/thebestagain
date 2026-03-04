@@ -283,6 +283,24 @@ function selectMarkerById(id, fly = false) {
   // link
   qs("selOpen").href = `marker.html?id=${encodeURIComponent(m.id)}`;
 
+  // photo — load first photo async
+  const selPhoto = qs("selPhoto");
+  const selPhotoImg = qs("selPhotoImg");
+  selPhoto.style.display = "none";
+  sb.from("marker_photos")
+    .select("storage_path")
+    .eq("marker_id", m.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .then(({ data }) => {
+      if (data && data.length) {
+        const url = `${SUPABASE_URL}/storage/v1/object/public/marker-photos/${data[0].storage_path}`;
+        selPhotoImg.src = url;
+        selPhoto.style.display = "block";
+      }
+    });
+
   // show
   qs("selPanel").style.display = "block";
 
