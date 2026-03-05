@@ -300,7 +300,6 @@ function renderLane(catId, markersForCat){
     <div class="lane">
       <div class="lane-head">
         <div class="lane-title">
-          <span class="lane-pill">🛒</span>
           <img class="lane-ic" src="${escapeHtml(icon)}" alt=""/>
           <div style="min-width:0;">
             <div class="lane-name">${escapeHtml(name)}</div>
