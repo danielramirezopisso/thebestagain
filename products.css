@@ -49,13 +49,10 @@ body.products-page{
   overflow:auto;
   padding-right: 6px;
 
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap:10px;
-  align-content:start;
-
-  /* ✅ IMPORTANT: don't stretch lane heights */
-  align-items: start;
+  /* CSS columns — true masonry: each card sits directly below the previous */
+  column-count: 3;
+  column-gap: 10px;
+  align-content: start;
 }
 
 /* lane card */
@@ -63,6 +60,8 @@ body.products-page{
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
+  break-inside: avoid;        /* prevents card splitting across columns */
+  margin-bottom: 10px;        /* gap between cards in same column */
   box-shadow: none;
   padding: 12px 14px;
   min-width:0;
@@ -337,7 +336,7 @@ body.products-page{
     gap: 12px;
   }
   .lanes-grid {
-    grid-template-columns: 1fr !important;
+    column-count: 1 !important;
     height: auto !important;
     overflow: visible !important;
     padding-right: 0;
