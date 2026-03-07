@@ -1,0 +1,170 @@
+/* user.css — Personal area page */
+
+.user-area {
+  max-width: 720px;
+  padding-top: 36px;
+  padding-bottom: 60px;
+}
+
+/* ── Hero ── */
+.user-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.user-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--page-bg);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.user-hero h1 {
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+/* ── Cards grid ── */
+.area-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.area-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--text);
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.1s;
+  user-select: none;
+}
+
+.area-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+  text-decoration: none;
+  color: var(--text);
+}
+
+.area-card-soon {
+  opacity: 0.65;
+}
+
+.area-card-soon:hover {
+  opacity: 0.85;
+}
+
+.area-card-icon {
+  font-size: 28px;
+  flex: 0 0 auto;
+  width: 44px;
+  text-align: center;
+}
+
+.area-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.area-card-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+
+.area-card-desc {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.area-card-arrow {
+  font-size: 22px;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.area-card-soon-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  border: 1px solid var(--rule);
+  border-radius: 99px;
+  padding: 2px 8px;
+  flex: 0 0 auto;
+}
+
+/* ── Coming soon overlay ── */
+.coming-soon-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(26,23,20,0.45);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.coming-soon-overlay.active {
+  display: flex;
+}
+
+.coming-soon-popup {
+  background: var(--card);
+  border-radius: 8px;
+  padding: 40px 36px;
+  text-align: center;
+  max-width: 320px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(26,23,20,0.18);
+}
+
+.coming-soon-emoji {
+  font-size: 40px;
+  margin-bottom: 14px;
+}
+
+.coming-soon-popup h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.coming-soon-popup p {
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .area-card {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .area-card-icon {
+    font-size: 24px;
+    width: 36px;
+  }
+
+  .area-card-title {
+    font-size: 14px;
+  }
+}
