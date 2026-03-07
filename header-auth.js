@@ -5,12 +5,6 @@ async function renderAuthHeader() {
   const el   = document.getElementById("authStatus");
   if (!el) return;
 
-  // Show Admin link only for dropisso
-  const adminLinks = document.querySelectorAll('a[href="admin.html"]');
-  adminLinks.forEach(a => {
-    a.style.display = (user && user.email && user.email.toLowerCase().includes("dropisso")) ? "" : "none";
-  });
-
   if (!user) {
     el.innerHTML = `<a href="login.html">Login</a>`;
     return;
@@ -33,7 +27,7 @@ async function renderAuthHeader() {
           <div id="notifList"><p class="notif-empty">Loading…</p></div>
         </div>
       </div>
-      <span class="muted" style="font-size:13px;">👤 ${escapeHtmlHeader(displayName)}</span>
+      <a href="user.html" class="header-username" title="My Profile">👤 ${escapeHtmlHeader(displayName)}</a>
       <a href="#" onclick="logout(); return false;">Logout</a>
     </div>
   `;
