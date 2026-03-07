@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Best Again — My Area</title>
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="user.css" />
+</head>
+
+<body onload="initUserPage()">
+  <header class="topbar topbar-sticky">
+    <a class="brand" href="index.html">The Best Again</a>
+    <nav class="nav" id="mainNav">
+      <a href="index.html">Home</a>
+      <a href="list.html">List</a>
+      <a href="map.html">Map</a>
+      <a href="products.html">Products</a>
+    </nav>
+    <div class="nav-right">
+      <span id="authStatus" class="auth-pill"></span>
+      <button class="burger" id="burgerBtn" onclick="toggleNav()" aria-label="Menu" aria-expanded="false">&#9776;</button>
+    </div>
+  </header>
+
+  <main class="container user-area">
+
+    <div class="user-hero">
+      <div class="user-avatar" id="userAvatar">?</div>
+      <div>
+        <h1 id="userName">—</h1>
+        <p class="muted" id="userJoined"></p>
+      </div>
+    </div>
+
+    <div class="area-grid" id="areaGrid">
+
+      <!-- My Votes — real link -->
+      <a class="area-card" href="my-votes.html" target="_blank">
+        <div class="area-card-icon">🗳️</div>
+        <div class="area-card-body">
+          <div class="area-card-title">My Votes</div>
+          <div class="area-card-desc">Your personal rankings across all categories</div>
+        </div>
+        <div class="area-card-arrow">›</div>
+      </a>
+
+      <!-- Admin — only shown for dropisso -->
+      <a class="area-card area-card-admin" href="admin.html" target="_blank" id="adminCard" style="display:none;">
+        <div class="area-card-icon">⚙️</div>
+        <div class="area-card-body">
+          <div class="area-card-title">Admin</div>
+          <div class="area-card-desc">Manage categories, markers and users</div>
+        </div>
+        <div class="area-card-arrow">›</div>
+      </a>
+
+      <!-- Coming soon cards -->
+      <div class="area-card area-card-soon" onclick="showComingSoon()">
+        <div class="area-card-icon">🔖</div>
+        <div class="area-card-body">
+          <div class="area-card-title">Wishlist</div>
+          <div class="area-card-desc">Places you want to try</div>
+        </div>
+        <div class="area-card-soon-badge">Soon</div>
+      </div>
+
+      <div class="area-card area-card-soon" onclick="showComingSoon()">
+        <div class="area-card-icon">🏢</div>
+        <div class="area-card-body">
+          <div class="area-card-title">My Businesses</div>
+          <div class="area-card-desc">Claim and manage your venues</div>
+        </div>
+        <div class="area-card-soon-badge">Soon</div>
+      </div>
+
+      <div class="area-card area-card-soon" onclick="showComingSoon()">
+        <div class="area-card-icon">📍</div>
+        <div class="area-card-body">
+          <div class="area-card-title">My Places</div>
+          <div class="area-card-desc">Markers you've added to the map</div>
+        </div>
+        <div class="area-card-soon-badge">Soon</div>
+      </div>
+
+      <div class="area-card area-card-soon" onclick="showComingSoon()">
+        <div class="area-card-icon">📸</div>
+        <div class="area-card-body">
+          <div class="area-card-title">My Photos</div>
+          <div class="area-card-desc">Photos you've uploaded</div>
+        </div>
+        <div class="area-card-soon-badge">Soon</div>
+      </div>
+
+      <div class="area-card area-card-soon" onclick="showComingSoon()">
+        <div class="area-card-icon">💬</div>
+        <div class="area-card-body">
+          <div class="area-card-title">My Comments</div>
+          <div class="area-card-desc">Your reviews and opinions</div>
+        </div>
+        <div class="area-card-soon-badge">Soon</div>
+      </div>
+
+      <div class="area-card area-card-soon" onclick="showComingSoon()">
+        <div class="area-card-icon">❤️</div>
+        <div class="area-card-body">
+          <div class="area-card-title">Likes</div>
+          <div class="area-card-desc">Comments and places you've liked</div>
+        </div>
+        <div class="area-card-soon-badge">Soon</div>
+      </div>
+
+    </div>
+
+    <!-- Coming soon popup -->
+    <div class="coming-soon-overlay" id="comingSoonOverlay" onclick="hideComingSoon()">
+      <div class="coming-soon-popup" onclick="event.stopPropagation()">
+        <div class="coming-soon-emoji">🚧</div>
+        <h2>Coming soon</h2>
+        <p class="muted">We're working on this. Check back shortly!</p>
+        <button class="tba-btn tba-btn-primary" onclick="hideComingSoon()">Got it</button>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js"></script>
+  <script src="header-auth.js"></script>
+  <script>renderAuthHeader();</script>
+
+  <script>
+  async function initUserPage() {
+    const user = await maybeUser();
+    if (!user) { window.location.href = "login.html"; return; }
+
+    const name = user.user_metadata?.display_name || user.email || "You";
+    document.getElementById("userName").textContent    = name;
+    document.getElementById("userAvatar").textContent  = name.charAt(0).toUpperCase();
+    document.title = `${name} — The Best Again`;
+
+    const joined = user.created_at
+      ? new Date(user.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+      : "";
+    if (joined) document.getElementById("userJoined").textContent = `Member since ${joined}`;
+
+    // Show admin card only for dropisso
+    if (user.email && user.email.toLowerCase().includes("dropisso")) {
+      document.getElementById("adminCard").style.display = "";
+    }
+  }
+
+  function showComingSoon() {
+    document.getElementById("comingSoonOverlay").classList.add("active");
+  }
+
+  function hideComingSoon() {
+    document.getElementById("comingSoonOverlay").classList.remove("active");
+  }
+
+  // Close on Escape
+  document.addEventListener("keydown", e => { if (e.key === "Escape") hideComingSoon(); });
+
+  function toggleNav() {
+    const nav = document.getElementById('mainNav');
+    const btn = document.getElementById('burgerBtn');
+    const open = nav.classList.toggle('nav-open');
+    btn.innerHTML = open ? '&#10005;' : '&#9776;';
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('mainNav');
+    if (nav) nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      nav.classList.remove('nav-open');
+      const btn = document.getElementById('burgerBtn');
+      if (btn) btn.innerHTML = '&#9776;';
+    }));
+  });
+  </script>
+</body>
+</html>
