@@ -104,33 +104,33 @@
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--rule);
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid rgba(45,74,138,0.25);
   border-radius: 99px;
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 
 .top5-btn:hover {
-  color: var(--text);
-  border-color: var(--border);
+  background: rgba(45,74,138,0.14);
+  border-color: rgba(45,74,138,0.4);
 }
 
 .request-link {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--accent);
   cursor: pointer;
   text-decoration: none;
-  border-bottom: 1px dashed var(--rule);
+  border-bottom: 1px dashed rgba(45,74,138,0.35);
   transition: color 0.15s;
 }
 
-.request-link:hover { color: var(--text); }
+.request-link:hover { color: var(--accent2); }
 
 /* ── Marker traction strip ── */
 .traction-strip {
@@ -153,24 +153,25 @@
 }
 
 .traction-strip-preorder {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid rgba(45,74,138,0.25);
 }
 
 .traction-strip-preorder:hover {
-  background: var(--faint);
+  background: rgba(45,74,138,0.14);
+  border-color: rgba(45,74,138,0.4);
 }
 
 .traction-strip-claim {
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--rule);
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid rgba(45,74,138,0.25);
 }
 
 .traction-strip-claim:hover {
-  color: var(--text);
-  border-color: var(--border);
+  background: rgba(45,74,138,0.14);
+  border-color: rgba(45,74,138,0.4);
 }
 
 @media (max-width: 480px) {
