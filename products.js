@@ -309,6 +309,9 @@ function renderLane(catId, markersForCat){
         <button class="tba-btn lane-sort" onclick="toggleLaneSort(${catId})" title="Toggle sort">
           ${escapeHtml(arrowFor(dir))}
         </button>
+        <button class="top5-btn" onclick="openTraction('top5', ${catId})" title="Buy a tasting box of the top 5">
+          📦 Top 5 Box
+        </button>
       </div>
       ${itemsHtml || `<div class="muted">No products in this category yet.</div>`}
       ${moreHtml}
