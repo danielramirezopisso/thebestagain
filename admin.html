@@ -16,8 +16,6 @@
       <a href="list.html">List</a>
       <a href="map.html">Map</a>
       <a href="products.html">Products</a>
-      <!-- <a href="my-votes.html">My Votes</a> -->
-      <!-- <a href="admin.html" id="adminNavLink" style="display:none;">Admin</a> -->
     </nav>
     <div class="nav-right">
       <span id="authStatus" class="auth-pill"></span>
@@ -48,55 +46,66 @@
       <!-- ══════════════════════════════
            SECTION: CATEGORIES
       ══════════════════════════════ -->
-      <section class="admin-section">
-        <div class="section-head">
+      <section class="admin-section" id="sec-categories">
+        <div class="section-head" onclick="toggleSection('sec-categories')">
           <div>
             <h2>Categories</h2>
             <p class="muted">Manage food/product categories. Deactivating a category soft-deletes all its markers.</p>
           </div>
-          <button class="tba-btn tba-btn-primary" onclick="openNewCategoryModal()">+ New Category</button>
+          <div class="section-head-right">
+            <button class="tba-btn tba-btn-primary" onclick="event.stopPropagation(); openNewCategoryModal()">+ New Category</button>
+            <span class="section-chevron">▾</span>
+          </div>
         </div>
-
-        <div id="catStatus" class="status-bar muted"></div>
-        <div id="catTable"></div>
+        <div class="section-body">
+          <div id="catStatus" class="status-bar muted"></div>
+          <div id="catTable"></div>
+        </div>
       </section>
 
       <!-- ══════════════════════════════
            SECTION: BRANDS
       ══════════════════════════════ -->
-      <section class="admin-section">
-        <div class="section-head">
+      <section class="admin-section" id="sec-brands">
+        <div class="section-head" onclick="toggleSection('sec-brands')">
           <div>
             <h2>Brands</h2>
             <p class="muted">Manage brands. Deactivating a brand soft-deletes all its markers.</p>
           </div>
-          <button class="tba-btn tba-btn-primary" onclick="openNewBrandModal()">+ New Brand</button>
+          <div class="section-head-right">
+            <button class="tba-btn tba-btn-primary" onclick="event.stopPropagation(); openNewBrandModal()">+ New Brand</button>
+            <span class="section-chevron">▾</span>
+          </div>
         </div>
-
-        <div id="brandStatus" class="status-bar muted"></div>
-        <div id="brandTable"></div>
+        <div class="section-body">
+          <div id="brandStatus" class="status-bar muted"></div>
+          <div id="brandTable"></div>
+        </div>
       </section>
 
       <!-- ══════════════════════════════
            SECTION: CATEGORY–BRAND LINKS
       ══════════════════════════════ -->
-      <section class="admin-section">
-        <div class="section-head">
+      <section class="admin-section" id="sec-links">
+        <div class="section-head" onclick="toggleSection('sec-links')">
           <div>
             <h2>Category–Brand Links</h2>
             <p class="muted">Select a category to manage which brands are available for it. Removing a link soft-deletes all markers of that combination.</p>
           </div>
+          <div class="section-head-right">
+            <span class="section-chevron">▾</span>
+          </div>
         </div>
-
-        <div class="link-picker">
-          <label>Select category</label>
-          <select id="linkCatSelect" onchange="loadLinksForCategory()">
-            <option value="">— pick a category —</option>
-          </select>
+        <div class="section-body">
+          <div class="link-picker">
+            <label>Select category</label>
+            <select id="linkCatSelect" onchange="loadLinksForCategory()">
+              <option value="">— pick a category —</option>
+            </select>
+          </div>
+          <div id="linkStatus" class="status-bar muted"></div>
+          <div id="linkPanel"></div>
         </div>
-
-        <div id="linkStatus" class="status-bar muted"></div>
-        <div id="linkPanel"></div>
       </section>
 
     </div><!-- /adminContent -->
@@ -211,6 +220,11 @@
       if (btn) btn.innerHTML = '&#9776;';
     }));
   });
+  </script>
+  <script>
+  function toggleSection(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
   </script>
 </body>
 </html>
