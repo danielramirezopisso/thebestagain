@@ -1113,7 +1113,12 @@ async function initMarkerPage() {
 
   // Show traction strip for place markers
   if (m.group_type === "place") {
-    document.getElementById("tractionStrip").style.display = "flex";
+    const catName = getCategoryById(m.category_id)?.name || "this dish";
+    const strip = document.getElementById("tractionStrip");
+    strip.style.display = "flex";
+    // Update preorder button to pass category name
+    strip.querySelector(".traction-strip-preorder").onclick =
+      () => openTraction('preorder', MARKER_ID, catName);
   }
 
   await renderRankingWidget(m);
