@@ -51,7 +51,7 @@ let _tractionRefId   = null; // marker_id or category_id
 /* ══════════════════════════════════════════════════════
    OPEN
 ══════════════════════════════════════════════════════ */
-function openTraction(type, refId) {
+function openTraction(type, refId, label) {
   _tractionType  = type;
   _tractionRefId = refId || null;
 
@@ -60,10 +60,39 @@ function openTraction(type, refId) {
 
   document.getElementById("trEmoji").textContent      = cfg.emoji;
   document.getElementById("trTitle").textContent      = cfg.title;
-  document.getElementById("trBody").textContent       = cfg.body;
+
+  // Dynamic body text: for preorder, use the category name if provided
+  let body = cfg.body;
+  if (type === "preorder" && label) {
+    body = `Want to pre-order a ${label} here before you arrive? We're building this feature — leave your email and we'll let you know when it launches.`;
+  }
+  document.getElementById("trBody").textContent       = body;
+
   document.getElementById("trSubmitBtn").textContent  = cfg.cta;
   document.getElementById("trSubmitBtn").style.display = "";
   document.getElementById("trSkipBtn").textContent    = "Maybe later";
+
+  // Show text area for feature requests, hide for others
+  document.getElementById("trRequestArea").style.display = cfg.isRequest ? "block" : "none";
+  document.getElementById("trEmailArea").style.display   = "block";
+
+  document.getElementById("trStatus").textContent = "";
+  document.getElementById("trStatus").style.color = "";
+  document.getElementById("trRequestText").value  = "";
+
+  // Pre-fill email if user is logged in (non-blocking)
+  if (typeof maybeUser === "function") {
+    maybeUser().then(user => {
+      if (user?.email) {
+        const el = document.getElementById("trEmail");
+        if (el && !el.value) el.value = user.email;
+      }
+    }).catch(() => {});
+  }
+
+  document.getElementById("tractionOverlay").classList.add("active");
+  setTimeout(() => { const el = document.getElementById("trEmail"); if (el) el.focus(); }, 120);
+}
 
   // Show text area for feature requests, hide for others
   document.getElementById("trRequestArea").style.display = cfg.isRequest ? "block" : "none";
@@ -147,6 +176,7 @@ async function submitTraction() {
     document.getElementById("trSkipBtn").textContent       = "Close";
 
   } catch (err) {
+    console.error("Traction submit error:", err);
     status.textContent = "Something went wrong. Try again.";
     status.style.color = "#c0392b";
     btn.disabled    = false;
