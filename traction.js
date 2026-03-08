@@ -58,10 +58,9 @@ function openTraction(type, refId) {
   const cfg = TRACTION_CONFIG[type];
   if (!cfg) { console.error("Unknown traction type:", type); return; }
 
-  document.getElementById("trEmoji").textContent  = cfg.emoji;
-  document.getElementById("trTitle").textContent  = cfg.title;
-  document.getElementById("trBody").textContent   = cfg.body;
-  document.getElementById("trCta").textContent    = cfg.cta;
+  document.getElementById("trEmoji").textContent      = cfg.emoji;
+  document.getElementById("trTitle").textContent      = cfg.title;
+  document.getElementById("trBody").textContent       = cfg.body;
   document.getElementById("trSubmitBtn").textContent  = cfg.cta;
   document.getElementById("trSubmitBtn").style.display = "";
   document.getElementById("trSkipBtn").textContent    = "Maybe later";
