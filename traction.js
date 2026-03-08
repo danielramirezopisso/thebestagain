@@ -1,0 +1,157 @@
+// traction.js — handles all "coming soon" interest capture popups
+// Used by: marker.html, products.html, map.html
+
+/* ══════════════════════════════════════════════════════
+   POPUP CONFIG per type
+══════════════════════════════════════════════════════ */
+const TRACTION_CONFIG = {
+  claim: {
+    emoji:    "🏢",
+    title:    "Claim this place",
+    body:     "Own or manage this venue? We're building tools to help you connect with your customers here.",
+    cta:      "Notify me when it's ready",
+    table:    "business_interest",
+    field:    "marker_id",
+  },
+  preorder: {
+    emoji:    "🛒",
+    title:    "Pre-order coming soon",
+    body:     "Imagine reserving a tiramisù at this spot before you even arrive — we're working on it.",
+    cta:      "Notify me when it launches",
+    table:    "purchase_interest",
+    field:    "marker_id",
+    extra:    { type: "preorder" },
+  },
+  top5: {
+    emoji:    "📦",
+    title:    "The Top 5 Box",
+    body:     "We're building curated tasting boxes of the highest-rated products — so you can taste and rank them yourself.",
+    cta:      "Notify me when it's ready",
+    table:    "purchase_interest",
+    field:    "category_id",
+    extra:    { type: "top5" },
+  },
+  request: {
+    emoji:    "💡",
+    title:    "Can't find what you're looking for?",
+    body:     "Tell us what category or brand is missing — we read every submission.",
+    cta:      "Send request",
+    table:    "feature_requests",
+    field:    null,  // text-based, different handling
+    isRequest: true,
+  },
+};
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+let _tractionType    = null;
+let _tractionRefId   = null; // marker_id or category_id
+
+/* ══════════════════════════════════════════════════════
+   OPEN
+══════════════════════════════════════════════════════ */
+function openTraction(type, refId) {
+  _tractionType  = type;
+  _tractionRefId = refId || null;
+
+  const cfg = TRACTION_CONFIG[type];
+  if (!cfg) return;
+
+  document.getElementById("trEmoji").textContent  = cfg.emoji;
+  document.getElementById("trTitle").textContent  = cfg.title;
+  document.getElementById("trBody").textContent   = cfg.body;
+  document.getElementById("trCta").textContent    = cfg.cta;
+
+  // Show text area for feature requests, hide for others
+  const reqArea = document.getElementById("trRequestArea");
+  const emailArea = document.getElementById("trEmailArea");
+  reqArea.style.display   = cfg.isRequest ? "block" : "none";
+  emailArea.style.display = "block";
+
+  // Pre-fill email if user is logged in
+  maybeUser().then(user => {
+    if (user?.email) document.getElementById("trEmail").value = user.email;
+  });
+
+  document.getElementById("trStatus").textContent = "";
+  document.getElementById("trEmail").value = document.getElementById("trEmail").value || "";
+  document.getElementById("trRequestText").value = "";
+
+  document.getElementById("tractionOverlay").classList.add("active");
+  setTimeout(() => document.getElementById("trEmail").focus(), 100);
+}
+
+function closeTraction() {
+  document.getElementById("tractionOverlay").classList.remove("active");
+  _tractionType  = null;
+  _tractionRefId = null;
+}
+
+/* ══════════════════════════════════════════════════════
+   SUBMIT
+══════════════════════════════════════════════════════ */
+async function submitTraction() {
+  const cfg   = TRACTION_CONFIG[_tractionType];
+  const email = document.getElementById("trEmail").value.trim();
+  const text  = document.getElementById("trRequestText").value.trim();
+  const btn   = document.getElementById("trSubmitBtn");
+  const status = document.getElementById("trStatus");
+
+  if (!email || !email.includes("@")) {
+    status.textContent = "Please enter a valid email.";
+    status.style.color = "#c0392b";
+    return;
+  }
+  if (cfg.isRequest && !text) {
+    status.textContent = "Please describe what you're looking for.";
+    status.style.color = "#c0392b";
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = "Sending…";
+  status.textContent = "";
+
+  try {
+    let payload = { email };
+
+    if (cfg.isRequest) {
+      // Feature request
+      payload.text = text;
+      payload.type = "other";
+      const user = await maybeUser();
+      if (user) payload.user_id = user.id;
+    } else {
+      // Interest capture
+      if (cfg.field && _tractionRefId) payload[cfg.field] = _tractionRefId;
+      if (cfg.extra) Object.assign(payload, cfg.extra);
+    }
+
+    const { error } = await sb.from(cfg.table).insert([payload]);
+
+    if (error) throw error;
+
+    // Success state
+    document.getElementById("trEmoji").textContent  = "✅";
+    document.getElementById("trTitle").textContent  = "You're on the list!";
+    document.getElementById("trBody").textContent   = "We'll let you know as soon as this is ready.";
+    document.getElementById("trEmailArea").style.display   = "none";
+    document.getElementById("trRequestArea").style.display = "none";
+    document.getElementById("trSubmitBtn").style.display   = "none";
+    document.getElementById("trSkipBtn").textContent       = "Close";
+
+  } catch (err) {
+    status.textContent = "Something went wrong. Try again.";
+    status.style.color = "#c0392b";
+    btn.disabled    = false;
+    btn.textContent = cfg.cta;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   KEYBOARD
+══════════════════════════════════════════════════════ */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeTraction();
+});
