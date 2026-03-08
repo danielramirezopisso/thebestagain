@@ -172,3 +172,47 @@
     padding: 28px 20px 22px;
   }
 }
+
+/* ── Marker traction strip ── */
+.traction-strip {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 14px;
+  flex-wrap: wrap;
+}
+
+.traction-strip-btn {
+  flex: 1;
+  min-width: 140px;
+  padding: 11px 16px;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.traction-strip-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.traction-strip-preorder {
+  background: var(--text);
+  color: var(--page-bg);
+}
+
+.traction-strip-claim {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+  .traction-strip-btn {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+}
