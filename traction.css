@@ -99,62 +99,27 @@
 
 /* ── Trigger buttons / links ── */
 
-.claim-link {
-  display: inline-block;
-  font-size: 12px;
-  color: var(--muted);
-  text-decoration: none;
-  cursor: pointer;
-  border-bottom: 1px dashed var(--rule);
-  transition: color 0.15s;
-}
-
-.claim-link:hover {
-  color: var(--text);
-}
-
-.claim-section {
-  text-align: center;
-  padding: 20px 0 4px;
-  border-top: 1px solid var(--rule);
-  margin-top: 8px;
-}
-
-.preorder-btn {
-  width: 100%;
-  margin-top: 8px;
-  background: var(--text);
-  color: var(--page-bg);
-  border: none;
-  border-radius: var(--radius);
-  padding: 10px 16px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-
-.preorder-btn:hover { opacity: 0.82; }
-
 .top5-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: var(--text);
-  color: var(--page-bg);
-  border: none;
-  border-radius: var(--radius);
+  gap: 6px;
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--rule);
+  border-radius: 99px;
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 
-.top5-btn:hover { opacity: 0.82; }
+.top5-btn:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
 
 .request-link {
   font-size: 13px;
@@ -167,16 +132,10 @@
 
 .request-link:hover { color: var(--text); }
 
-@media (max-width: 480px) {
-  .traction-popup {
-    padding: 28px 20px 22px;
-  }
-}
-
 /* ── Marker traction strip ── */
 .traction-strip {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin: 0 0 14px;
   flex-wrap: wrap;
 }
@@ -184,35 +143,42 @@
 .traction-strip-btn {
   flex: 1;
   min-width: 140px;
-  padding: 11px 16px;
-  border-radius: var(--radius);
+  padding: 8px 16px;
+  border-radius: 99px;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  border: none;
-  transition: opacity 0.15s, transform 0.1s;
-}
-
-.traction-strip-btn:hover {
-  opacity: 0.85;
-  transform: translateY(-1px);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
 .traction-strip-preorder {
-  background: var(--text);
-  color: var(--page-bg);
-}
-
-.traction-strip-claim {
-  background: var(--card);
+  background: transparent;
   color: var(--text);
   border: 1px solid var(--border);
 }
 
+.traction-strip-preorder:hover {
+  background: var(--faint);
+}
+
+.traction-strip-claim {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--rule);
+}
+
+.traction-strip-claim:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
 @media (max-width: 480px) {
+  .traction-popup {
+    padding: 28px 20px 22px;
+  }
   .traction-strip-btn {
     font-size: 12px;
-    padding: 10px 12px;
+    padding: 7px 12px;
   }
 }
