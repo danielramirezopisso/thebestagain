@@ -45,8 +45,46 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 14px;
+  cursor: pointer;
+  user-select: none;
 }
+
+.section-head:hover h2 {
+  opacity: 0.75;
+}
+
 .section-head h2 { margin: 0 0 4px; }
+
+.section-head-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.section-chevron {
+  font-size: 18px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+  line-height: 1;
+}
+
+.admin-section.collapsed .section-chevron {
+  transform: rotate(-90deg);
+}
+
+.admin-section.collapsed .section-head {
+  margin-bottom: 0;
+}
+
+.section-body {
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.admin-section.collapsed .section-body {
+  display: none;
+}
 
 .status-bar {
   min-height: 20px;
