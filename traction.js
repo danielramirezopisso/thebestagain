@@ -23,9 +23,9 @@ const TRACTION_CONFIG = {
     extra:    { type: "preorder" },
   },
   top5: {
-    emoji:    "📦",
-    title:    "The Top 5 Box",
-    body:     "We're building curated tasting boxes of the highest-rated products — so you can taste and rank them yourself.",
+    emoji:    "🍽️",
+    title:    "Taste the Top 5",
+    body:     "We're curating tasting sets of the highest-rated products — so you can taste and rank them yourself at home.",
     cta:      "Notify me when it's ready",
     table:    "purchase_interest",
     field:    "category_id",
@@ -56,30 +56,36 @@ function openTraction(type, refId) {
   _tractionRefId = refId || null;
 
   const cfg = TRACTION_CONFIG[type];
-  if (!cfg) return;
+  if (!cfg) { console.error("Unknown traction type:", type); return; }
 
   document.getElementById("trEmoji").textContent  = cfg.emoji;
   document.getElementById("trTitle").textContent  = cfg.title;
   document.getElementById("trBody").textContent   = cfg.body;
   document.getElementById("trCta").textContent    = cfg.cta;
+  document.getElementById("trSubmitBtn").textContent  = cfg.cta;
+  document.getElementById("trSubmitBtn").style.display = "";
+  document.getElementById("trSkipBtn").textContent    = "Maybe later";
 
   // Show text area for feature requests, hide for others
-  const reqArea = document.getElementById("trRequestArea");
-  const emailArea = document.getElementById("trEmailArea");
-  reqArea.style.display   = cfg.isRequest ? "block" : "none";
-  emailArea.style.display = "block";
-
-  // Pre-fill email if user is logged in
-  maybeUser().then(user => {
-    if (user?.email) document.getElementById("trEmail").value = user.email;
-  });
+  document.getElementById("trRequestArea").style.display = cfg.isRequest ? "block" : "none";
+  document.getElementById("trEmailArea").style.display   = "block";
 
   document.getElementById("trStatus").textContent = "";
-  document.getElementById("trEmail").value = document.getElementById("trEmail").value || "";
-  document.getElementById("trRequestText").value = "";
+  document.getElementById("trStatus").style.color = "";
+  document.getElementById("trRequestText").value  = "";
+
+  // Pre-fill email if user is logged in (non-blocking)
+  if (typeof maybeUser === "function") {
+    maybeUser().then(user => {
+      if (user?.email) {
+        const el = document.getElementById("trEmail");
+        if (el && !el.value) el.value = user.email;
+      }
+    }).catch(() => {});
+  }
 
   document.getElementById("tractionOverlay").classList.add("active");
-  setTimeout(() => document.getElementById("trEmail").focus(), 100);
+  setTimeout(() => { const el = document.getElementById("trEmail"); if (el) el.focus(); }, 120);
 }
 
 function closeTraction() {
