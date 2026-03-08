@@ -1111,6 +1111,12 @@ async function initMarkerPage() {
 
   if (m.group_type === "place") renderMiniMap(m);
 
+  // Show claim + preorder section for place markers
+  if (m.group_type === "place") {
+    document.getElementById("claimSection").style.display = "block";
+    document.getElementById("preorderBtn").style.display  = "inline-block";
+  }
+
   await renderRankingWidget(m);
   await initComments(user);
 
