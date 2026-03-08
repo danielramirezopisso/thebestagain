@@ -94,28 +94,6 @@ function openTraction(type, refId, label) {
   setTimeout(() => { const el = document.getElementById("trEmail"); if (el) el.focus(); }, 120);
 }
 
-  // Show text area for feature requests, hide for others
-  document.getElementById("trRequestArea").style.display = cfg.isRequest ? "block" : "none";
-  document.getElementById("trEmailArea").style.display   = "block";
-
-  document.getElementById("trStatus").textContent = "";
-  document.getElementById("trStatus").style.color = "";
-  document.getElementById("trRequestText").value  = "";
-
-  // Pre-fill email if user is logged in (non-blocking)
-  if (typeof maybeUser === "function") {
-    maybeUser().then(user => {
-      if (user?.email) {
-        const el = document.getElementById("trEmail");
-        if (el && !el.value) el.value = user.email;
-      }
-    }).catch(() => {});
-  }
-
-  document.getElementById("tractionOverlay").classList.add("active");
-  setTimeout(() => { const el = document.getElementById("trEmail"); if (el) el.focus(); }, 120);
-}
-
 function closeTraction() {
   document.getElementById("tractionOverlay").classList.remove("active");
   _tractionType  = null;
