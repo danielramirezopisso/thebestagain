@@ -7,6 +7,7 @@
 
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="map.css" />
+  <link rel="stylesheet" href="traction.css" />
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -20,8 +21,6 @@
       <a href="list.html">List</a>
       <a class="active" href="map.html">Map</a>
       <a href="products.html">Products</a>
-      <!-- <a href="my-votes.html">My Votes</a> -->
-      <!-- <a href="admin.html" id="adminNavLink" style="display:none;">Admin</a> -->
     </nav>
     <div class="nav-right">
       <span id="authStatus" class="auth-pill"></span>
@@ -63,6 +62,7 @@
         </div>
 
         <span id="mapStatus" class="muted"></span>
+        <span class="request-link" onclick="openTraction('request', null)">Can't find it? Request it</span>
       </div>
     </section>
 
@@ -160,6 +160,27 @@
   <script>renderAuthHeader();</script>
 
   <script src="map.js?v=11"></script>
+  <script src="traction.js"></script>
+
+  <!-- ── TRACTION POPUP ── -->
+  <div class="traction-overlay" id="tractionOverlay" onclick="if(event.target===this)closeTraction()">
+    <div class="traction-popup">
+      <span class="traction-emoji" id="trEmoji">🚧</span>
+      <h2 id="trTitle"></h2>
+      <p id="trBody"></p>
+      <div class="traction-request-area" id="trRequestArea" style="display:none;">
+        <textarea id="trRequestText" placeholder="e.g. 'I'm looking for craft beer ratings'" rows="3"></textarea>
+      </div>
+      <div class="traction-email-area" id="trEmailArea">
+        <input type="email" id="trEmail" placeholder="Your email address" />
+      </div>
+      <div class="traction-actions">
+        <button class="tba-btn tba-btn-primary" id="trSubmitBtn" onclick="submitTraction()">Notify me</button>
+        <button class="tba-btn" id="trSkipBtn" onclick="closeTraction()">Maybe later</button>
+      </div>
+      <div class="traction-status" id="trStatus"></div>
+    </div>
+  </div>
 
   <script>
   function toggleNav() {
