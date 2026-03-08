@@ -42,6 +42,16 @@
     </div>
 
 
+    <!-- ── TRACTION STRIP (places only, shown via JS) ── -->
+    <div class="traction-strip" id="tractionStrip" style="display:none;">
+      <button class="traction-strip-btn traction-strip-preorder" onclick="openTraction('preorder', MARKER_ID)">
+        🛒 Pre-order here
+      </button>
+      <button class="traction-strip-btn traction-strip-claim" onclick="openTraction('claim', MARKER_ID)">
+        🏢 Claim this place
+      </button>
+    </div>
+
     <!-- ── PHOTOS ── -->
     <div class="card m-card photos-card" id="photosCard" style="display:none;">
       <div class="m-card-head-row">
@@ -229,16 +239,6 @@
         <div class="lightbox-dots" id="lightboxDots"></div>
         <div class="lightbox-caption" id="lightboxCaption"></div>
       </div>
-    </div>
-  </div>
-
-  <!-- ── CLAIM + PREORDER ── -->
-  <div class="claim-section" id="claimSection" style="display:none;">
-    <button class="preorder-btn" id="preorderBtn" onclick="openTraction('preorder', MARKER_ID)" style="display:none;">
-      🛒 Pre-order here
-    </button>
-    <div style="margin-top:12px;">
-      <span class="claim-link" onclick="openTraction('claim', MARKER_ID)">🏢 Is this your business? Claim it</span>
     </div>
   </div>
 
