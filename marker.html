@@ -6,6 +6,7 @@
   <title>The Best Again — Marker</title>
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="marker.css" />
+  <link rel="stylesheet" href="traction.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 
@@ -17,8 +18,6 @@
       <a href="list.html">List</a>
       <a href="map.html">Map</a>
       <a href="products.html">Products</a>
-      <!-- <a href="my-votes.html">My Votes</a> -->
-      <!-- <a href="admin.html" id="adminNavLink" style="display:none;">Admin</a> -->
     </nav>
     <div class="nav-right">
       <span id="authStatus" class="auth-pill"></span>
@@ -194,6 +193,7 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
   <script src="marker.js?v=7"></script>
+  <script src="traction.js"></script>
 
   <script>
   function toggleNav() {
@@ -229,6 +229,36 @@
         <div class="lightbox-dots" id="lightboxDots"></div>
         <div class="lightbox-caption" id="lightboxCaption"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── CLAIM + PREORDER ── -->
+  <div class="claim-section" id="claimSection" style="display:none;">
+    <button class="preorder-btn" id="preorderBtn" onclick="openTraction('preorder', MARKER_ID)" style="display:none;">
+      🛒 Pre-order here
+    </button>
+    <div style="margin-top:12px;">
+      <span class="claim-link" onclick="openTraction('claim', MARKER_ID)">🏢 Is this your business? Claim it</span>
+    </div>
+  </div>
+
+  <!-- ── TRACTION POPUP (shared) ── -->
+  <div class="traction-overlay" id="tractionOverlay" onclick="if(event.target===this)closeTraction()">
+    <div class="traction-popup">
+      <span class="traction-emoji" id="trEmoji">🚧</span>
+      <h2 id="trTitle"></h2>
+      <p id="trBody"></p>
+      <div class="traction-request-area" id="trRequestArea" style="display:none;">
+        <textarea id="trRequestText" placeholder="e.g. 'I'm looking for craft beer ratings'" rows="3"></textarea>
+      </div>
+      <div class="traction-email-area" id="trEmailArea">
+        <input type="email" id="trEmail" placeholder="Your email address" />
+      </div>
+      <div class="traction-actions">
+        <button class="tba-btn tba-btn-primary" id="trSubmitBtn" onclick="submitTraction()">Notify me</button>
+        <button class="tba-btn" id="trSkipBtn" onclick="closeTraction()">Maybe later</button>
+      </div>
+      <div class="traction-status" id="trStatus"></div>
     </div>
   </div>
 
