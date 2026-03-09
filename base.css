@@ -141,6 +141,19 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 .header-user-row a:hover { color: var(--text); }
 
+.header-username {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header-username:hover { color: var(--text); text-decoration: none; }
+
 /* ── LAYOUT ── */
 .container {
   max-width: 1000px;
@@ -647,4 +660,14 @@ input:focus, select:focus, textarea:focus {
 @media (max-width: 480px) {
   .brand { font-size: 16px; }
   .container { padding: 12px 10px; }
+}
+
+.tba-btn-danger {
+  background: #ef4444;
+  color: #fff;
+  border-color: #dc2626;
+}
+.tba-btn-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
 }
