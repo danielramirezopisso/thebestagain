@@ -117,7 +117,7 @@
   <script>renderAuthHeader();</script>
 
   <script src="products.js?v=202"></script>
-  <script src="traction.js"></script>
+  <script src="traction.js?v=204"></script>
 
   <!-- ── TRACTION POPUP ── -->
   <div class="traction-overlay" id="tractionOverlay" onclick="if(event.target===this)closeTraction()">
@@ -127,7 +127,16 @@
       <p id="trBody"></p>
       <div class="traction-request-area" id="trRequestArea" style="display:none;">
         <label class="tr-field-label" id="trRequestLabel">Your suggestion</label>
-        <textarea id="trRequestText" rows="3"></textarea>
+        <textarea id="trRequestText" rows="2"></textarea>
+        <!-- Brand-only extras -->
+        <div id="trBrandExtras" style="display:none;">
+          <label class="tr-field-label" style="margin-top:10px;">Category <span class="tr-field-note">(which category does this brand belong to?)</span></label>
+          <select id="trCategorySelect">
+            <option value="">— Select existing category —</option>
+          </select>
+          <div class="tr-or-row"><span>or suggest a new one</span></div>
+          <input type="text" id="trNewCategory" placeholder="New category name (optional)" />
+        </div>
       </div>
       <div class="traction-email-area" id="trEmailArea">
         <input type="email" id="trEmail" placeholder="Your email address" />
