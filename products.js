@@ -296,8 +296,11 @@ function renderLane(catId, markersForCat){
     ? `<div class="see-more" onclick="openDrawer(${catId})">See more →</div>`
     : "";
 
+  // density class: subtle background shift for fuller lanes
+  const density = markersForCat.length >= 5 ? "lane-dense" : markersForCat.length >= 3 ? "lane-medium" : "";
+
   return `
-    <div class="lane">
+    <div class="lane ${density}">
       <div class="lane-head">
         <div class="lane-title">
           <img class="lane-ic" src="${escapeHtml(icon)}" alt=""/>

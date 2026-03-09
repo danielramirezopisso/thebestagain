@@ -68,17 +68,16 @@ function openTraction(type, refId, label) {
   }
   document.getElementById("trBody").textContent       = body;
 
-  document.getElementById("trSubmitBtn").textContent  = cfg.cta;
-  document.getElementById("trSubmitBtn").style.display = "";
+  // Always fully reset the form state
+  const submitBtn = document.getElementById("trSubmitBtn");
+  submitBtn.textContent  = cfg.cta;
+  submitBtn.style.display = "";
+  submitBtn.disabled     = false;
   document.getElementById("trSkipBtn").textContent    = "Maybe later";
-
-  // Show text area for feature requests, hide for others
-  document.getElementById("trRequestArea").style.display = cfg.isRequest ? "block" : "none";
-  document.getElementById("trEmailArea").style.display   = "block";
-
-  document.getElementById("trStatus").textContent = "";
-  document.getElementById("trStatus").style.color = "";
-  document.getElementById("trRequestText").value  = "";
+  document.getElementById("trEmail").value            = "";
+  document.getElementById("trRequestText").value      = "";
+  document.getElementById("trStatus").textContent     = "";
+  document.getElementById("trStatus").style.color     = "";
 
   // Pre-fill email if user is logged in (non-blocking)
   if (typeof maybeUser === "function") {

@@ -78,6 +78,24 @@
 .marker-col-left  { display: flex; flex-direction: column; gap: 14px; }
 .marker-col-right { display: flex; flex-direction: column; gap: 14px; }
 
+/* pencil edit button inline with title */
+.edit-pencil-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.45;
+  padding: 2px 4px;
+  margin-left: 6px;
+  border-radius: 4px;
+  vertical-align: middle;
+  transition: opacity 0.15s;
+}
+.edit-pencil-btn:hover { opacity: 1; }
+
+/* photos card extra top margin */
+.photos-card { margin-top: 6px; }
+
 /* ── CARDS ── */
 .m-card {
   padding: 16px;

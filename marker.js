@@ -101,18 +101,29 @@ function renderHero(m, user) {
   }
   document.getElementById("markerSubtitle").textContent = sub.join(" · ");
 
-  // Actions (only for logged-in users)
+  // Actions area — traction buttons always on right for places, edit pencil inline with title
   const actionsEl = document.getElementById("heroActions");
-  if (user) {
+  const isCreator = user && m.created_by === user.id;
+  const isPlace   = m.group_type === "place";
+
+  // Traction buttons in hero-actions (right side), places only
+  if (isPlace) {
     actionsEl.innerHTML = `
-      <button class="tba-btn" id="btnEdit" onclick="enterEditMode()">✏️ Edit</button>
-      <button class="tba-btn" id="btnDeactivate"
-        onclick="deactivateMarker()"
-        style="border-color:#ef4444;color:#ef4444;"
-        ${!m.is_active ? "disabled" : ""}>
-        Deactivate
+      <button class="tba-btn traction-hero-preorder" onclick="openTraction('preorder', MARKER_ID, '${escapeHtml(getCategoryById(m.category_id)?.name || "this dish")}')">
+        🛒 Pre-order
+      </button>
+      <button class="tba-btn traction-hero-claim" onclick="openTraction('claim', MARKER_ID)">
+        🏢 Claim
       </button>
     `;
+  }
+
+  // Edit pencil inline with title — only for creator
+  if (isCreator) {
+    const titleEl = document.getElementById("markerTitle");
+    titleEl.insertAdjacentHTML("afterend",
+      `<button class="edit-pencil-btn" onclick="enterEditMode()" title="Edit marker">✏️</button>`
+    );
   }
 
   if (!m.is_active) {
@@ -1110,16 +1121,6 @@ async function initMarkerPage() {
   renderDetails(m, creatorName);
 
   if (m.group_type === "place") renderMiniMap(m);
-
-  // Show traction strip for place markers
-  if (m.group_type === "place") {
-    const catName = getCategoryById(m.category_id)?.name || "this dish";
-    const strip = document.getElementById("tractionStrip");
-    strip.style.display = "flex";
-    // Update preorder button to pass category name
-    strip.querySelector(".traction-strip-preorder").onclick =
-      () => openTraction('preorder', MARKER_ID, catName);
-  }
 
   await renderRankingWidget(m);
   await initComments(user);

@@ -60,13 +60,15 @@ body.products-page{
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
-  break-inside: avoid;        /* prevents card splitting across columns */
-  margin-bottom: 10px;        /* gap between cards in same column */
+  break-inside: avoid;
+  margin-bottom: 10px;
   box-shadow: none;
   padding: 12px 14px;
   min-width:0;
   align-self: start;
 }
+.lane-medium { background: #faf9f7; }
+.lane-dense  { background: #f7f5f1; border-color: rgba(26,23,20,0.2); }
 
 .lane-head{
   display:flex;
