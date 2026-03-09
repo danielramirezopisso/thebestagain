@@ -84,18 +84,47 @@ function openTraction(type, refId, label) {
   document.getElementById("trBody").textContent = body;
 
   // Request area — show with correct label & placeholder
-  const requestArea = document.getElementById("trRequestArea");
-  const requestText = document.getElementById("trRequestText");
+  const requestArea  = document.getElementById("trRequestArea");
+  const requestText  = document.getElementById("trRequestText");
   const requestLabel = document.getElementById("trRequestLabel");
+  const brandExtras  = document.getElementById("trBrandExtras");
+  const catSelect    = document.getElementById("trCategorySelect");
+  const newCatInput  = document.getElementById("trNewCategory");
+
   if (cfg.isRequest) {
     requestArea.style.display = "block";
     if (requestLabel) requestLabel.textContent = cfg.label || "Your suggestion";
     requestText.placeholder = cfg.placeholder || "Describe what you're looking for…";
     requestText.value = "";
-    // Focus textarea instead of email
-    setTimeout(() => requestText.focus(), 120);
+
+    if (type === "requestBrand") {
+      // Show category picker and populate it
+      brandExtras.style.display = "block";
+      newCatInput.value = "";
+      // Populate select — use CATEGORIES_ALL if available (products/marker pages), else fetch
+      const populateSelect = (cats) => {
+        catSelect.innerHTML = '<option value="">— Select existing category —</option>';
+        cats.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.name;
+          catSelect.appendChild(opt);
+        });
+      };
+      if (typeof CATEGORIES_ALL !== "undefined" && CATEGORIES_ALL.length) {
+        populateSelect(CATEGORIES_ALL);
+      } else {
+        sb.from("categories").select("id,name").eq("is_active", true).order("name")
+          .then(({ data }) => { if (data) populateSelect(data); });
+      }
+      setTimeout(() => requestText.focus(), 120);
+    } else {
+      brandExtras.style.display = "none";
+      setTimeout(() => requestText.focus(), 120);
+    }
   } else {
-    requestArea.style.display = "none";
+    requestArea.style.display  = "none";
+    if (brandExtras) brandExtras.style.display = "none";
     setTimeout(() => { const el = document.getElementById("trEmail"); if (el) el.focus(); }, 120);
   }
 
@@ -110,6 +139,8 @@ function openTraction(type, refId, label) {
   document.getElementById("trEmail").value = "";
   document.getElementById("trStatus").textContent = "";
   document.getElementById("trStatus").style.color = "";
+  const _newCat = document.getElementById("trNewCategory");
+  if (_newCat) _newCat.value = "";
 
   // Pre-fill email if logged in
   if (typeof maybeUser === "function") {
@@ -160,10 +191,28 @@ async function submitTraction() {
 
     if (cfg.isRequest) {
       // Feature request — use requestType from config
-      payload.text = text;
       payload.type = cfg.requestType || "other";
       const user = await maybeUser();
       if (user) payload.user_id = user.id;
+
+      // For brand requests, build enriched text with category context
+      if (_tractionType === "requestBrand") {
+        const catSelect   = document.getElementById("trCategorySelect");
+        const newCatInput = document.getElementById("trNewCategory");
+        const selectedCatText = catSelect?.options[catSelect.selectedIndex]?.text || "";
+        const selectedCatVal  = catSelect?.value || "";
+        const newCat          = newCatInput?.value.trim() || "";
+
+        let catContext = "";
+        if (newCat) {
+          catContext = `\nNew category suggested: "${newCat}"`;
+        } else if (selectedCatVal) {
+          catContext = `\nCategory: "${selectedCatText}"`;
+        }
+        payload.text = text + catContext;
+      } else {
+        payload.text = text;
+      }
     } else {
       // Interest capture
       if (cfg.field && _tractionRefId) payload[cfg.field] = _tractionRefId;
