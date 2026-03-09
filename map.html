@@ -56,13 +56,8 @@
       </div>
 
       <div class="toolbar-right">
-        <div class="toolbar-block right">
-          <div class="toolbar-label">Add</div>
-          <button id="toggleAdd" onclick="toggleAddMode()">OFF</button>
-        </div>
-
         <span id="mapStatus" class="muted"></span>
-        <span class="request-link" onclick="openTraction('requestCategory', null)">Can't find it? Request it</span>
+        <span class="request-link" onclick="openTraction('requestCategory', null)">💡 Suggest a place category</span>
       </div>
     </section>
 
@@ -90,9 +85,13 @@
       <!-- Add panel (moved to RIGHT) -->
       <div class="map-panel map-panel-add" id="addPanel">
         <div class="panel-title">Add a place</div>
-        <div class="panel-sub muted">Turn Add ON, then click the map.</div>
+        <div class="panel-sub muted">Enable adding mode, then click anywhere on the map to drop a pin.</div>
 
-        <div id="addForm" style="display:none; margin-top:10px;">
+        <button id="toggleAdd" class="tba-btn add-toggle-btn" onclick="toggleAddMode()" style="margin-top:12px; width:100%;">
+          ＋ Start adding
+        </button>
+
+        <div id="addForm" style="display:none; margin-top:14px;">
           <label>Title</label>
           <input id="m_title" placeholder="e.g., Best croissant at XYZ" />
 
@@ -170,7 +169,16 @@
       <p id="trBody"></p>
       <div class="traction-request-area" id="trRequestArea" style="display:none;">
         <label class="tr-field-label" id="trRequestLabel">Your suggestion</label>
-        <textarea id="trRequestText" rows="3"></textarea>
+        <textarea id="trRequestText" rows="2"></textarea>
+        <!-- Brand-only extras -->
+        <div id="trBrandExtras" style="display:none;">
+          <label class="tr-field-label" style="margin-top:10px;">Category <span class="tr-field-note">(which category does this brand belong to?)</span></label>
+          <select id="trCategorySelect">
+            <option value="">— Select existing category —</option>
+          </select>
+          <div class="tr-or-row"><span>or suggest a new one</span></div>
+          <input type="text" id="trNewCategory" placeholder="New category name (optional)" />
+        </div>
       </div>
       <div class="traction-email-area" id="trEmailArea">
         <input type="email" id="trEmail" placeholder="Your email address" />
