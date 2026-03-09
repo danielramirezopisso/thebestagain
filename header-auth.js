@@ -44,6 +44,7 @@ async function renderAuthHeader() {
 }
 
 async function loadNotifications(user) {
+  try {
   const { data, error } = await sb
     .from("notifications")
     .select("id,type,is_read,created_at,marker_id,comment_id,from_user_id")
@@ -90,6 +91,11 @@ async function loadNotifications(user) {
         <span class="notif-time">${timeAgo}</span>
       </a>`;
   }).join("");
+  } catch(e) {
+    // notifications table may not exist yet — fail silently
+    const list = document.getElementById("notifList");
+    if (list) list.innerHTML = `<p class="notif-empty">No notifications yet.</p>`;
+  }
 }
 
 async function markRead(notifId) {
