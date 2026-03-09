@@ -104,7 +104,6 @@ function renderHero(m, user) {
   // Actions area — traction buttons always on right for places, edit pencil inline with title
   const actionsEl = document.getElementById("heroActions");
   const isCreator = user && m.created_by === user.id;
-  const isPlace   = m.group_type === "place";
 
   // Traction buttons in hero-actions (right side), places only
   if (isPlace) {
