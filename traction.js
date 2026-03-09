@@ -101,10 +101,10 @@ function openTraction(type, refId, label) {
       // Show category picker and populate it
       brandExtras.style.display = "block";
       newCatInput.value = "";
-      // Populate select — use CATEGORIES_ALL if available (products/marker pages), else fetch
+      // Populate select — product categories only
       const populateSelect = (cats) => {
         catSelect.innerHTML = '<option value="">— Select existing category —</option>';
-        cats.forEach(c => {
+        cats.filter(c => c.for_products).forEach(c => {
           const opt = document.createElement("option");
           opt.value = c.id;
           opt.textContent = c.name;
@@ -114,7 +114,7 @@ function openTraction(type, refId, label) {
       if (typeof CATEGORIES_ALL !== "undefined" && CATEGORIES_ALL.length) {
         populateSelect(CATEGORIES_ALL);
       } else {
-        sb.from("categories").select("id,name").eq("is_active", true).order("name")
+        sb.from("categories").select("id,name,for_products").eq("is_active", true).eq("for_products", true).order("name")
           .then(({ data }) => { if (data) populateSelect(data); });
       }
       setTimeout(() => requestText.focus(), 120);
