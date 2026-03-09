@@ -216,7 +216,16 @@ async function toggleAddMode() {
   }
 
   ADD_MODE = !ADD_MODE;
-  qs("toggleAdd").textContent = ADD_MODE ? "ON" : "OFF";
+  const btn = qs("toggleAdd");
+  if (ADD_MODE) {
+    btn.textContent = "✕ Stop adding";
+    btn.classList.add("tba-btn-danger");
+    btn.classList.remove("tba-btn-primary");
+  } else {
+    btn.textContent = "＋ Start adding";
+    btn.classList.remove("tba-btn-danger");
+    btn.classList.add("tba-btn-primary");
+  }
   qs("addForm").style.display = ADD_MODE ? "block" : "none";
   setSaveStatus("");
 
