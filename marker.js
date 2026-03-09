@@ -103,7 +103,9 @@ function renderHero(m, user) {
 
   // Actions area — traction buttons always on right for places, edit pencil inline with title
   const actionsEl = document.getElementById("heroActions");
-  const isCreator = user && m.created_by === user.id;
+  // isCreator: true if user owns it, OR marker has no creator (legacy), OR user is admin
+  const isAdmin   = user?.email?.includes("dropisso");
+  const isCreator = user && (m.created_by === user.id || m.created_by === null || isAdmin);
 
   // Traction buttons in hero-actions (right side), places only
   if (isPlace) {
@@ -120,7 +122,10 @@ function renderHero(m, user) {
   // Edit pencil inline with title — only for creator
   if (isCreator) {
     const titleEl = document.getElementById("markerTitle");
-    titleEl.insertAdjacentHTML("afterend",
+    titleEl.style.display = "flex";
+    titleEl.style.alignItems = "center";
+    titleEl.style.gap = "8px";
+    titleEl.insertAdjacentHTML("beforeend",
       `<button class="edit-pencil-btn" onclick="enterEditMode()" title="Edit marker">✏️</button>`
     );
   }
@@ -378,6 +383,21 @@ async function renderRankingWidget(m) {
   }).join("");
 
   card.style.display = "block";
+
+  // Add "Taste the Top 5" button for product markers
+  if (m.group_type === "product") {
+    const existing = card.querySelector(".top5-btn");
+    if (!existing) {
+      const btn = document.createElement("button");
+      btn.className = "top5-btn";
+      btn.style.marginTop = "12px";
+      btn.style.width = "100%";
+      btn.style.justifyContent = "center";
+      btn.textContent = "🍽️ Taste the Top 5";
+      btn.onclick = () => openTraction("top5", m.category_id);
+      card.appendChild(btn);
+    }
+  }
 }
 
 /* ══════════════════════════════

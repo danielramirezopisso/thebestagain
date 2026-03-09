@@ -55,6 +55,16 @@
         <div class="area-card-arrow">›</div>
       </a>
 
+      <!-- Traction — only shown for dropisso -->
+      <a class="area-card area-card-admin" href="traction-admin.html" target="_blank" id="tractionCard" style="display:none;">
+        <div class="area-card-icon">📊</div>
+        <div class="area-card-body">
+          <div class="area-card-title">Traction</div>
+          <div class="area-card-desc">See who clicked what — interest signals live</div>
+        </div>
+        <div class="area-card-arrow">›</div>
+      </a>
+
       <!-- Coming soon cards -->
       <div class="area-card area-card-soon" onclick="showComingSoon()">
         <div class="area-card-icon">🔖</div>
@@ -147,6 +157,7 @@
     // Show admin card only for dropisso
     if (user.email && user.email.toLowerCase().includes("dropisso")) {
       document.getElementById("adminCard").style.display = "";
+      document.getElementById("tractionCard").style.display = "";
     }
   }
 

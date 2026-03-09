@@ -94,7 +94,7 @@
 .edit-pencil-btn:hover { opacity: 1; }
 
 /* photos card extra top margin */
-.photos-card { margin-top: 6px; }
+.photos-card { margin-top: 20px; margin-bottom: 18px; }
 
 /* ── CARDS ── */
 .m-card {
