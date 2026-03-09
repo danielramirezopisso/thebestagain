@@ -305,11 +305,21 @@
     }
 
     async function loadAll() {
+      // Load reference data first (markers + categories) for name resolution
+      const [markersRes, catsRes] = await Promise.all([
+        sb.from("markers").select("id,title").eq("is_active", true),
+        sb.from("categories").select("id,name").eq("is_active", true),
+      ]);
+      const markerMap = Object.fromEntries((markersRes.data || []).map(m => [m.id, m.title]));
+      const catMap    = Object.fromEntries((catsRes.data   || []).map(c => [c.id, c.name]));
+
       // Claims
-      const { data: claims } = await sb
+      const { data: claims, error: claimsErr } = await sb
         .from("business_interest")
-        .select("email, created_at, marker_id, markers(title,id)")
+        .select("email, created_at, marker_id")
         .order("created_at", { ascending: false });
+
+      if (claimsErr) console.error("claims error:", claimsErr);
 
       const claimsBody = document.getElementById("claimsBody");
       document.getElementById("claimCount").textContent = claims?.length || 0;
@@ -317,17 +327,19 @@
 
       claimsBody.innerHTML = claims?.length ? claims.map(r => `
         <tr>
-          <td><a href="marker.html?id=${r.marker_id}" target="_blank">${r.markers?.title || r.marker_id || "—"}</a></td>
+          <td><a href="marker.html?id=${r.marker_id}" target="_blank">${markerMap[r.marker_id] || r.marker_id || "—"}</a></td>
           <td class="email-cell">${r.email}</td>
           <td class="time-cell">${fmt(r.created_at)}</td>
         </tr>
       `).join("") : `<tr class="empty-row"><td colspan="3">No claims yet.</td></tr>`;
 
       // Purchase interest
-      const { data: purchase } = await sb
+      const { data: purchase, error: purchaseErr } = await sb
         .from("purchase_interest")
-        .select("type, email, created_at, marker_id, category_id, markers(title,id), categories(name)")
+        .select("type, email, created_at, marker_id, category_id")
         .order("created_at", { ascending: false });
+
+      if (purchaseErr) console.error("purchase error:", purchaseErr);
 
       const preorders = purchase?.filter(r => r.type === "preorder") || [];
       const top5      = purchase?.filter(r => r.type === "top5") || [];
@@ -339,8 +351,8 @@
       const purchaseBody = document.getElementById("purchaseBody");
       purchaseBody.innerHTML = purchase?.length ? purchase.map(r => {
         const subject = r.type === "preorder"
-          ? `<a href="marker.html?id=${r.marker_id}" target="_blank">${r.markers?.title || r.marker_id || "—"}</a>`
-          : (r.categories?.name || r.category_id || "—");
+          ? `<a href="marker.html?id=${r.marker_id}" target="_blank">${markerMap[r.marker_id] || r.marker_id || "—"}</a>`
+          : (catMap[r.category_id] || r.category_id || "—");
         return `
           <tr>
             <td>${pill(r.type)}</td>
@@ -352,10 +364,12 @@
       }).join("") : `<tr class="empty-row"><td colspan="4">No purchase interest yet.</td></tr>`;
 
       // Feature requests
-      const { data: requests } = await sb
+      const { data: requests, error: requestsErr } = await sb
         .from("feature_requests")
         .select("type, text, email, created_at")
         .order("created_at", { ascending: false });
+
+      if (requestsErr) console.error("requests error:", requestsErr);
 
       document.getElementById("requestCount").textContent = requests?.length || 0;
       document.getElementById("statRequests").textContent  = requests?.length || 0;

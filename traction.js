@@ -31,14 +31,29 @@ const TRACTION_CONFIG = {
     field:    "category_id",
     extra:    { type: "top5" },
   },
-  request: {
-    emoji:    "💡",
-    title:    "Can't find what you're looking for?",
-    body:     "Tell us what category or brand is missing — we read every submission.",
-    cta:      "Send request",
+  requestCategory: {
+    emoji:    "🗂️",
+    title:    "Suggest a category",
+    body:     "What food or product category is missing? Tell us and we'll add it.",
+    cta:      "Send suggestion",
     table:    "feature_requests",
-    field:    null,  // text-based, different handling
+    field:    null,
     isRequest: true,
+    requestType: "category",
+    placeholder: "e.g. 'Craft beer', 'Artisan chocolate', 'Ramen'",
+    label:    "Category name",
+  },
+  requestBrand: {
+    emoji:    "🏷️",
+    title:    "Suggest a brand",
+    body:     "Know a brand that should be here? Tell us the name and where to find it.",
+    cta:      "Send suggestion",
+    table:    "feature_requests",
+    field:    null,
+    isRequest: true,
+    requestType: "brand",
+    placeholder: "e.g. 'Pastisseria Hofmann', 'La Pepita'",
+    label:    "Brand name",
   },
 };
 
@@ -58,28 +73,45 @@ function openTraction(type, refId, label) {
   const cfg = TRACTION_CONFIG[type];
   if (!cfg) { console.error("Unknown traction type:", type); return; }
 
-  document.getElementById("trEmoji").textContent      = cfg.emoji;
-  document.getElementById("trTitle").textContent      = cfg.title;
+  document.getElementById("trEmoji").textContent = cfg.emoji;
+  document.getElementById("trTitle").textContent = cfg.title;
 
-  // Dynamic body text: for preorder, use the category name if provided
+  // Dynamic body for preorder
   let body = cfg.body;
   if (type === "preorder" && label) {
     body = `Want to pre-order a ${label} here before you arrive? We're building this feature — leave your email and we'll let you know when it launches.`;
   }
-  document.getElementById("trBody").textContent       = body;
+  document.getElementById("trBody").textContent = body;
 
-  // Always fully reset the form state
+  // Request area — show with correct label & placeholder
+  const requestArea = document.getElementById("trRequestArea");
+  const requestText = document.getElementById("trRequestText");
+  const requestLabel = document.getElementById("trRequestLabel");
+  if (cfg.isRequest) {
+    requestArea.style.display = "block";
+    if (requestLabel) requestLabel.textContent = cfg.label || "Your suggestion";
+    requestText.placeholder = cfg.placeholder || "Describe what you're looking for…";
+    requestText.value = "";
+    // Focus textarea instead of email
+    setTimeout(() => requestText.focus(), 120);
+  } else {
+    requestArea.style.display = "none";
+    setTimeout(() => { const el = document.getElementById("trEmail"); if (el) el.focus(); }, 120);
+  }
+
+  document.getElementById("trEmailArea").style.display = "block";
+
+  // Reset button & status
   const submitBtn = document.getElementById("trSubmitBtn");
-  submitBtn.textContent  = cfg.cta;
+  submitBtn.textContent = cfg.cta;
   submitBtn.style.display = "";
-  submitBtn.disabled     = false;
-  document.getElementById("trSkipBtn").textContent    = "Maybe later";
-  document.getElementById("trEmail").value            = "";
-  document.getElementById("trRequestText").value      = "";
-  document.getElementById("trStatus").textContent     = "";
-  document.getElementById("trStatus").style.color     = "";
+  submitBtn.disabled = false;
+  document.getElementById("trSkipBtn").textContent = "Maybe later";
+  document.getElementById("trEmail").value = "";
+  document.getElementById("trStatus").textContent = "";
+  document.getElementById("trStatus").style.color = "";
 
-  // Pre-fill email if user is logged in (non-blocking)
+  // Pre-fill email if logged in
   if (typeof maybeUser === "function") {
     maybeUser().then(user => {
       if (user?.email) {
@@ -90,7 +122,6 @@ function openTraction(type, refId, label) {
   }
 
   document.getElementById("tractionOverlay").classList.add("active");
-  setTimeout(() => { const el = document.getElementById("trEmail"); if (el) el.focus(); }, 120);
 }
 
 function closeTraction() {
@@ -128,9 +159,9 @@ async function submitTraction() {
     let payload = { email };
 
     if (cfg.isRequest) {
-      // Feature request
+      // Feature request — use requestType from config
       payload.text = text;
-      payload.type = "other";
+      payload.type = cfg.requestType || "other";
       const user = await maybeUser();
       if (user) payload.user_id = user.id;
     } else {

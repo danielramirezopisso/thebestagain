@@ -62,7 +62,7 @@
         </div>
 
         <span id="mapStatus" class="muted"></span>
-        <span class="request-link" onclick="openTraction('request', null)">Can't find it? Request it</span>
+        <span class="request-link" onclick="openTraction('requestCategory', null)">Can't find it? Request it</span>
       </div>
     </section>
 
@@ -169,7 +169,8 @@
       <h2 id="trTitle"></h2>
       <p id="trBody"></p>
       <div class="traction-request-area" id="trRequestArea" style="display:none;">
-        <textarea id="trRequestText" placeholder="e.g. 'I'm looking for craft beer ratings'" rows="3"></textarea>
+        <label class="tr-field-label" id="trRequestLabel">Your suggestion</label>
+        <textarea id="trRequestText" rows="3"></textarea>
       </div>
       <div class="traction-email-area" id="trEmailArea">
         <input type="email" id="trEmail" placeholder="Your email address" />
