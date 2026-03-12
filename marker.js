@@ -116,6 +116,15 @@ function renderHero(m, user) {
       <button class="tba-btn traction-hero-claim" onclick="openTraction('claim', MARKER_ID)">
         🏢 Claim
       </button>
+      <button class="tba-btn share-hero-btn" onclick="shareMarker()" title="Share">
+        ↗ Share
+      </button>
+    `;
+  } else {
+    actionsEl.innerHTML = `
+      <button class="tba-btn share-hero-btn" onclick="shareMarker()" title="Share">
+        ↗ Share
+      </button>
     `;
   }
 
@@ -133,6 +142,79 @@ function renderHero(m, user) {
   if (!m.is_active) {
     // handled above in initMarkerPage early return
   }
+}
+
+/* ══════════════════════════════
+   SEO — dynamic meta update
+══════════════════════════════ */
+function updatePageSEO(m) {
+  const cat  = getCategoryById(m.category_id);
+  const brand = getBrandById(m.brand_id);
+
+  const catName   = cat?.name   || "";
+  const brandName = brand?.name || "";
+  const score     = m.rating_avg ? `${Number(m.rating_avg).toFixed(1)}/10` : "";
+  const location  = m.address   ? ` · ${m.address}` : "";
+
+  // Build title: "El Fanalet · Best Croissant de Chocolate · 8.2/10 — The Best Again"
+  const parts = [m.title, catName, score].filter(Boolean);
+  const title = parts.join(" · ") + " — The Best Again";
+
+  const desc = [
+    `${m.title} rated ${score || "unrated"}`,
+    catName ? `in the ${catName} category` : "",
+    brandName ? `by ${brandName}` : "",
+    location,
+    "— Discover and vote on the best local food spots and products."
+  ].filter(Boolean).join(" ");
+
+  document.title = title;
+  const url = window.location.href;
+
+  const set = (id, attr, val) => { const el = document.getElementById(id); if (el) el.setAttribute(attr, val); };
+  const setName = (name, val) => { const el = document.querySelector(`meta[name="${name}"]`); if (el) el.setAttribute("content", val); };
+  const setProp = (prop, val) => { const el = document.querySelector(`meta[property="${prop}"]`); if (el) el.setAttribute("content", val); };
+
+  setName("description", desc);
+  setProp("og:title", title);
+  setProp("og:description", desc);
+  setProp("og:url", url);
+
+  // GA4 — track page view with marker context
+  if (typeof gtag !== "undefined") {
+    gtag("event", "page_view", {
+      page_title: title,
+      page_location: url,
+      marker_id: m.id,
+      marker_type: m.group_type,
+      category: catName,
+    });
+  }
+}
+
+/* ══════════════════════════════
+   SHARE
+══════════════════════════════ */
+function shareMarker() {
+  const url   = window.location.href;
+  const title = document.title.replace(" — The Best Again", "");
+  const text  = `Check this out on The Best Again: ${title}`;
+
+  // Native share API (mobile)
+  if (navigator.share) {
+    navigator.share({ title, text, url }).catch(() => {});
+    return;
+  }
+  // Fallback: show share panel
+  const panel = document.getElementById("sharePanel");
+  if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
+}
+
+function copyMarkerLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const btn = document.getElementById("shareCopyBtn");
+    if (btn) { btn.textContent = "✓ Copied!"; setTimeout(() => btn.textContent = "Copy link", 2000); }
+  });
 }
 
 async function reactivateMarker() {
@@ -1138,6 +1220,7 @@ async function initMarkerPage() {
   renderHero(m, user);
   renderRating(m);
   renderDetails(m, creatorName);
+  updatePageSEO(m);
 
   if (m.group_type === "place") renderMiniMap(m);
 

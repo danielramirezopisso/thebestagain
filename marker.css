@@ -967,3 +967,48 @@ body {
   .inactive-banner { flex-wrap: wrap; }
   .inactive-reactivate-btn { margin-left: 0; width: 100%; justify-content: center; }
 }
+
+/* ── Share ── */
+.share-hero-btn {
+  font-size: 12px !important;
+  padding: 6px 11px !important;
+  color: var(--muted) !important;
+  border-color: var(--rule) !important;
+}
+.share-hero-btn:hover { color: var(--text) !important; border-color: var(--border) !important; }
+
+.share-panel {
+  display: flex;
+  gap: 8px;
+  margin: -8px 0 12px;
+  flex-wrap: wrap;
+}
+
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.share-whatsapp {
+  background: #e7f8ee;
+  color: #128c3e;
+  border-color: rgba(18,140,62,0.25);
+}
+.share-whatsapp:hover { background: #d0f0de; }
+
+.share-copy {
+  background: var(--card);
+  color: var(--text);
+  border-color: var(--border);
+}
+.share-copy:hover { background: var(--page-bg); }
