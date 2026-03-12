@@ -9,7 +9,6 @@
   <meta property="og:description" content="Your personal area on The Best Again. See your votes, wishlist and more." />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary" />
-  <!-- Google Analytics 4 — replace G-VYVTQPBTPC with your Measurement ID -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-VYVTQPBTPC"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -18,7 +17,9 @@
     gtag("config", "G-VYVTQPBTPC");
   </script>
   <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="votes.css" />
   <link rel="stylesheet" href="user.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 
 <body onload="initUserPage()">
@@ -38,153 +39,164 @@
 
   <main class="container user-area">
 
+    <!-- ── USER HERO ── -->
     <div class="user-hero">
       <div class="user-avatar" id="userAvatar">?</div>
-      <div>
+      <div class="user-hero-body">
         <h1 id="userName">—</h1>
         <p class="muted" id="userJoined"></p>
       </div>
+      <span class="user-badge" id="statBadge"></span>
     </div>
 
-    <div class="area-grid" id="areaGrid">
-
-      <!-- My Votes — real link -->
-      <a class="area-card" href="my-votes.html" target="_blank">
-        <div class="area-card-icon">🗳️</div>
-        <div class="area-card-body">
-          <div class="area-card-title">My Votes</div>
-          <div class="area-card-desc">Your personal rankings across all categories</div>
-        </div>
-        <div class="area-card-arrow">›</div>
-      </a>
-
-      <!-- Admin — only shown for dropisso -->
-      <a class="area-card area-card-admin" href="admin.html" target="_blank" id="adminCard" style="display:none;">
-        <div class="area-card-icon">⚙️</div>
-        <div class="area-card-body">
-          <div class="area-card-title">Admin</div>
-          <div class="area-card-desc">Manage categories, markers and users</div>
-        </div>
-        <div class="area-card-arrow">›</div>
-      </a>
-
-      <!-- Traction — only shown for dropisso -->
-      <a class="area-card area-card-admin" href="traction-admin.html" target="_blank" id="tractionCard" style="display:none;">
-        <div class="area-card-icon">📊</div>
-        <div class="area-card-body">
-          <div class="area-card-title">Traction</div>
-          <div class="area-card-desc">See who clicked what — interest signals live</div>
-        </div>
-        <div class="area-card-arrow">›</div>
-      </a>
-
-      <!-- Coming soon cards -->
-      <div class="area-card area-card-soon" onclick="showComingSoon()">
-        <div class="area-card-icon">🔖</div>
-        <div class="area-card-body">
-          <div class="area-card-title">Wishlist</div>
-          <div class="area-card-desc">Places you want to try</div>
-        </div>
-        <div class="area-card-soon-badge">Soon</div>
+    <!-- ── STATS BAR ── -->
+    <div class="user-stats-bar">
+      <div class="user-stat">
+        <span class="user-stat-val" id="statVotes">—</span>
+        <span class="user-stat-label">votes</span>
       </div>
-
-      <div class="area-card area-card-soon" onclick="showComingSoon()">
-        <div class="area-card-icon">🏢</div>
-        <div class="area-card-body">
-          <div class="area-card-title">My Businesses</div>
-          <div class="area-card-desc">Claim and manage your venues</div>
-        </div>
-        <div class="area-card-soon-badge">Soon</div>
+      <div class="user-stat">
+        <span class="user-stat-val" id="statAvg">—</span>
+        <span class="user-stat-label">avg score</span>
       </div>
-
-      <div class="area-card area-card-soon" onclick="showComingSoon()">
-        <div class="area-card-icon">📍</div>
-        <div class="area-card-body">
-          <div class="area-card-title">My Places</div>
-          <div class="area-card-desc">Markers you've added to the map</div>
-        </div>
-        <div class="area-card-soon-badge">Soon</div>
+      <div class="user-stat">
+        <span class="user-stat-val" id="statMarkers">—</span>
+        <span class="user-stat-label">places added</span>
       </div>
-
-      <div class="area-card area-card-soon" onclick="showComingSoon()">
-        <div class="area-card-icon">📸</div>
-        <div class="area-card-body">
-          <div class="area-card-title">My Photos</div>
-          <div class="area-card-desc">Photos you've uploaded</div>
-        </div>
-        <div class="area-card-soon-badge">Soon</div>
+      <div class="user-stat">
+        <span class="user-stat-val" id="statComments">—</span>
+        <span class="user-stat-label">comments</span>
       </div>
-
-      <div class="area-card area-card-soon" onclick="showComingSoon()">
-        <div class="area-card-icon">💬</div>
-        <div class="area-card-body">
-          <div class="area-card-title">My Comments</div>
-          <div class="area-card-desc">Your reviews and opinions</div>
-        </div>
-        <div class="area-card-soon-badge">Soon</div>
+      <div class="user-stat">
+        <span class="user-stat-val" id="statPhotos">—</span>
+        <span class="user-stat-label">photos</span>
       </div>
-
-      <div class="area-card area-card-soon" onclick="showComingSoon()">
-        <div class="area-card-icon">❤️</div>
-        <div class="area-card-body">
-          <div class="area-card-title">Likes</div>
-          <div class="area-card-desc">Comments and places you've liked</div>
-        </div>
-        <div class="area-card-soon-badge">Soon</div>
-      </div>
-
     </div>
 
-    <!-- Coming soon popup -->
-    <div class="coming-soon-overlay" id="comingSoonOverlay" onclick="hideComingSoon()">
-      <div class="coming-soon-popup" onclick="event.stopPropagation()">
-        <div class="coming-soon-emoji">🚧</div>
-        <h2>Coming soon</h2>
-        <p class="muted">We're working on this. Check back shortly!</p>
-        <button class="tba-btn tba-btn-primary" onclick="hideComingSoon()">Got it</button>
-      </div>
+    <!-- ── TABS ── -->
+    <div class="user-tabs">
+      <button class="user-tab active" data-tab="votes"   onclick="switchTab('votes')">🗳️ Votes</button>
+      <button class="user-tab"        data-tab="places"  onclick="switchTab('places')">📍 My Places</button>
+      <button class="user-tab"        data-tab="comments" onclick="switchTab('comments')">💬 Comments</button>
+      <button class="user-tab"        data-tab="photos"  onclick="switchTab('photos')">📷 Photos</button>
+    </div>
+
+    <!-- ── ADMIN QUICK LINKS (dropisso only) ── -->
+    <div id="adminBar" style="display:none;" class="admin-quick-bar">
+      <a class="tba-btn tba-btn-ghost" href="admin.html" target="_blank">⚙️ Admin</a>
+      <a class="tba-btn tba-btn-ghost" href="traction-admin.html" target="_blank">📊 Traction</a>
+    </div>
+
+    <!-- ── TAB PANELS ── -->
+
+    <!-- VOTES -->
+    <div class="user-tab-panel active" id="panel-votes">
+      <p id="votesStatus" class="muted" style="font-size:13px;margin:8px 0;"></p>
+      <div id="votesByCategory"></div>
+    </div>
+
+    <!-- MY PLACES -->
+    <div class="user-tab-panel" id="panel-places">
+      <div id="placesList"></div>
+    </div>
+
+    <!-- COMMENTS -->
+    <div class="user-tab-panel" id="panel-comments">
+      <div id="commentsList"></div>
+    </div>
+
+    <!-- PHOTOS -->
+    <div class="user-tab-panel" id="panel-photos">
+      <div id="photosList" class="user-photos-grid"></div>
     </div>
 
   </main>
 
+  <!-- ══════════════════════════════════════════
+       EDIT PLACE MODAL
+  ══════════════════════════════════════════ -->
+  <div class="edit-modal-overlay" id="editModalOverlay" onclick="if(event.target===this)closeEditModal()">
+    <div class="edit-modal-box">
+
+      <div class="edit-modal-head">
+        <h2 class="edit-modal-title">Edit place</h2>
+        <button class="edit-modal-close" onclick="closeEditModal()">✕</button>
+      </div>
+
+      <div class="edit-modal-body">
+
+        <!-- Title -->
+        <div class="edit-field">
+          <label class="edit-label">Name</label>
+          <input class="edit-input" id="editTitle" type="text" placeholder="Place name" />
+        </div>
+
+        <!-- Category -->
+        <div class="edit-field">
+          <label class="edit-label">Category</label>
+          <select class="edit-input" id="editCategory"></select>
+        </div>
+
+        <!-- Address -->
+        <div class="edit-field">
+          <label class="edit-label">Address</label>
+          <input class="edit-input" id="editAddress" type="text" placeholder="Street address" />
+        </div>
+
+        <!-- Map pin -->
+        <div class="edit-field">
+          <label class="edit-label">
+            Pin location
+            <span class="edit-label-hint">Drag the pin or tap the map to move it</span>
+          </label>
+          <div id="editMap" class="edit-map"></div>
+          <p class="edit-coords-display" id="editCoordsDisplay"></p>
+        </div>
+
+      </div>
+
+      <div class="edit-modal-foot">
+        <p class="edit-status muted" id="editModalStatus"></p>
+        <div class="edit-modal-actions">
+          <button class="tba-btn" onclick="closeEditModal()">Cancel</button>
+          <button class="tba-btn tba-btn-primary" id="editSaveBtn" onclick="saveEditModal()">Save changes</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       DEACTIVATE CONFIRM MODAL
+  ══════════════════════════════════════════ -->
+  <div class="edit-modal-overlay" id="deactivateOverlay" onclick="if(event.target===this)closeDeactivate()">
+    <div class="edit-modal-box edit-modal-box--small">
+      <div class="edit-modal-head">
+        <h2 class="edit-modal-title">Deactivate place?</h2>
+        <button class="edit-modal-close" onclick="closeDeactivate()">✕</button>
+      </div>
+      <div class="edit-modal-body">
+        <p>This will remove <strong id="deactivateName"></strong> from the map and all lists. You can't undo this from here.</p>
+      </div>
+      <div class="edit-modal-foot">
+        <p class="edit-status muted" id="deactivateStatus"></p>
+        <div class="edit-modal-actions">
+          <button class="tba-btn" onclick="closeDeactivate()">Cancel</button>
+          <button class="tba-btn tba-btn-danger" id="deactivateConfirmBtn" onclick="confirmDeactivate()">Yes, deactivate</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
+  <script src="votes.js?v=3"></script>
+  <script src="user.js?v=8"></script>
 
   <script>
-  async function initUserPage() {
-    const user = await maybeUser();
-    if (!user) { window.location.href = "login.html"; return; }
-
-    const name = user.user_metadata?.display_name || user.email || "You";
-    document.getElementById("userName").textContent    = name;
-    document.getElementById("userAvatar").textContent  = name.charAt(0).toUpperCase();
-    document.title = `${name} — The Best Again`;
-
-    const joined = user.created_at
-      ? new Date(user.created_at).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-      : "";
-    if (joined) document.getElementById("userJoined").textContent = `Member since ${joined}`;
-
-    // Show admin card only for dropisso
-    if (user.email && user.email.toLowerCase().includes("dropisso")) {
-      document.getElementById("adminCard").style.display = "";
-      document.getElementById("tractionCard").style.display = "";
-    }
-  }
-
-  function showComingSoon() {
-    document.getElementById("comingSoonOverlay").classList.add("active");
-  }
-
-  function hideComingSoon() {
-    document.getElementById("comingSoonOverlay").classList.remove("active");
-  }
-
-  // Close on Escape
-  document.addEventListener("keydown", e => { if (e.key === "Escape") hideComingSoon(); });
-
   function toggleNav() {
     const nav = document.getElementById('mainNav');
     const btn = document.getElementById('burgerBtn');
@@ -198,6 +210,7 @@
       const btn = document.getElementById('burgerBtn');
       if (btn) btn.innerHTML = '&#9776;';
     }));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeEditModal(); closeDeactivate(); } });
   });
   </script>
 </body>
