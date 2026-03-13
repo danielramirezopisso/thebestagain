@@ -32,6 +32,10 @@ let FILTER_RATING_BUCKET = "";
 // Selection
 let SELECTED_ID = null;
 
+// Journey mode
+let JOURNEY_MODE = false;
+let MY_VOTED_IDS = new Set(); // marker IDs the current user has voted on
+
 function qs(id){ return document.getElementById(id); }
 
 function setMapStatus(msg) { qs("mapStatus").textContent = msg || ""; }
@@ -69,8 +73,8 @@ function colorClassForRating(avg, count) {
   return "rating-1-2";
 }
 
-function makeMarkerIcon(iconUrl, avg, count) {
-  const cls = colorClassForRating(avg, count);
+function makeMarkerIcon(iconUrl, avg, count, greyed) {
+  const cls = greyed ? "rating-none journey-unvisited" : colorClassForRating(avg, count);
   const url = iconUrl || DEFAULT_ICON_URL;
 
   return L.divIcon({
@@ -338,6 +342,13 @@ async function initMap() {
   const user = await maybeUser();
   if (!user) qs("addPanel").style.display = "none";
 
+  // Journey mode: show toggle only when logged in
+  if (user) {
+    const journeyBtn = document.getElementById("journeyToggleBtn");
+    if (journeyBtn) journeyBtn.style.display = "";
+    await refreshMyVotes(user.id);
+  }
+
   initRatingDropdown("m_rating", 7);
   renderRatingButtons();
 
@@ -431,6 +442,30 @@ async function initMap() {
   });
 }
 
+/* ══════════════════════════════════════════
+   JOURNEY MODE
+══════════════════════════════════════════ */
+async function refreshMyVotes(userId) {
+  if (!userId) return;
+  const { data } = await sb
+    .from("votes")
+    .select("marker_id")
+    .eq("user_id", userId)
+    .eq("is_active", true);
+  MY_VOTED_IDS = new Set((data || []).map(v => v.marker_id));
+}
+
+function toggleJourneyMode() {
+  JOURNEY_MODE = !JOURNEY_MODE;
+  const btn = document.getElementById("journeyToggleBtn");
+  if (btn) {
+    btn.classList.toggle("journey-active", JOURNEY_MODE);
+    btn.title = JOURNEY_MODE ? "Journey mode ON — showing your visited places" : "Switch to My Journey view";
+    btn.innerHTML = JOURNEY_MODE ? "🧭 My Journey" : "🌍 Discover";
+  }
+  reloadMarkers();
+}
+
 async function reloadMarkers() {
   setMapStatus("Loading places…");
 
@@ -460,7 +495,8 @@ async function reloadMarkers() {
     const iconUrl = getIconUrlForCategory(m.category_id);
     const avg = Number(m.rating_avg ?? 0);
     const cnt = Number(m.rating_count ?? 0);
-    const icon = makeMarkerIcon(iconUrl, avg, cnt);
+    const greyed = JOURNEY_MODE && !MY_VOTED_IDS.has(m.id);
+    const icon = makeMarkerIcon(iconUrl, avg, cnt, greyed);
 
     const mk = L.marker([m.lat, m.lon], { icon }).addTo(LAYER_GROUP);
 

@@ -347,3 +347,38 @@ body.products-page{
 
   .drawer { width: 100%; border-radius: var(--radius) var(--radius) 0 0; height: 85vh; }
 }
+
+/* ══════════════════════════════
+   JOURNEY MODE — products.css
+══════════════════════════════ */
+.journey-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.journey-toggle-btn:hover { border-color: var(--text); }
+.journey-toggle-btn.journey-active {
+  background: var(--text);
+  color: var(--page-bg);
+  border-color: var(--text);
+}
+
+a.item.journey-unvisited-item {
+  opacity: 0.3;
+  filter: grayscale(0.8);
+}
+a.item.journey-unvisited-item:hover {
+  opacity: 0.65;
+  filter: grayscale(0.3);
+}

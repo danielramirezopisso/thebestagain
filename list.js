@@ -15,6 +15,10 @@ let FILTER_SEARCH = "";
 let SORT_COL = "votes";     // "title" | "type" | "category" | "votes" | "rating"
 let SORT_DIR = "desc";      // "asc" | "desc"
 
+// Journey mode
+let JOURNEY_MODE_LIST = false;
+let MY_VOTED_IDS_LIST = new Set();
+
 function escapeHtml(s) {
   return String(s ?? "")
     .replaceAll("&", "&amp;")
@@ -264,6 +268,7 @@ function renderTable() {
           const dot       = dotColorFor(cls);
           const ratingTxt = cnt ? avg.toFixed(2) : "—";
           const votesTxt  = cnt ? String(cnt) : "—";
+          const unvisited = JOURNEY_MODE_LIST && !MY_VOTED_IDS_LIST.has(m.id);
 
           // Info column
           let info = "";
@@ -279,14 +284,14 @@ function renderTable() {
             : `<span class="type-tag type-tag-product">🛒 Product</span>`;
 
           return `
-            <tr onclick="window.location.href='marker.html?id=${encodeURIComponent(m.id)}'">
+            <tr class="${unvisited ? "journey-unvisited-row" : ""}" onclick="window.location.href='marker.html?id=${encodeURIComponent(m.id)}'">
               <td class="col-title"><b>${escapeHtml(m.title)}</b></td>
               <td class="col-type">${typeTag}</td>
               <td class="col-cat">${escapeHtml(cat)}</td>
               <td class="col-votes"><span class="rating-votes">${escapeHtml(votesTxt)}</span></td>
               <td class="col-rating">
                 <div class="rating-cell">
-                  <div class="rating-dot" style="background:${dot};"></div>
+                  <div class="rating-dot" style="background:${unvisited ? "var(--rule)" : dot};"></div>
                   <span class="rating-val">${escapeHtml(ratingTxt)}</span>
                 </div>
               </td>
@@ -296,6 +301,17 @@ function renderTable() {
       </tbody>
     </table>
   `;
+}
+
+/* ── JOURNEY MODE ── */
+function toggleJourneyModeList() {
+  JOURNEY_MODE_LIST = !JOURNEY_MODE_LIST;
+  const btn = document.getElementById("listJourneyBtn");
+  if (btn) {
+    btn.classList.toggle("journey-active", JOURNEY_MODE_LIST);
+    btn.innerHTML = JOURNEY_MODE_LIST ? "🧭 My Journey" : "🌍 Discover";
+  }
+  renderTable();
 }
 
 /* ── INIT ── */
@@ -332,6 +348,19 @@ async function initListPage() {
 
   if (error) { document.getElementById("listWrap").textContent = "Error: " + error.message; return; }
   ALL_MARKERS = data || [];
+
+  // Journey mode: load votes if logged in
+  const user = await maybeUser();
+  if (user) {
+    const { data: voteData } = await sb
+      .from("votes")
+      .select("marker_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true);
+    MY_VOTED_IDS_LIST = new Set((voteData || []).map(v => v.marker_id));
+    const btn = document.getElementById("listJourneyBtn");
+    if (btn) btn.style.display = "";
+  }
 
   renderCatChips();
   showClearIfNeeded();

@@ -18,6 +18,10 @@ let LANE_SORT = {};
 let DRAWER_CAT = null;
 let DRAWER_SORT = "desc";
 
+// journey mode
+let JOURNEY_MODE_PROD = false;
+let MY_VOTED_IDS_PROD = new Set();
+
 const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
 
 function qs(id){ return document.getElementById(id); }
@@ -281,8 +285,9 @@ function renderLane(catId, markersForCat){
 
   const itemsHtml = visible.map(m=>{
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
+    const unvisited = JOURNEY_MODE_PROD && !MY_VOTED_IDS_PROD.has(m.id);
     return `
-      <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}">
+      <a class="item${unvisited ? " journey-unvisited-item" : ""}" href="marker.html?id=${encodeURIComponent(m.id)}">
         <div class="item-left">
           ${brandIconSlotHtml(m.brand_id)}
           <div class="item-name">${escapeHtml(brand)}</div>
@@ -447,6 +452,16 @@ async function saveProduct(){
 }
 
 /* Init */
+function toggleJourneyModeProd() {
+  JOURNEY_MODE_PROD = !JOURNEY_MODE_PROD;
+  const btn = qs("prodJourneyBtn");
+  if (btn) {
+    btn.classList.toggle("journey-active", JOURNEY_MODE_PROD);
+    btn.innerHTML = JOURNEY_MODE_PROD ? "🧭 My Journey" : "🌍 Discover";
+  }
+  renderAll();
+}
+
 async function initProductsMasonryPage(){
   setStatus("Loading…");
   renderRatingButtons();
@@ -507,5 +522,18 @@ async function initProductsMasonryPage(){
 
   TOP_CATS = computeTopCategories();
   showClearIfNeeded();
+
+  // Journey mode: load votes if logged in
+  if (user) {
+    const { data: voteData } = await sb
+      .from("votes")
+      .select("marker_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true);
+    MY_VOTED_IDS_PROD = new Set((voteData || []).map(v => v.marker_id));
+    const btn = qs("prodJourneyBtn");
+    if (btn) btn.style.display = "";
+  }
+
   renderAll();
 }

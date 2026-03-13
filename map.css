@@ -110,6 +110,44 @@ body.map-page{
 }
 
 /* ══════════════════════════════
+   JOURNEY MODE
+══════════════════════════════ */
+.journey-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.journey-toggle-btn:hover {
+  border-color: var(--text);
+}
+.journey-toggle-btn.journey-active {
+  background: var(--text);
+  color: var(--page-bg);
+  border-color: var(--text);
+}
+
+/* Greyed-out unvisited marker in journey mode */
+.tba-marker.journey-unvisited {
+  opacity: 0.28;
+  filter: grayscale(1);
+}
+.tba-marker.journey-unvisited:hover {
+  opacity: 0.55;
+  filter: grayscale(0.5);
+}
+
+/* ══════════════════════════════
    MOBILE — map.css
 ══════════════════════════════ */
 @media (max-width: 768px) {
