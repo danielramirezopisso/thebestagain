@@ -91,8 +91,47 @@
 
     <!-- VOTES -->
     <div class="user-tab-panel active" id="panel-votes">
-      <p id="votesStatus" class="muted" style="font-size:13px;margin:8px 0;"></p>
-      <div id="votesByCategory"></div>
+      <!-- Normal view: read-only list by category -->
+      <div id="normalView">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin:10px 0 12px;">
+          <p id="votesStatus" class="muted" style="font-size:13px;margin:0;"></p>
+          <button class="tba-btn tba-btn-primary" onclick="enterEditMode()" style="font-size:13px;">✏️ Edit my votes</button>
+        </div>
+        <div id="votesByCategory"></div>
+      </div>
+
+      <!-- Edit view: sidebar + score cards + distribute -->
+      <div id="editView" style="display:none;">
+        <div class="edit-votes-header">
+          <h2 style="margin:0;font-size:17px;">Edit votes</h2>
+          <button class="tba-btn" onclick="exitEditMode()">← Back</button>
+        </div>
+        <div class="edit-votes-layout">
+          <!-- Sidebar: categories -->
+          <div class="edit-votes-sidebar">
+            <div class="edit-sidebar-title">Category</div>
+            <div id="editCatList"></div>
+          </div>
+          <!-- Main: cards + distribute + save -->
+          <div class="edit-votes-main">
+            <div id="distributeBar" class="distribute-bar" style="display:none;">
+              <span class="distribute-label">Distribute</span>
+              <input id="distTop"    class="distribute-input" type="number" min="1" max="10" step="0.5" placeholder="Top (e.g. 9)" />
+              <span class="distribute-sep">→</span>
+              <input id="distBottom" class="distribute-input" type="number" min="1" max="10" step="0.5" placeholder="Bottom (e.g. 6)" />
+              <button class="tba-btn" onclick="distributeScores()">Apply</button>
+              <span id="distributeStatus" class="muted" style="font-size:12px;"></span>
+            </div>
+            <div id="editEmptyState" class="edit-empty-state" style="display:none;">
+              <p class="muted">Select a category on the left to edit your votes.</p>
+            </div>
+            <div id="editCardsList" class="edit-cards-list"></div>
+            <div class="edit-votes-foot">
+              <button id="btnSaveVotes" class="tba-btn tba-btn-primary" onclick="saveVoteEdits()" disabled>Save changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- MY PLACES -->

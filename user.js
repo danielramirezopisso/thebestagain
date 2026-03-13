@@ -143,7 +143,7 @@ async function loadPlaces() {
   // Fetch markers first so we can filter photos/comments by marker_id
   const { data: markersData, error: markersErr } = await sb
     .from("markers")
-    .select("id,title,category_id,group_type,is_active,created_at,lat,lon,address,claimed_by")
+    .select("id,title,category_id,group_type,is_active,created_at,lat,lon,address")
     .eq("created_by", USER_ID)
     .order("created_at", { ascending: false });
 
@@ -199,8 +199,6 @@ async function loadPlaces() {
     const score    = voteMap[m.id];
     const photos   = photoCount[m.id]   || 0;
     const comments = commentCount[m.id] || 0;
-    const claimed  = !!m.claimed_by;
-
     const icon = cat?.icon_url
       ? `<img src="${esc(cat.icon_url)}" class="places-row-icon" alt="" />`
       : `<span class="places-row-icon-fallback">📍</span>`;
@@ -208,10 +206,6 @@ async function loadPlaces() {
     const scorePill = score != null
       ? `<span class="score-pill ${colorClass(score)}" style="font-size:12px;flex:0 0 auto;">${Number(score).toFixed(1)}</span>`
       : `<span class="places-no-vote" title="You haven't voted yet">—</span>`;
-
-    const claimedBadge = claimed
-      ? `<span class="places-claimed-badge" title="This place has been claimed by its business">🔒 Claimed</span>`
-      : "";
 
     const inactiveBadge = !m.is_active
       ? `<span class="places-inactive-badge">inactive</span>`
@@ -223,22 +217,19 @@ async function loadPlaces() {
         ${comments ? `<span class="places-counter" title="${comments} comment${comments>1?"s":""}">💬 ${comments}</span>` : ""}
       </span>` : "";
 
-    // Claimed places: show lock, no edit/deactivate
     const actions = !m.is_active
       ? `<div class="places-row-actions"><span class="muted" style="font-size:12px;padding:0 14px;">Deactivated</span></div>`
-      : claimed
-      ? `<div class="places-row-actions"><span class="places-action-locked" title="Claimed businesses cannot be edited">🔒</span></div>`
       : `<div class="places-row-actions">
           <button class="places-action-btn" onclick="openEditModal('${esc(m.id)}')" title="Edit">✏️ Edit</button>
           <button class="places-action-btn places-action-btn--danger" onclick="openDeactivate('${esc(m.id)}','${esc(m.title)}')" title="Remove">🗑 Remove</button>
         </div>`;
 
     return `
-      <div class="places-row${!m.is_active ? " places-row--inactive" : ""}${claimed ? " places-row--claimed" : ""}" data-id="${esc(m.id)}">
+      <div class="places-row${!m.is_active ? " places-row--inactive" : ""}" data-id="${esc(m.id)}">
         <a class="places-row-main" href="marker.html?id=${esc(m.id)}">
           ${icon}
           <div class="places-row-body">
-            <span class="places-row-title">${esc(m.title)} ${inactiveBadge} ${claimedBadge}</span>
+            <span class="places-row-title">${esc(m.title)} ${inactiveBadge}</span>
             <span class="places-row-sub">${esc(cat?.name || "")} · ${timeAgo(m.created_at)}</span>
             ${counters}
           </div>
@@ -503,7 +494,7 @@ async function loadPhotos() {
 
   const { data, error } = await sb
     .from("marker_photos")
-    .select("id,storage_path,caption,created_at,marker_id")
+    .select("id,storage_path,created_at,marker_id")
     .eq("user_id", USER_ID)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
@@ -529,7 +520,7 @@ async function loadPhotos() {
     const url = `${SUPABASE_URL_USER}/storage/v1/object/public/marker-photos/${p.storage_path}`;
     return `
       <a class="user-photo-tile" href="marker.html?id=${esc(p.marker_id)}">
-        <img src="${esc(url)}" alt="${esc(p.caption||"")}" loading="lazy" />
+        <img src="${esc(url)}" alt="" loading="lazy" />
         <div class="user-photo-label">${esc(titleMap[p.marker_id] || "")}</div>
       </a>`;
   }).join("");

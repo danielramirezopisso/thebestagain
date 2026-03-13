@@ -46,42 +46,30 @@
       <span id="listCount" class="list-count muted"></span>
     </div>
 
-    <!-- FILTERS -->
-    <div id="listFilterWrap">
-      <button class="filter-toggle-btn" id="listFilterToggle" style="display:none;">
-        Filters <span class="filter-toggle-arrow">▼</span>
-      </button>
-      <section class="card filter-card filter-collapsible open" id="listFilterBody">
-
-      <!-- Row 1: Search + Type toggle -->
-      <div class="filter-row">
+    <!-- FILTERS — compact single bar -->
+    <div id="listFilterWrap" class="list-filter-bar">
+      <div class="list-filter-row">
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
-          <input id="searchInput" class="search-input" placeholder="Search title, brand, address…" oninput="applyListFilters()" />
+          <input id="searchInput" class="search-input" placeholder="Search…" oninput="applyListFilters()" />
         </div>
         <div class="type-toggle">
           <button class="type-btn active" data-type="" onclick="setTypeFilter(this, '')">All</button>
           <button class="type-btn" data-type="place" onclick="setTypeFilter(this, 'place')">📍 Places</button>
           <button class="type-btn" data-type="product" onclick="setTypeFilter(this, 'product')">🛒 Products</button>
         </div>
-      </div>
-
-      <!-- Row 2: Category chips -->
-      <div class="filter-row filter-row-chips">
-        <div class="filter-label">Category</div>
-        <div id="catChips" class="chip-row"></div>
-      </div>
-
-      <!-- Row 3: Rating + Clear -->
-      <div class="filter-row">
-        <div class="filter-label">Rating</div>
+        <div id="catChips" class="chip-row list-cat-chips"></div>
         <div id="ratingSeg" class="seg-row"></div>
-        <button id="btnClearFilters" class="chip chip-clear" style="display:none; margin-left:auto;" onclick="clearListFilters()">✕ Clear all</button>
-        <button id="listJourneyBtn" class="journey-toggle-btn" onclick="toggleJourneyModeList()" style="display:none;" title="Toggle My Journey view">🌍 Discover</button>
+        <button id="btnClearFilters" class="chip chip-clear" style="display:none;" onclick="clearListFilters()">✕ Clear</button>
+        <div class="journey-inline-toggle" id="listJourneyWrap" style="display:none;">
+          <div class="journey-float-toggle" onclick="toggleJourneyModeList()">
+            <span class="journey-opt journey-opt-active" id="listJOptDiscover">🌍 Discover</span>
+            <span class="journey-divider">|</span>
+            <span class="journey-opt" id="listJOptJourney">🧭 My Journey</span>
+          </div>
+        </div>
       </div>
-
-      </section>
-    </div><!-- /listFilterWrap -->
+    </div>
 
     <!-- TABLE -->
     <section class="card table-card">

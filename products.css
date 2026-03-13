@@ -49,10 +49,14 @@ body.products-page{
   overflow:auto;
   padding-right: 6px;
 
-  /* CSS columns — true masonry: each card sits directly below the previous */
+  /* CSS columns — true masonry, max 3 columns */
   column-count: 3;
   column-gap: 10px;
   align-content: start;
+}
+/* Prevent 4-col effect on very wide viewports */
+@media (min-width: 1400px) {
+  .lanes-grid { column-count: 3; }
 }
 
 /* lane card */
@@ -351,34 +355,45 @@ body.products-page{
 /* ══════════════════════════════
    JOURNEY MODE — products.css
 ══════════════════════════════ */
-.journey-toggle-btn {
+/* two-label toggle */
+.journey-inline-toggle { flex-shrink: 0; }
+.journey-float-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 99px;
-  background: var(--card);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
+  padding: 4px 5px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  gap: 0;
+}
+.journey-float-toggle:hover { border-color: var(--text); }
+.journey-opt {
+  padding: 3px 10px;
+  border-radius: 99px;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.journey-toggle-btn:hover { border-color: var(--text); }
-.journey-toggle-btn.journey-active {
+.journey-opt-active {
   background: var(--text);
   color: var(--page-bg);
-  border-color: var(--text);
+}
+.journey-divider {
+  color: var(--rule);
+  font-size: 10px;
+  padding: 0 1px;
 }
 
 a.item.journey-unvisited-item {
-  opacity: 0.3;
-  filter: grayscale(0.8);
+  opacity: 0.38;
+  filter: grayscale(0.7) brightness(1.1);
 }
 a.item.journey-unvisited-item:hover {
-  opacity: 0.65;
-  filter: grayscale(0.3);
+  opacity: 0.7;
+  filter: grayscale(0.2);
 }

@@ -279,7 +279,16 @@ function renderLane(catId, markersForCat){
   const name = cat?.name || String(catId);
   const icon = iconForCategory(catId);
   const dir = LANE_SORT[catId] || "desc";
-  const sorted = sortMarkers(markersForCat.slice(), dir);
+
+  let sorted = sortMarkers(markersForCat.slice(), dir);
+
+  // Journey mode: voted items first, then unvoted
+  if (JOURNEY_MODE_PROD && MY_VOTED_IDS_PROD.size > 0) {
+    const voted   = sorted.filter(m =>  MY_VOTED_IDS_PROD.has(m.id));
+    const unvoted = sorted.filter(m => !MY_VOTED_IDS_PROD.has(m.id));
+    sorted = [...voted, ...unvoted];
+  }
+
   const visible = sorted.slice(0, 5);
   const hasMore = sorted.length > 5;
 
@@ -452,13 +461,17 @@ async function saveProduct(){
 }
 
 /* Init */
+function updateJourneyToggleUIProd() {
+  const d = document.getElementById("prodJOptDiscover");
+  const j = document.getElementById("prodJOptJourney");
+  if (!d || !j) return;
+  d.classList.toggle("journey-opt-active", !JOURNEY_MODE_PROD);
+  j.classList.toggle("journey-opt-active", JOURNEY_MODE_PROD);
+}
+
 function toggleJourneyModeProd() {
   JOURNEY_MODE_PROD = !JOURNEY_MODE_PROD;
-  const btn = qs("prodJourneyBtn");
-  if (btn) {
-    btn.classList.toggle("journey-active", JOURNEY_MODE_PROD);
-    btn.innerHTML = JOURNEY_MODE_PROD ? "🧭 My Journey" : "🌍 Discover";
-  }
+  updateJourneyToggleUIProd();
   renderAll();
 }
 
@@ -531,8 +544,8 @@ async function initProductsMasonryPage(){
       .eq("user_id", user.id)
       .eq("is_active", true);
     MY_VOTED_IDS_PROD = new Set((voteData || []).map(v => v.marker_id));
-    const btn = qs("prodJourneyBtn");
-    if (btn) btn.style.display = "";
+    const wrap = qs("prodJourneyWrap");
+    if (wrap) wrap.style.display = "";
   }
 
   renderAll();

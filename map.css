@@ -110,41 +110,76 @@ body.map-page{
 }
 
 /* ══════════════════════════════
-   JOURNEY MODE
+   JOURNEY FLOAT TOGGLE — map
 ══════════════════════════════ */
-.journey-toggle-btn {
+.journey-float-wrap {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 800;
+  pointer-events: none;
+}
+.journey-float-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
+  gap: 0;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 99px;
-  background: var(--card);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  padding: 5px 6px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  pointer-events: all;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  transition: box-shadow 0.15s;
+}
+.journey-float-toggle:hover {
+  box-shadow: 0 4px 18px rgba(0,0,0,0.2);
+}
+.journey-opt {
+  padding: 4px 12px;
+  border-radius: 99px;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.journey-toggle-btn:hover {
-  border-color: var(--text);
-}
-.journey-toggle-btn.journey-active {
+.journey-opt-active {
   background: var(--text);
   color: var(--page-bg);
-  border-color: var(--text);
+}
+.journey-divider {
+  color: var(--rule);
+  font-size: 11px;
+  padding: 0 2px;
+  pointer-events: none;
 }
 
-/* Greyed-out unvisited marker in journey mode */
+/* Greyed-out unvisited marker in journey mode — soft, still tappable */
 .tba-marker.journey-unvisited {
-  opacity: 0.28;
-  filter: grayscale(1);
+  opacity: 0.55;
+  filter: grayscale(1) brightness(1.15);
 }
 .tba-marker.journey-unvisited:hover {
-  opacity: 0.55;
-  filter: grayscale(0.5);
+  opacity: 0.8;
+  filter: grayscale(0.4) brightness(1.05);
+  transform: scale(1.06);
+}
+
+/* Mobile: move journey toggle up slightly from bottom nav */
+@media (max-width: 768px) {
+  .journey-float-wrap {
+    bottom: 18px;
+  }
+  .journey-float-toggle {
+    font-size: 12px;
+  }
+  .journey-opt {
+    padding: 4px 9px;
+  }
 }
 
 /* ══════════════════════════════

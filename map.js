@@ -344,8 +344,9 @@ async function initMap() {
 
   // Journey mode: show toggle only when logged in
   if (user) {
-    const journeyBtn = document.getElementById("journeyToggleBtn");
-    if (journeyBtn) journeyBtn.style.display = "";
+    const wrap = document.getElementById("journeyFloatWrap");
+    if (wrap) wrap.style.display = "";
+    updateJourneyToggleUI();
     await refreshMyVotes(user.id);
   }
 
@@ -455,14 +456,17 @@ async function refreshMyVotes(userId) {
   MY_VOTED_IDS = new Set((data || []).map(v => v.marker_id));
 }
 
+function updateJourneyToggleUI() {
+  const d = document.getElementById("jOptDiscover");
+  const j = document.getElementById("jOptJourney");
+  if (!d || !j) return;
+  d.classList.toggle("journey-opt-active", !JOURNEY_MODE);
+  j.classList.toggle("journey-opt-active", JOURNEY_MODE);
+}
+
 function toggleJourneyMode() {
   JOURNEY_MODE = !JOURNEY_MODE;
-  const btn = document.getElementById("journeyToggleBtn");
-  if (btn) {
-    btn.classList.toggle("journey-active", JOURNEY_MODE);
-    btn.title = JOURNEY_MODE ? "Journey mode ON — showing your visited places" : "Switch to My Journey view";
-    btn.innerHTML = JOURNEY_MODE ? "🧭 My Journey" : "🌍 Discover";
-  }
+  updateJourneyToggleUI();
   reloadMarkers();
 }
 

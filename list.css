@@ -20,38 +20,33 @@
 }
 
 /* Filter card */
-.filter-card {
-  margin-bottom: 14px;
-  padding: 12px 16px;
+/* ── Compact filter bar (single row) ── */
+.list-filter-bar {
+  margin-bottom: 12px;
+}
+.list-filter-row {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  border-bottom: 1px solid var(--rule);
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  padding: 8px 12px;
 }
+.list-cat-chips {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  flex-wrap: nowrap !important;
+  scrollbar-width: none;
+}
+.list-cat-chips::-webkit-scrollbar { display: none; }
 
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.filter-row-chips {
-  align-items: flex-start;
-}
-
-.filter-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  min-width: 48px;
-}
+/* keep old names harmless if referenced anywhere */
+.filter-card { display: none; }
+.filter-row  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.filter-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
 
 /* Search */
 .search-wrap {
@@ -204,35 +199,47 @@
 /* ══════════════════════════════
    JOURNEY MODE — list.css
 ══════════════════════════════ */
-.journey-toggle-btn {
+.journey-inline-toggle { flex-shrink: 0; }
+
+/* shared two-label toggle (same shape as map float, no shadow) */
+.journey-float-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 99px;
-  background: var(--card);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
+  padding: 4px 5px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-  white-space: nowrap;
-  margin-left: 8px;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  gap: 0;
 }
-.journey-toggle-btn:hover { border-color: var(--text); }
-.journey-toggle-btn.journey-active {
+.journey-float-toggle:hover { border-color: var(--text); }
+.journey-opt {
+  padding: 3px 10px;
+  border-radius: 99px;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.journey-opt-active {
   background: var(--text);
   color: var(--page-bg);
-  border-color: var(--text);
+}
+.journey-divider {
+  color: var(--rule);
+  font-size: 10px;
+  padding: 0 1px;
 }
 
-tr.journey-unvisited-row {
-  opacity: 0.35;
-  filter: grayscale(0.7);
+/* unvisited rows — soft grey, still readable */
+tr.journey-unvisited-row td {
+  opacity: 0.4;
+  filter: grayscale(0.6);
 }
-tr.journey-unvisited-row:hover {
-  opacity: 0.65;
-  filter: grayscale(0.3);
+tr.journey-unvisited-row:hover td {
+  opacity: 0.7;
+  filter: grayscale(0.2);
 }

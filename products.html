@@ -67,7 +67,13 @@
 
       <div class="toolbar-right">
         <span id="pageStatus" class="muted"></span>
-        <button id="prodJourneyBtn" class="journey-toggle-btn" onclick="toggleJourneyModeProd()" style="display:none;" title="Toggle My Journey view">🌍 Discover</button>
+        <div class="journey-inline-toggle" id="prodJourneyWrap" style="display:none;">
+          <div class="journey-float-toggle" onclick="toggleJourneyModeProd()">
+            <span class="journey-opt journey-opt-active" id="prodJOptDiscover">🌍 Discover</span>
+            <span class="journey-divider">|</span>
+            <span class="journey-opt" id="prodJOptJourney">🧭 My Journey</span>
+          </div>
+        </div>
         <span class="request-link" onclick="openTraction('requestCategory', null)">💡 Suggest category</span>
         <span class="request-link" onclick="openTraction('requestBrand', null)">🏷️ Suggest brand</span>
       </div>

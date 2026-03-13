@@ -374,3 +374,73 @@
 }
 
 /* ── Edit vote button ── */
+
+/* ══════════════════════════════════════════
+   EDIT VOTES LAYOUT (injected into user.html panel)
+══════════════════════════════════════════ */
+.edit-votes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 16px;
+}
+
+.edit-votes-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  min-height: 400px;
+}
+
+.edit-votes-sidebar {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: hidden;
+  height: fit-content;
+}
+
+.edit-sidebar-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 10px 14px 6px;
+}
+
+.edit-votes-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.edit-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-votes-foot {
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.edit-empty-state {
+  padding: 32px 20px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .edit-votes-layout {
+    grid-template-columns: 1fr;
+  }
+  .edit-votes-sidebar {
+    height: auto;
+  }
+}

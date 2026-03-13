@@ -70,9 +70,6 @@
 
       <div class="toolbar-right">
         <span id="mapStatus" class="muted"></span>
-        <button id="journeyToggleBtn" class="journey-toggle-btn" onclick="toggleJourneyMode()" title="Switch to My Journey view" style="display:none;">
-          🌍 Discover
-        </button>
         <span class="request-link" onclick="openTraction('requestCategory', null)">💡 Suggest a place category</span>
       </div>
     </section>
@@ -98,6 +95,14 @@
 
     <!-- MAP AREA -->
     <section class="map-area">
+      <!-- Floating journey toggle — shown only when logged in -->
+      <div class="journey-float-wrap" id="journeyFloatWrap" style="display:none;">
+        <div class="journey-float-toggle" id="journeyToggleBtn" onclick="toggleJourneyMode()">
+          <span class="journey-opt" id="jOptDiscover">🌍 Discover</span>
+          <span class="journey-divider">|</span>
+          <span class="journey-opt" id="jOptJourney">🧭 My Journey</span>
+        </div>
+      </div>
       <!-- Add panel (moved to RIGHT) -->
       <div class="map-panel map-panel-add" id="addPanel">
         <div class="panel-title">Add a place</div>

@@ -229,8 +229,15 @@ function thClass(col) {
 }
 
 function renderTable() {
-  const filtered = filterRows(ALL_MARKERS);
-  const sorted   = sortRows(filtered);
+  let filtered = filterRows(ALL_MARKERS);
+  let sorted   = sortRows(filtered);
+
+  // Journey mode: voted items first (by score desc), then unvoted (by rating desc)
+  if (JOURNEY_MODE_LIST && MY_VOTED_IDS_LIST.size > 0) {
+    const voted   = sorted.filter(m =>  MY_VOTED_IDS_LIST.has(m.id));
+    const unvoted = sorted.filter(m => !MY_VOTED_IDS_LIST.has(m.id));
+    sorted = [...voted, ...unvoted];
+  }
 
   setCount(sorted.length, ALL_MARKERS.length);
 
@@ -304,13 +311,17 @@ function renderTable() {
 }
 
 /* ── JOURNEY MODE ── */
+function updateJourneyToggleUIList() {
+  const d = document.getElementById("listJOptDiscover");
+  const j = document.getElementById("listJOptJourney");
+  if (!d || !j) return;
+  d.classList.toggle("journey-opt-active", !JOURNEY_MODE_LIST);
+  j.classList.toggle("journey-opt-active", JOURNEY_MODE_LIST);
+}
+
 function toggleJourneyModeList() {
   JOURNEY_MODE_LIST = !JOURNEY_MODE_LIST;
-  const btn = document.getElementById("listJourneyBtn");
-  if (btn) {
-    btn.classList.toggle("journey-active", JOURNEY_MODE_LIST);
-    btn.innerHTML = JOURNEY_MODE_LIST ? "🧭 My Journey" : "🌍 Discover";
-  }
+  updateJourneyToggleUIList();
   renderTable();
 }
 
@@ -358,8 +369,15 @@ async function initListPage() {
       .eq("user_id", user.id)
       .eq("is_active", true);
     MY_VOTED_IDS_LIST = new Set((voteData || []).map(v => v.marker_id));
-    const btn = document.getElementById("listJourneyBtn");
-    if (btn) btn.style.display = "";
+    const wrap = document.getElementById("listJourneyWrap");
+    if (wrap) wrap.style.display = "";
+  }
+
+  // Read URL param ?category=X from home page chip clicks
+  const urlCat = new URLSearchParams(window.location.search).get("category");
+  if (urlCat) {
+    const catId = parseInt(urlCat);
+    if (!isNaN(catId)) FILTER_CATEGORY = catId;
   }
 
   renderCatChips();
