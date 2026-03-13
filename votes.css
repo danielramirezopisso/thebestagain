@@ -235,9 +235,9 @@
 /* ── VOTE CARDS ── */
 .edit-vote-card {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
   background: #fff;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -250,13 +250,21 @@
   box-shadow: 0 4px 14px rgba(245,158,11,0.12);
 }
 
+/* Top row: rank + title + score */
+.edit-vote-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .edit-vote-rank {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: rgba(0,0,0,0.06);
   border: 1px solid var(--rule);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   display: grid;
   place-items: center;
@@ -277,11 +285,11 @@
 /* Score badge — colored pill */
 .edit-vote-score {
   flex: 0 0 auto;
-  min-width: 44px;
-  padding: 4px 10px;
+  min-width: 40px;
+  padding: 3px 8px;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
   text-align: center;
   border: 2px solid transparent;
 }
@@ -292,16 +300,17 @@
 .edit-vote-score.rating-1-2  { background: rgba(255,59,48,0.10);  border-color: rgba(255,59,48,0.35);  color: #cc1a10; }
 .edit-vote-score.rating-none { background: rgba(0,0,0,0.05);      border-color: rgba(0,0,0,0.15);      color: #999;    }
 
-/* Vote buttons */
+/* Bottom row: buttons always get full width, never wrap */
 .edit-vote-btns {
   display: flex;
   gap: 4px;
-  flex-wrap: wrap;
-  max-width: 100%;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 .edit-vote-btn {
-  width: 32px;
-  height: 32px;
+  flex: 1;          /* equal width, fill the row */
+  min-width: 0;
+  height: 30px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #fff;
@@ -313,12 +322,12 @@
   transition: background .07s, transform .07s;
   box-shadow: var(--shadow);
 }
-.edit-vote-btn:hover { transform: none; box-shadow: var(--shadow); }
+.edit-vote-btn:hover { background: var(--accent-bg); box-shadow: var(--shadow); }
 .edit-vote-btn.selected {
   background: var(--text);
   color: #fff;
   border-color: var(--text);
-  transform: scale(1.10);
+  transform: scale(1.08);
   box-shadow: var(--shadow);
 }
 
@@ -345,25 +354,13 @@
 
   .edit-panel { overflow: visible; height: auto; }
 
-  /* Vote buttons: wrap properly */
+  /* Vote buttons: still nowrap on mobile — flex:1 handles it */
   .edit-vote-btns {
-    flex-wrap: wrap;
     gap: 3px;
-    max-width: 100%;
   }
   .edit-vote-btn {
-    width: 28px;
     height: 28px;
     font-size: 11px;
-    flex: 0 0 auto;
-  }
-  /* edit card: allow wrapping so buttons don't overflow */
-  .edit-vote-card {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .edit-vote-score {
-    flex-shrink: 0;
   }
 
   /* Distribute tool */

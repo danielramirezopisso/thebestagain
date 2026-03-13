@@ -235,22 +235,27 @@ function renderEditCards() {
     div.className  = "edit-vote-card" + (isPending ? " is-pending" : "");
     div.dataset.idx = idx;
 
-    // Rank
+    // Top row: rank + title + score
+    const topRow      = document.createElement("div");
+    topRow.className  = "edit-vote-top";
+
     const rankEl      = document.createElement("div");
     rankEl.className  = "edit-vote-rank";
     rankEl.textContent = String(idx + 1);
 
-    // Title
     const titleEl      = document.createElement("div");
     titleEl.className  = "edit-vote-title";
     titleEl.textContent = card.title;
 
-    // Score badge
     const scoreEl      = document.createElement("div");
     scoreEl.className  = `edit-vote-score ${cls}`;
     scoreEl.textContent = effectiveScore !== null ? Number(effectiveScore).toFixed(1) : "—";
 
-    // Vote buttons 1–10
+    topRow.appendChild(rankEl);
+    topRow.appendChild(titleEl);
+    topRow.appendChild(scoreEl);
+
+    // Bottom row: 1–10 buttons spanning full width
     const btnWrap     = document.createElement("div");
     btnWrap.className = "edit-vote-btns";
     for (let i = 1; i <= 10; i++) {
@@ -263,9 +268,7 @@ function renderEditCards() {
       btnWrap.appendChild(btn);
     }
 
-    div.appendChild(rankEl);
-    div.appendChild(titleEl);
-    div.appendChild(scoreEl);
+    div.appendChild(topRow);
     div.appendChild(btnWrap);
     host.appendChild(div);
   });
