@@ -140,12 +140,27 @@ async function loadPlaces() {
   const host = document.getElementById("placesList");
   host.innerHTML = `<p class="muted" style="padding:20px 0;">Loading…</p>`;
 
-  // Fetch everything in parallel
-  const [markersRes, votesRes, catsRes, photosRes, commentsRes] = await Promise.all([
-    sb.from("markers")
-      .select("id,title,category_id,group_type,is_active,created_at,lat,lon,address,claimed_by")
-      .eq("created_by", USER_ID)
-      .order("created_at", { ascending: false }),
+  // Fetch markers first so we can filter photos/comments by marker_id
+  const { data: markersData, error: markersErr } = await sb
+    .from("markers")
+    .select("id,title,category_id,group_type,is_active,created_at,lat,lon,address,claimed_by")
+    .eq("created_by", USER_ID)
+    .order("created_at", { ascending: false });
+
+  if (markersErr || !markersData?.length) {
+    host.innerHTML = `
+      <div class="user-empty">
+        <div class="user-empty-icon">📍</div>
+        <p>${markersErr ? "Error loading places. " + markersErr.message : "You haven't added any places yet."}</p>
+        <a href="map.html" class="tba-btn tba-btn-primary" style="margin-top:12px;">Open Map to add</a>
+      </div>`;
+    return;
+  }
+
+  const markerIds = markersData.map(m => m.id);
+
+  // Now fetch everything else in parallel, scoped to user's markers
+  const [votesRes, catsRes, photosRes, commentsRes] = await Promise.all([
     sb.from("votes")
       .select("marker_id,vote")
       .eq("user_id", USER_ID)
@@ -156,32 +171,24 @@ async function loadPlaces() {
       .order("name"),
     sb.from("marker_photos")
       .select("marker_id")
+      .in("marker_id", markerIds)
       .eq("is_active", true),
     sb.from("comments")
       .select("marker_id")
+      .in("marker_id", markerIds)
       .eq("is_active", true),
   ]);
 
   CATEGORIES_CACHE = catsRes.data || [];
   const catMap      = Object.fromEntries(CATEGORIES_CACHE.map(c => [c.id, c]));
   const voteMap     = Object.fromEntries((votesRes.data || []).map(v => [v.marker_id, v.vote]));
-  const markers     = markersRes.data || [];
+  const markers     = markersData;
 
   // Build photo + comment count maps (all markers, not just mine — filtered later)
   const photoCount   = {};
   const commentCount = {};
   (photosRes.data   || []).forEach(p => { photoCount[p.marker_id]   = (photoCount[p.marker_id]   || 0) + 1; });
   (commentsRes.data || []).forEach(c => { commentCount[c.marker_id] = (commentCount[c.marker_id] || 0) + 1; });
-
-  if (markersRes.error || !markers.length) {
-    host.innerHTML = `
-      <div class="user-empty">
-        <div class="user-empty-icon">📍</div>
-        <p>${markersRes.error ? "Error loading places." : "You haven't added any places yet."}</p>
-        <a href="map.html" class="tba-btn tba-btn-primary" style="margin-top:12px;">Open Map to add</a>
-      </div>`;
-    return;
-  }
 
   // Separate active vs inactive
   const active   = markers.filter(m => m.is_active);
@@ -324,18 +331,17 @@ function initEditMap(lat, lng) {
 
   EDIT_MAP_INST = L.map("editMap", { zoomControl: true }).setView([lat, lng], 16);
 
-  // Update hint text
   const hint = document.getElementById("editMapHint");
   if (hint) hint.textContent = isTouchDevice
     ? "Tap the map to place the pin"
-    : "Drag the pin or click the map to move it";
+    : "Click the map or drag the pin to move it";
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap",
     maxZoom: 19,
   }).addTo(EDIT_MAP_INST);
 
-  // Draggable only on desktop; tap-to-place on mobile
+  // Draggable on desktop; fixed on mobile (tap-to-place handles it)
   EDIT_PIN = L.marker([lat, lng], { draggable: !isTouchDevice }).addTo(EDIT_MAP_INST);
 
   if (!isTouchDevice) {
@@ -348,7 +354,7 @@ function initEditMap(lat, lng) {
     });
   }
 
-  // Tap/click always moves pin (works on both desktop and mobile)
+  // Click/tap always moves pin too
   EDIT_MAP_INST.on("click", e => {
     EDIT_LAT = e.latlng.lat;
     EDIT_LNG = e.latlng.lng;
@@ -357,7 +363,6 @@ function initEditMap(lat, lng) {
       `${EDIT_LAT.toFixed(5)}, ${EDIT_LNG.toFixed(5)}`;
   });
 
-  // Fix Leaflet tile render inside modal
   setTimeout(() => EDIT_MAP_INST.invalidateSize(), 150);
 }
 
@@ -459,7 +464,7 @@ async function loadComments() {
 
   const { data, error } = await sb
     .from("comments")
-    .select("id,body,created_at,marker_id,is_active,markers(title)")
+    .select("id,body,created_at,marker_id,is_active")
     .eq("user_id", USER_ID)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
@@ -468,15 +473,20 @@ async function loadComments() {
     host.innerHTML = `
       <div class="user-empty">
         <div class="user-empty-icon">💬</div>
-        <p>${error ? "Error loading comments." : "No comments yet."}</p>
+        <p>${error ? "Error loading comments: " + error.message : "No comments yet."}</p>
       </div>`;
     return;
   }
 
+  // Fetch marker titles separately
+  const mids = [...new Set(data.map(c => c.marker_id))];
+  const { data: mData } = await sb.from("markers").select("id,title").in("id", mids);
+  const titleMap = Object.fromEntries((mData || []).map(m => [m.id, m.title]));
+
   host.innerHTML = data.map(c => `
     <a class="user-comment-row" href="marker.html?id=${esc(c.marker_id)}">
       <div class="user-comment-meta">
-        <span class="user-comment-place">${esc(c.markers?.title || "Unknown place")}</span>
+        <span class="user-comment-place">${esc(titleMap[c.marker_id] || "Unknown place")}</span>
         <span class="user-comment-time muted">${timeAgo(c.created_at)}</span>
       </div>
       <p class="user-comment-body">${esc(c.body)}</p>
@@ -493,7 +503,7 @@ async function loadPhotos() {
 
   const { data, error } = await sb
     .from("marker_photos")
-    .select("id,storage_path,caption,created_at,marker_id,markers(title)")
+    .select("id,storage_path,caption,created_at,marker_id")
     .eq("user_id", USER_ID)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
@@ -502,17 +512,25 @@ async function loadPhotos() {
     host.innerHTML = `
       <div class="user-empty">
         <div class="user-empty-icon">📷</div>
-        <p>${error ? "Error loading photos." : "No photos yet."}</p>
+        <p>${error ? "Error loading photos: " + error.message : "No photos yet."}</p>
       </div>`;
     return;
   }
+
+  // Fetch marker titles for the photos we have
+  const mids = [...new Set(data.map(p => p.marker_id))];
+  const { data: mData } = await sb
+    .from("markers")
+    .select("id,title")
+    .in("id", mids);
+  const titleMap = Object.fromEntries((mData || []).map(m => [m.id, m.title]));
 
   host.innerHTML = data.map(p => {
     const url = `${SUPABASE_URL_USER}/storage/v1/object/public/marker-photos/${p.storage_path}`;
     return `
       <a class="user-photo-tile" href="marker.html?id=${esc(p.marker_id)}">
         <img src="${esc(url)}" alt="${esc(p.caption||"")}" loading="lazy" />
-        <div class="user-photo-label">${esc(p.markers?.title || "")}</div>
+        <div class="user-photo-label">${esc(titleMap[p.marker_id] || "")}</div>
       </a>`;
   }).join("");
 }
