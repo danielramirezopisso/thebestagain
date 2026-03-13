@@ -25,6 +25,16 @@ body.map-page{
   box-shadow:none;
 }
 
+/* Suggest links — visually separated from filter controls */
+.toolbar-suggest {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  margin-left: 4px;
+  border-left: 1px solid var(--rule);
+}
+
 .select-compact{
   width:160px;
   padding:8px 10px;

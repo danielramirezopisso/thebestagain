@@ -11,6 +11,9 @@ body.products-page{
   flex-direction: column;
   gap: 8px;
   padding: 8px 20px 12px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* toolbar */
@@ -24,6 +27,16 @@ body.products-page{
   background:var(--card);
   padding:10px 14px;
   box-shadow:none;
+}
+
+/* Suggest links — visually separated from filter controls */
+.toolbar-suggest {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  margin-left: 4px;
+  border-left: 1px solid var(--rule);
 }
 
 .select-compact{
@@ -49,14 +62,14 @@ body.products-page{
   overflow:auto;
   padding-right: 6px;
 
-  /* CSS columns — true masonry, max 3 columns */
+  /* column-width caps at ~3 columns naturally on any viewport */
   column-count: 3;
+  column-width: 220px;
   column-gap: 10px;
   align-content: start;
 }
-/* Prevent 4-col effect on very wide viewports */
 @media (min-width: 1400px) {
-  .lanes-grid { column-count: 3; }
+  .lanes-grid { column-count: 3; column-width: 260px; }
 }
 
 /* lane card */

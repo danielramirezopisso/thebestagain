@@ -51,7 +51,8 @@ function setTypeFilter(btn, type) {
 
 /* ── CATEGORY CHIPS ── */
 function renderCatChips() {
-  const host = document.getElementById("catChips");
+  const host    = document.getElementById("catChips");
+  const moreEl  = document.getElementById("catMore");
   host.innerHTML = "";
 
   // Filter categories to match current type filter
@@ -59,7 +60,11 @@ function renderCatChips() {
   if (FILTER_TYPE === "place")   cats = cats.filter(c => c.for_places);
   if (FILTER_TYPE === "product") cats = cats.filter(c => c.for_products);
 
-  cats.forEach(c => {
+  const TOP_N   = 5;
+  const topCats = cats.slice(0, TOP_N);
+  const moreCats = cats.slice(TOP_N);
+
+  topCats.forEach(c => {
     const btn = document.createElement("button");
     btn.className = "chip" + (FILTER_CATEGORY === c.id ? " active" : "");
     btn.onclick = () => {
@@ -68,13 +73,29 @@ function renderCatChips() {
       showClearIfNeeded();
       renderTable();
     };
-
     const icon = c.icon_url
       ? `<img class="chip-ic" src="${escapeHtml(c.icon_url)}" alt="" />`
       : "";
     btn.innerHTML = `${icon}<span>${escapeHtml(c.name)}</span>`;
     host.appendChild(btn);
   });
+
+  // Populate "More…" select
+  if (moreEl) {
+    moreEl.style.display = moreCats.length ? "" : "none";
+    moreEl.innerHTML = `<option value="">More…</option>` +
+      moreCats.map(c => `<option value="${c.id}"${FILTER_CATEGORY === c.id ? " selected" : ""}>${escapeHtml(c.name)}</option>`).join("");
+  }
+}
+
+function onCatMoreChanged() {
+  const sel = document.getElementById("catMore");
+  if (!sel) return;
+  const val = sel.value;
+  FILTER_CATEGORY = val ? parseInt(val) : "";
+  renderCatChips();
+  showClearIfNeeded();
+  renderTable();
 }
 
 /* ── RATING BUTTONS ── */

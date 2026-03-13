@@ -20,32 +20,39 @@
 }
 
 /* Filter card */
-/* ── Compact filter bar (single row) ── */
+/* ── Compact filter bar (two rows) ── */
 .list-filter-bar {
   margin-bottom: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .list-filter-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
+}
+.list-filter-row--bottom {
   flex-wrap: wrap;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px 12px;
+}
+.list-filter-spacer {
+  flex: 1;
 }
 .list-cat-chips {
-  flex: 1;
-  min-width: 0;
-  overflow-x: auto;
-  flex-wrap: nowrap !important;
-  scrollbar-width: none;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow: hidden; /* chips are limited by JS to top 5 */
 }
 .list-cat-chips::-webkit-scrollbar { display: none; }
 
-/* keep old names harmless if referenced anywhere */
+/* keep old names harmless */
 .filter-card { display: none; }
-.filter-row  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .filter-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
 
 /* Search */

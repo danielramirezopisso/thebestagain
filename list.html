@@ -46,9 +46,10 @@
       <span id="listCount" class="list-count muted"></span>
     </div>
 
-    <!-- FILTERS — compact single bar -->
+    <!-- FILTERS — two-row bar -->
     <div id="listFilterWrap" class="list-filter-bar">
-      <div class="list-filter-row">
+      <!-- Row 1: search + type + journey -->
+      <div class="list-filter-row list-filter-row--top">
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input id="searchInput" class="search-input" placeholder="Search…" oninput="applyListFilters()" />
@@ -58,9 +59,7 @@
           <button class="type-btn" data-type="place" onclick="setTypeFilter(this, 'place')">📍 Places</button>
           <button class="type-btn" data-type="product" onclick="setTypeFilter(this, 'product')">🛒 Products</button>
         </div>
-        <div id="catChips" class="chip-row list-cat-chips"></div>
-        <div id="ratingSeg" class="seg-row"></div>
-        <button id="btnClearFilters" class="chip chip-clear" style="display:none;" onclick="clearListFilters()">✕ Clear</button>
+        <div class="list-filter-spacer"></div>
         <div class="journey-inline-toggle" id="listJourneyWrap" style="display:none;">
           <div class="journey-float-toggle" onclick="toggleJourneyModeList()">
             <span class="journey-opt journey-opt-active" id="listJOptDiscover">🌍 Discover</span>
@@ -68,6 +67,15 @@
             <span class="journey-opt" id="listJOptJourney">🧭 My Journey</span>
           </div>
         </div>
+      </div>
+      <!-- Row 2: category chips + more + rating + clear -->
+      <div class="list-filter-row list-filter-row--bottom">
+        <div id="catChips" class="chip-row list-cat-chips"></div>
+        <select id="catMore" class="select-compact" onchange="onCatMoreChanged()">
+          <option value="">More…</option>
+        </select>
+        <div id="ratingSeg" class="seg-row"></div>
+        <button id="btnClearFilters" class="chip chip-clear" style="display:none;" onclick="clearListFilters()">✕ Clear</button>
       </div>
     </div>
 
