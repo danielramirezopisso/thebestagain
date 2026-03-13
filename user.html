@@ -75,10 +75,11 @@
 
     <!-- ── TABS ── -->
     <div class="user-tabs">
-      <button class="user-tab active" data-tab="votes"   onclick="switchTab('votes')">🗳️ Votes</button>
-      <button class="user-tab"        data-tab="places"  onclick="switchTab('places')">📍 My Places</button>
+      <button class="user-tab active" data-tab="votes"    onclick="switchTab('votes')">🗳️ Votes</button>
+      <button class="user-tab"        data-tab="wishlist" onclick="switchTab('wishlist')">❤️ Wishlist</button>
+      <button class="user-tab"        data-tab="places"   onclick="switchTab('places')">📍 My Places</button>
       <button class="user-tab"        data-tab="comments" onclick="switchTab('comments')">💬 Comments</button>
-      <button class="user-tab"        data-tab="photos"  onclick="switchTab('photos')">📷 Photos</button>
+      <button class="user-tab"        data-tab="photos"   onclick="switchTab('photos')">📷 Photos</button>
     </div>
 
     <!-- ── ADMIN QUICK LINKS (dropisso only) ── -->
@@ -132,6 +133,15 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- WISHLIST -->
+    <div class="user-tab-panel" id="panel-wishlist">
+      <div class="wishlist-tab-header">
+        <p class="muted" id="wishlistStatus" style="font-size:13px;margin:0;"></p>
+        <a id="wishlistShareLink" class="tba-btn tba-btn-ghost" href="#" target="_blank" style="font-size:13px;">🔗 Share my wishlist</a>
+      </div>
+      <div id="wishlistItems"></div>
     </div>
 
     <!-- MY PLACES -->
@@ -232,6 +242,7 @@
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
+  <script src="wishlist-btn.js"></script>
   <script src="votes.js?v=3"></script>
   <script src="user.js?v=8"></script>
 

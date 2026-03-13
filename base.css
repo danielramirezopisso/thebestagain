@@ -671,3 +671,41 @@ input:focus, select:focus, textarea:focus {
   background: #dc2626;
   border-color: #dc2626;
 }
+
+/* ══════════════════════════════════════════
+   WISHLIST HEART BUTTON — global
+══════════════════════════════════════════ */
+.wl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s, transform .12s;
+  flex: 0 0 auto;
+  line-height: 1;
+  padding: 0;
+}
+.wl-btn:hover {
+  color: #e0355b;
+  border-color: rgba(224,53,91,0.35);
+  background: rgba(224,53,91,0.07);
+  transform: scale(1.12);
+}
+.wl-btn.wl-active {
+  color: #e0355b;
+  background: rgba(224,53,91,0.10);
+  border-color: rgba(224,53,91,0.40);
+}
+/* Smaller variant for list rows */
+.wl-btn-sm {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}

@@ -135,6 +135,9 @@
 .list-table tbody tr:hover td { background: var(--accent-bg); }
 .list-table tbody tr:last-child td { border-bottom: none; }
 
+/* Wishlist column */
+.col-wl { width: 36px; text-align: center; padding: 0 8px !important; }
+
 /* Type tag */
 .type-tag {
   display: inline-flex;

@@ -116,12 +116,14 @@ function renderHero(m, user) {
       <button class="tba-btn traction-hero-claim" onclick="openTraction('claim', MARKER_ID)">
         🏢 Claim
       </button>
+      ${wlBtnHtml(m.id)}
       <button class="tba-btn share-hero-btn" onclick="shareMarker()" title="Share">
         ↗ Share
       </button>
     `;
   } else {
     actionsEl.innerHTML = `
+      ${wlBtnHtml(m.id)}
       <button class="tba-btn share-hero-btn" onclick="shareMarker()" title="Share">
         ↗ Share
       </button>
@@ -1153,6 +1155,8 @@ async function initMarkerPage() {
   }
 
   setStatus("Loading…");
+
+  wlInit(); // load wishlist state early so heart renders correctly
 
   const user = await maybeUser();
 

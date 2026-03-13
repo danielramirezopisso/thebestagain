@@ -317,6 +317,10 @@ function selectMarkerById(id, fly = false) {
   // show
   qs("selPanel").style.display = "block";
 
+  // heart button
+  const wlSlot = qs("selWlBtn");
+  if (wlSlot) wlSlot.innerHTML = wlBtnHtml(m.id);
+
   if (fly) {
     MAP.flyTo(mk.getLatLng(), Math.max(MAP.getZoom(), 17), { duration: 0.8 });
   }
@@ -341,6 +345,9 @@ async function initMap() {
   // Hide add panel if logged out
   const user = await maybeUser();
   if (!user) qs("addPanel").style.display = "none";
+
+  // Load wishlist state
+  wlInit();
 
   // Journey mode: show toggle only when logged in
   if (user) {

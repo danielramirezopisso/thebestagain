@@ -296,13 +296,16 @@ function renderLane(catId, markersForCat){
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
     const unvisited = JOURNEY_MODE_PROD && !MY_VOTED_IDS_PROD.has(m.id);
     return `
-      <a class="item${unvisited ? " journey-unvisited-item" : ""}" href="marker.html?id=${encodeURIComponent(m.id)}">
-        <div class="item-left">
-          ${brandIconSlotHtml(m.brand_id)}
-          <div class="item-name">${escapeHtml(brand)}</div>
-        </div>
-        ${ratingBadgeHtml(m)}
-      </a>
+      <div class="item-row${unvisited ? " journey-unvisited-item" : ""}">
+        <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}">
+          <div class="item-left">
+            ${brandIconSlotHtml(m.brand_id)}
+            <div class="item-name">${escapeHtml(brand)}</div>
+          </div>
+          ${ratingBadgeHtml(m)}
+        </a>
+        ${wlBtnHtml(m.id, "wl-btn-sm")}
+      </div>
     `;
   }).join("");
 
@@ -344,13 +347,16 @@ function renderDrawer(){
   qs("drawerList").innerHTML = rows.map(m=>{
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
     return `
-      <a class="drawer-item" href="marker.html?id=${encodeURIComponent(m.id)}">
-        <div class="item-left">
-          ${brandIconSlotHtml(m.brand_id)}
-          <div class="item-name">${escapeHtml(brand)}</div>
-        </div>
-        ${ratingBadgeHtml(m)}
-      </a>
+      <div class="item-row">
+        <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}">
+          <div class="item-left">
+            ${brandIconSlotHtml(m.brand_id)}
+            <div class="item-name">${escapeHtml(brand)}</div>
+          </div>
+          ${ratingBadgeHtml(m)}
+        </a>
+        ${wlBtnHtml(m.id, "wl-btn-sm")}
+      </div>
     `;
   }).join("") || `<div class="muted">No products match the filters.</div>`;
 }
@@ -479,6 +485,7 @@ async function initProductsMasonryPage(){
   setStatus("Loading…");
   renderRatingButtons();
   fillVoteSelect();
+  wlInit();
 
   const user = await maybeUser();
   if (!user) {

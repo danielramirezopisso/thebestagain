@@ -12,6 +12,7 @@ let EDIT_PIN        = null;
 let EDIT_LAT        = null;
 let EDIT_LNG        = null;
 let CATEGORIES_CACHE = [];
+let BRANDS_CACHE     = [];
 
 // Deactivate state
 let DEACTIVATE_ID   = null;
@@ -64,7 +65,8 @@ async function initUserPage() {
 
   if (IS_ADMIN) document.getElementById("adminBar").style.display = "";
 
-  // Load stats + votes in parallel
+  // Load wishlist state + stats + votes in parallel
+  wlInit();
   await Promise.all([ loadStats(), loadAllData() ]);
   renderNormalView();
 
@@ -128,9 +130,92 @@ function switchTab(name) {
   document.querySelectorAll(".user-tab-panel").forEach(p =>
     p.classList.toggle("active", p.id === `panel-${name}`));
 
+  if (name === "wishlist" && !window._wishlistLoaded) { loadWishlist(); window._wishlistLoaded = true; }
   if (name === "places"   && !window._placesLoaded)   { loadPlaces();   window._placesLoaded   = true; }
   if (name === "comments" && !window._commentsLoaded) { loadComments(); window._commentsLoaded = true; }
   if (name === "photos"   && !window._photosLoaded)   { loadPhotos();   window._photosLoaded   = true; }
+}
+
+/* ══════════════════════════════════════════
+   WISHLIST TAB
+══════════════════════════════════════════ */
+async function loadWishlist() {
+  const statusEl = document.getElementById("wishlistStatus");
+  const host     = document.getElementById("wishlistItems");
+  const shareEl  = document.getElementById("wishlistShareLink");
+
+  host.innerHTML = `<p class="muted" style="padding:20px 0;">Loading…</p>`;
+
+  // Set share link
+  if (shareEl && USER_ID) {
+    shareEl.href = `wishlist.html?user=${encodeURIComponent(USER_ID)}`;
+  }
+
+  // Fetch wishlist rows with marker details
+  const { data, error } = await sb
+    .from("wishlists")
+    .select("marker_id, created_at, markers(id, title, group_type, category_id, rating_avg, rating_count, address, brand_id)")
+    .eq("user_id", USER_ID)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    host.innerHTML = `<p class="muted">Error loading wishlist.</p>`;
+    return;
+  }
+
+  const items = (data || []).filter(r => r.markers);
+
+  if (statusEl) statusEl.textContent = `${items.length} saved item${items.length === 1 ? "" : "s"}`;
+
+  if (!items.length) {
+    host.innerHTML = `<div class="wishlist-empty">
+      <div style="font-size:32px;">♥</div>
+      <p>Nothing saved yet.</p>
+      <p class="muted" style="font-size:13px;">Tap the heart on any place or product to save it here.</p>
+    </div>`;
+    return;
+  }
+
+  // Load categories + brands for display
+  const catMap   = Object.fromEntries((CATEGORIES_CACHE || []).map(c => [c.id, c]));
+  const brandMap = Object.fromEntries((BRANDS_CACHE    || []).map(b => [b.id, b]));
+
+  host.innerHTML = items.map(r => {
+    const m   = r.markers;
+    const cat = catMap[m.category_id];
+    const avg = Number(m.rating_avg ?? 0);
+    const cnt = Number(m.rating_count ?? 0);
+    const ratingTxt = cnt ? avg.toFixed(1) : "—";
+    const isPlace   = m.group_type === "place";
+    const sub       = isPlace
+      ? (m.address || cat?.name || "")
+      : (brandMap[m.brand_id]?.name || cat?.name || "");
+    const iconUrl   = cat?.icon_url
+      ? cat.icon_url
+      : (isPlace ? "icons/default-place.svg" : "icons/default-product.svg");
+    const colorCls  = cnt >= 3
+      ? (avg >= 9 ? "rating-9-10" : avg >= 7 ? "rating-7-8" : avg >= 5 ? "rating-5-6" : avg >= 3 ? "rating-3-4" : "rating-1-2")
+      : "rating-none";
+
+    return `
+      <div class="wishlist-item">
+        <a class="wishlist-item-link" href="marker.html?id=${encodeURIComponent(m.id)}">
+          <div class="wishlist-item-icon">
+            <img src="${escapeHtml(iconUrl)}" alt="" onerror="this.style.display='none'" />
+          </div>
+          <div class="wishlist-item-body">
+            <div class="wishlist-item-title">${escapeHtml(m.title)}</div>
+            <div class="wishlist-item-sub muted">${escapeHtml(sub)}</div>
+          </div>
+          <div class="wishlist-item-rating rating-badge ${colorCls}">${escapeHtml(ratingTxt)}</div>
+        </a>
+        ${wlBtnHtml(m.id)}
+      </div>
+    `;
+  }).join("");
+
+  // After rendering, refresh all heart states
+  if (typeof wlInit === "function") wlInit();
 }
 
 /* ══════════════════════════════════════════
@@ -160,7 +245,7 @@ async function loadPlaces() {
   const markerIds = markersData.map(m => m.id);
 
   // Now fetch everything else in parallel, scoped to user's markers
-  const [votesRes, catsRes, photosRes, commentsRes] = await Promise.all([
+  const [votesRes, catsRes, brandsRes, photosRes, commentsRes] = await Promise.all([
     sb.from("votes")
       .select("marker_id,vote")
       .eq("user_id", USER_ID)
@@ -169,6 +254,9 @@ async function loadPlaces() {
       .select("id,name,icon_url")
       .eq("is_active", true)
       .order("name"),
+    sb.from("brands")
+      .select("id,name")
+      .eq("is_active", true),
     sb.from("marker_photos")
       .select("marker_id")
       .in("marker_id", markerIds)
@@ -179,7 +267,8 @@ async function loadPlaces() {
       .eq("is_active", true),
   ]);
 
-  CATEGORIES_CACHE = catsRes.data || [];
+  CATEGORIES_CACHE = catsRes.data   || [];
+  BRANDS_CACHE     = brandsRes.data || [];
   const catMap      = Object.fromEntries(CATEGORIES_CACHE.map(c => [c.id, c]));
   const voteMap     = Object.fromEntries((votesRes.data || []).map(v => [v.marker_id, v.vote]));
   const markers     = markersData;

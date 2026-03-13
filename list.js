@@ -285,6 +285,7 @@ function renderTable() {
           <th class="${thClass('category')} col-cat" onclick="setSort('category')">Category</th>
           <th class="${thClass('votes')} col-votes"  onclick="setSort('votes')">Votes</th>
           <th class="${thClass('rating')} col-rating" onclick="setSort('rating')">Rating</th>
+          <th class="col-wl"></th>
         </tr>
       </thead>
       <tbody>
@@ -323,6 +324,7 @@ function renderTable() {
                   <span class="rating-val">${escapeHtml(ratingTxt)}</span>
                 </div>
               </td>
+              <td class="col-wl">${wlBtnHtml(m.id, "wl-btn-sm")}</td>
             </tr>
           `;
         }).join("")}
@@ -349,6 +351,7 @@ function toggleJourneyModeList() {
 /* ── INIT ── */
 async function initListPage() {
   renderRatingButtons();
+  wlInit(); // load wishlist state for heart buttons
 
   // Load categories
   const { data: catData, error: catErr } = await sb

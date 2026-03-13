@@ -137,6 +137,20 @@ body.products-page{
   justify-content:center;
 }
 
+/* item-row: wraps .item + heart button */
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.item-row:first-child { margin-top: 0; }
+.item-row .item {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0 !important;
+}
+
 /* lane items */
 .item{
   display:flex;
@@ -153,7 +167,6 @@ body.products-page{
 
   transition: transform .10s ease, box-shadow .10s ease;
 }
-.item + .item{ margin-top: 8px; }
 .item:hover{ transform: none; box-shadow: var(--shadow); }
 
 .item-left{
