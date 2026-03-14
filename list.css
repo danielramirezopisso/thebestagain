@@ -191,19 +191,46 @@
   .list-header h1 { font-size: 20px; }
   .filter-row { flex-direction: column; align-items: flex-start; gap: 6px; }
   .filter-label { min-width: auto; }
-  .search-wrap { max-width: 100%; min-width: 0; width: 100%; }
 
-  /* Column visibility on mobile — keep title, cat, votes, rating */
+  /* Top filter row: stack search on its own line, then type+journey below */
+  .list-filter-row--top {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .search-wrap { max-width: 100%; min-width: 0; width: 100%; }
+  .type-toggle { flex-shrink: 0; }
+  .list-filter-spacer { display: none; }
+
+  /* Bottom filter row: chips scroll horizontally */
+  .list-filter-row--bottom {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .list-cat-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    min-width: 0;
+  }
+  .list-cat-chips::-webkit-scrollbar { display: none; }
+
+  /* Table: tighter, smaller font, hide non-essential columns */
   .col-type    { display: none; }
   .col-address { display: none; }
+  .col-cat     { display: none; }
 
-  .list-table th, .list-table td { padding: 9px 10px; }
+  .list-table th, .list-table td { padding: 7px 6px; }
   .list-table th { font-size: 9px; }
-}
-@media (max-width: 480px) {
-  /* On very small screens also hide type */
-  .col-type  { display: none; }
-  .rating-votes { display: none; }
+  .list-table td { font-size: 11px; }
+
+  /* Give votes and rating fixed widths so they don't collapse */
+  .col-votes  { width: 36px; text-align: center; }
+  .col-rating { width: 54px; }
+  .col-wl     { width: 28px; }
+
+  .rating-dot  { width: 7px; height: 7px; }
+  .rating-val  { font-size: 11px; }
 }
 
 /* ══════════════════════════════
