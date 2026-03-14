@@ -62,10 +62,11 @@ body.products-page{
   overflow:auto;
   padding-right: 6px;
 
-  /* Masonry: items flow into shortest column, no row-baseline gaps.
-     !important ensures no breakpoint or inherited rule can override to 4 cols. */
-  column-count: 3 !important;
-  column-gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: min-content;
+  gap: 10px;
+  align-items: start;
 }
 
 /* lane card */
@@ -364,7 +365,7 @@ body.products-page{
     gap: 12px;
   }
   .lanes-grid {
-    column-count: 1 !important;
+    grid-template-columns: 1fr !important;
     height: auto !important;
     overflow: visible !important;
     padding-right: 0;
