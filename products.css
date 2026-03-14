@@ -62,9 +62,9 @@ body.products-page{
   overflow:auto;
   padding-right: 6px;
 
-  /* True masonry: column-count only (no column-width) strictly = 3 columns.
-     Items flow top-to-bottom filling the shortest column, no row-baseline gaps. */
-  column-count: 3;
+  /* Masonry: items flow into shortest column, no row-baseline gaps.
+     !important ensures no breakpoint or inherited rule can override to 4 cols. */
+  column-count: 3 !important;
   column-gap: 10px;
 }
 
