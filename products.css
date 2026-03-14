@@ -62,14 +62,11 @@ body.products-page{
   overflow:auto;
   padding-right: 6px;
 
-  /* column-width caps at ~3 columns naturally on any viewport */
-  column-count: 3;
-  column-width: 220px;
-  column-gap: 10px;
-  align-content: start;
-}
-@media (min-width: 1400px) {
-  .lanes-grid { column-count: 3; column-width: 260px; }
+  /* Strictly 3 columns at all desktop sizes — CSS grid enforces this hard */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  align-items: start;
 }
 
 /* lane card */
@@ -368,7 +365,7 @@ body.products-page{
     gap: 12px;
   }
   .lanes-grid {
-    column-count: 1 !important;
+    grid-template-columns: 1fr !important;
     height: auto !important;
     overflow: visible !important;
     padding-right: 0;
