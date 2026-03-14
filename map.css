@@ -35,6 +35,15 @@ body.map-page{
   border-left: 1px solid var(--rule);
 }
 
+/* Chip container: allow horizontal scroll without expanding parent */
+.toolbar-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .select-compact{
   width:160px;
   padding:8px 10px;
@@ -219,6 +228,29 @@ body.map-page{
     scrollbar-width: none;
   }
   .chip-row::-webkit-scrollbar { display: none; }
+
+  /* Toolbar left: constrain to screen width so chips don't overflow */
+  .toolbar-left {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .toolbar-inline {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Suggest link: remove the left border divider and left-align when alone on its row */
+  .toolbar-suggest {
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+  .toolbar-right {
+    justify-content: flex-start;
+    margin-top: 4px;
+  }
 
   .select-compact { width: 120px; }
 
