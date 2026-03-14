@@ -344,18 +344,38 @@ body.products-page{
     padding: 8px 10px;
     gap: 0;
   }
-  .toolbar-right { width: 100%; justify-content: flex-end; margin-top: 6px; }
+  .toolbar-right { width: 100%; justify-content: flex-start; margin-top: 6px; }
 
-  /* Chip rows: horizontal scroll */
+  /* Suggest link: remove divider, left-align */
+  .toolbar-suggest {
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  /* Chip rows: horizontal scroll, contained */
   .chip-row {
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
     max-width: 100%;
+    min-width: 0;
     padding-bottom: 3px;
     scrollbar-width: none;
   }
   .chip-row::-webkit-scrollbar { display: none; }
+
+  /* Toolbar left constrained so chips don't escape */
+  .toolbar-left {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .toolbar-inline {
+    min-width: 0;
+    overflow: hidden;
+  }
 
   /* Layout: single column, scrollable */
   .products-area {
@@ -372,7 +392,10 @@ body.products-page{
   }
   .add-panel { height: auto !important; max-height: none !important; overflow: visible !important; }
 
-  .drawer { width: 100%; border-radius: var(--radius) var(--radius) 0 0; height: 85vh; }
+  .drawer { width: 100%; border-radius: var(--radius) var(--radius) 0 0; height: 85vh;
+            position: fixed !important; top: auto !important; bottom: 0 !important;
+            right: 0 !important; left: 0 !important; }
+  .drawer-overlay { position: fixed !important; inset: 0 !important; }
 }
 
 /* ══════════════════════════════
