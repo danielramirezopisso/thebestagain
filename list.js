@@ -342,10 +342,33 @@ function updateJourneyToggleUIList() {
   j.classList.toggle("journey-opt-active", JOURNEY_MODE_LIST);
 }
 
-function toggleJourneyModeList() {
+async function toggleJourneyModeList() {
+  const user = await maybeUser();
+  if (!user) {
+    showJourneyLoginPromptInline("listJourneyWrap");
+    return;
+  }
   JOURNEY_MODE_LIST = !JOURNEY_MODE_LIST;
   updateJourneyToggleUIList();
   renderTable();
+}
+
+function showJourneyLoginPromptInline(wrapperId) {
+  let el = document.getElementById("journeyLoginToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "journeyLoginToast";
+    el.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);" +
+      "background:var(--accent,#e0355b);color:#fff;padding:10px 18px;border-radius:20px;" +
+      "font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);" +
+      "cursor:pointer;white-space:nowrap;";
+    el.innerHTML = "🔑 Log in to track My Journey &nbsp;→";
+    el.onclick = () => window.location.href = "login.html";
+    document.body.appendChild(el);
+  }
+  el.style.display = "block";
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = "none"; }, 3500);
 }
 
 /* ── INIT ── */
@@ -384,7 +407,7 @@ async function initListPage() {
   if (error) { document.getElementById("listWrap").textContent = "Error: " + error.message; return; }
   ALL_MARKERS = data || [];
 
-  // Journey mode: load votes if logged in
+  // Journey mode: load votes if logged in (toggle always visible)
   const user = await maybeUser();
   if (user) {
     const { data: voteData } = await sb
@@ -393,8 +416,6 @@ async function initListPage() {
       .eq("user_id", user.id)
       .eq("is_active", true);
     MY_VOTED_IDS_LIST = new Set((voteData || []).map(v => v.marker_id));
-    const wrap = document.getElementById("listJourneyWrap");
-    if (wrap) wrap.style.display = "";
   }
 
   // Read URL param ?category=X from home page chip clicks

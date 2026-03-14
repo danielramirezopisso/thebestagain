@@ -475,10 +475,33 @@ function updateJourneyToggleUIProd() {
   j.classList.toggle("journey-opt-active", JOURNEY_MODE_PROD);
 }
 
-function toggleJourneyModeProd() {
+async function toggleJourneyModeProd() {
+  const user = await maybeUser();
+  if (!user) {
+    showJourneyLoginPrompt();
+    return;
+  }
   JOURNEY_MODE_PROD = !JOURNEY_MODE_PROD;
   updateJourneyToggleUIProd();
   renderAll();
+}
+
+function showJourneyLoginPrompt() {
+  let el = document.getElementById("journeyLoginToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "journeyLoginToast";
+    el.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);" +
+      "background:var(--accent,#e0355b);color:#fff;padding:10px 18px;border-radius:20px;" +
+      "font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);" +
+      "cursor:pointer;white-space:nowrap;";
+    el.innerHTML = "🔑 Log in to track My Journey &nbsp;\u2192";
+    el.onclick = () => window.location.href = "login.html";
+    document.body.appendChild(el);
+  }
+  el.style.display = "block";
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = "none"; }, 3500);
 }
 
 async function initProductsMasonryPage(){
@@ -551,8 +574,6 @@ async function initProductsMasonryPage(){
       .eq("user_id", user.id)
       .eq("is_active", true);
     MY_VOTED_IDS_PROD = new Set((voteData || []).map(v => v.marker_id));
-    const wrap = qs("prodJourneyWrap");
-    if (wrap) wrap.style.display = "";
   }
 
   renderAll();
