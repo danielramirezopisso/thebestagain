@@ -409,3 +409,56 @@ body.map-page{
 @media (max-width: 768px) {
   .map-search-input { font-size: 16px; } /* prevent iOS zoom on focus */
 }
+
+/* ── Multi-category chips in selection panel ── */
+.sel-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 4px;
+}
+
+.sel-cat-chip {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, border-color 0.15s;
+  background: var(--surface, #fff);
+}
+
+.sel-cat-chip img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.sel-cat-chip.sel-cat-chip-active {
+  border-color: var(--text, #111);
+  transform: scale(1.15);
+}
+
+.sel-cat-chip.rating-9-10 { background: #d4edda; }
+.sel-cat-chip.rating-7-8  { background: #d4edda; }
+.sel-cat-chip.rating-5-6  { background: #fff3cd; }
+.sel-cat-chip.rating-3-4  { background: #ffe0b2; }
+.sel-cat-chip.rating-1-2  { background: #fde8e8; }
+.sel-cat-chip.rating-none { background: var(--rule, #eee); }
+
+.sel-cat-chip:hover { transform: scale(1.1); }
+.sel-cat-chip.sel-cat-chip-active:hover { transform: scale(1.2); }
+
+/* Sparkle marker pulse */
+.tba-marker-sparkle .tba-marker-inner {
+  animation: sparkle-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.1); }
+}

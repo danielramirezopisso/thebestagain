@@ -222,10 +222,20 @@ function dotColorFor(cls) {
   return map[cls] || "#ccc";
 }
 
+// marker_id -> Set of category_ids (loaded at init)
+let MARKER_CAT_MAP = {};
+
 function filterRows(rows) {
   return rows.filter(m => {
     if (FILTER_TYPE && m.group_type !== FILTER_TYPE) return false;
-    if (FILTER_CATEGORY && m.category_id !== FILTER_CATEGORY) return false;
+    if (FILTER_CATEGORY) {
+      // Check both primary category and marker_categories map
+      const cats = MARKER_CAT_MAP[m.id];
+      const catMatch = cats
+        ? cats.has(FILTER_CATEGORY)
+        : m.category_id === FILTER_CATEGORY;
+      if (!catMatch) return false;
+    }
     if (FILTER_BUCKET) {
       const cnt = Number(m.rating_count ?? 0);
       if (!cnt) return false;
@@ -313,7 +323,7 @@ function renderTable() {
             : `<span class="type-tag type-tag-product">🛒 Product</span>`;
 
           return `
-            <tr class="${unvisited ? "journey-unvisited-row" : ""}" onclick="window.location.href='marker.html?id=${encodeURIComponent(m.id)}'">
+            <tr class="${unvisited ? "journey-unvisited-row" : ""}" onclick="window.location.href='marker.html?id=${encodeURIComponent(m.id)}&cat=${encodeURIComponent(FILTER_CATEGORY || m.category_id)}'">
               <td class="col-title"><b>${escapeHtml(m.title)}</b></td>
               <td class="col-type">${typeTag}</td>
               <td class="col-cat">${escapeHtml(cat)}</td>
@@ -417,6 +427,18 @@ async function initListPage() {
       .eq("is_active", true);
     MY_VOTED_IDS_LIST = new Set((voteData || []).map(v => v.marker_id));
   }
+
+  // Load marker_categories for multi-category filtering
+  const { data: mcData } = await sb
+    .from("marker_categories")
+    .select("marker_id,category_id")
+    .eq("is_active", true);
+
+  MARKER_CAT_MAP = {};
+  (mcData || []).forEach(r => {
+    if (!MARKER_CAT_MAP[r.marker_id]) MARKER_CAT_MAP[r.marker_id] = new Set();
+    MARKER_CAT_MAP[r.marker_id].add(r.category_id);
+  });
 
   // Read URL param ?category=X from home page chip clicks
   const urlCat = new URLSearchParams(window.location.search).get("category");

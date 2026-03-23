@@ -116,6 +116,28 @@
         </div>
       </section>
 
+      <!-- ══════════════════════════════
+           MARKER CATEGORIES
+      ══════════════════════════════ -->
+      <section class="admin-section collapsed" id="sec-marker-cats">
+        <div class="section-head" onclick="toggleSection('sec-marker-cats')">
+          <h2>🗂️ Marker Categories</h2>
+          <p class="muted">Assign multiple categories to a single marker (e.g. a bar that's great for both bravas and tortilla).</p>
+        </div>
+        <div class="section-body">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+            <input id="mcMarkerSearch" placeholder="Search marker by title…" style="flex:1;" onkeydown="if(event.key==='Enter')loadMarkerForCategories()" />
+            <button onclick="loadMarkerForCategories()">Search</button>
+          </div>
+          <div id="mcStatus" class="status-bar muted"></div>
+          <div id="mcResults" style="margin-bottom:12px;"></div>
+          <div id="mcPanel" style="display:none;">
+            <div id="mcPanelTitle" style="font-weight:700;margin-bottom:10px;"></div>
+            <div id="mcCatList" class="brand-grid"></div>
+          </div>
+        </div>
+      </section>
+
     </div><!-- /adminContent -->
   </main>
 

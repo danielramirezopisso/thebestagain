@@ -312,3 +312,30 @@
   .admin-tab { font-size: 12px; padding: 7px 10px; }
   .col-icon, .col-flag { display: none; }
 }
+
+/* ── Marker Categories section ── */
+.mc-result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--rule, #e5e5e5);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.mc-result-row button {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--accent, #e0355b);
+  color: var(--accent, #e0355b);
+  background: transparent;
+  cursor: pointer;
+}
+
+.mc-result-row button:hover {
+  background: var(--accent, #e0355b);
+  color: #fff;
+}

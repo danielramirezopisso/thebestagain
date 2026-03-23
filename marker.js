@@ -1,6 +1,7 @@
-// marker.js v5 — redesigned marker detail page
+// marker.js v6 — multi-category context aware
 
 let MARKER_ID = null;
+let ACTIVE_CATEGORY_ID = null; // category context from ?cat= param
 let CURRENT_MARKER = null;
 let CURRENT_VOTE = null;       // number | null (current user's vote value)
 let CURRENT_VOTE_ID = null;    // uuid of vote row
@@ -8,6 +9,7 @@ let CURRENT_VOTE_ID = null;    // uuid of vote row
 let CATEGORIES_ALL = [];
 let BRANDS = [];
 let CATEGORY_BRANDS = [];
+let MARKER_CATEGORIES = [];    // all categories this marker belongs to
 
 let miniMapInstance = null;
 
@@ -74,8 +76,10 @@ function brandsForCategory(category_id) {
 function renderHero(m, user) {
   document.title = `${m.title} — The Best Again`;
 
-  // Category icon — use absolute URL to avoid relative path race on load
-  const cat = getCategoryById(m.category_id);
+  // Use active category context, fall back to primary
+  const activeCatId = ACTIVE_CATEGORY_ID || m.category_id;
+  const cat = getCategoryById(activeCatId) || getCategoryById(m.category_id);
+
   const rawIconUrl = cat?.icon_url || '';
   const absIconUrl = rawIconUrl
     ? (rawIconUrl.startsWith('http') ? rawIconUrl
@@ -101,16 +105,17 @@ function renderHero(m, user) {
   }
   document.getElementById("markerSubtitle").textContent = sub.join(" · ");
 
-  // Actions area — traction buttons always on right for places, edit pencil inline with title
+  // Render other-category chips
+  renderOtherCategoryChips(m, activeCatId);
+
+  // Actions area
   const actionsEl = document.getElementById("heroActions");
-  // isCreator: true if user owns it, OR marker has no creator (legacy), OR user is admin
   const isAdmin   = user?.email?.includes("dropisso");
   const isCreator = user && (m.created_by === user.id || m.created_by === null || isAdmin);
 
-  // Traction buttons in hero-actions (right side), places only
   if (isPlace) {
     actionsEl.innerHTML = `
-      <button class="tba-btn traction-hero-preorder" onclick="openTraction('preorder', MARKER_ID, '${escapeHtml(getCategoryById(m.category_id)?.name || "this dish")}')">
+      <button class="tba-btn traction-hero-preorder" onclick="openTraction('preorder', MARKER_ID, '${escapeHtml(cat?.name || "this dish")}')">
         🛒 Pre-order
       </button>
       <button class="tba-btn traction-hero-claim" onclick="openTraction('claim', MARKER_ID)">
@@ -130,7 +135,6 @@ function renderHero(m, user) {
     `;
   }
 
-  // Edit pencil inline with title — only for creator
   if (isCreator) {
     const titleEl = document.getElementById("markerTitle");
     titleEl.style.display = "flex";
@@ -140,10 +144,32 @@ function renderHero(m, user) {
       `<button class="edit-pencil-btn" onclick="enterEditMode()" title="Edit marker">✏️</button>`
     );
   }
+}
 
-  if (!m.is_active) {
-    // handled above in initMarkerPage early return
+// Render "Also here for" chips linking to other categories this marker belongs to
+function renderOtherCategoryChips(m, activeCatId) {
+  let el = document.getElementById("otherCatChips");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "otherCatChips";
+    el.className = "other-cat-chips";
+    const subtitle = document.getElementById("markerSubtitle");
+    if (subtitle && subtitle.parentNode) subtitle.parentNode.insertBefore(el, subtitle.nextSibling);
   }
+  if (!MARKER_CATEGORIES.length) { el.style.display = "none"; return; }
+  const otherCats = MARKER_CATEGORIES.filter(mc => mc.category_id !== activeCatId);
+  if (!otherCats.length) { el.style.display = "none"; return; }
+  el.style.display = "flex";
+  el.innerHTML = `<span class="other-cat-label">Also here for:</span>` +
+    otherCats.map(mc => {
+      const c = getCategoryById(mc.category_id);
+      if (!c) return "";
+      const iconUrl = c.icon_url || "";
+      const absUrl = iconUrl.startsWith("http") ? iconUrl
+        : window.location.href.replace(/\/[^/]*(\?.*)?$/, '/') + iconUrl;
+      const href = `marker.html?id=${encodeURIComponent(m.id)}&cat=${mc.category_id}`;
+      return `<a class="other-cat-chip" href="${href}" title="${escapeHtml(c.name)}"><img src="${escapeHtml(absUrl)}" alt="${escapeHtml(c.name)}" /><span>${escapeHtml(c.name)}</span></a>`;
+    }).join("");
 }
 
 /* ══════════════════════════════
@@ -379,16 +405,26 @@ function renderMiniMap(m) {
 ══════════════════════════════ */
 async function renderRankingWidget(m) {
   const card = document.getElementById("rankingCard");
-  const cat = getCategoryById(m.category_id);
+  const activeCatId = ACTIVE_CATEGORY_ID || m.category_id;
+  const cat = getCategoryById(activeCatId) || getCategoryById(m.category_id);
   if (!cat) return;
 
-  // Load all markers of same category, same group_type
+  // Load all markers in this category via marker_categories
+  const { data: mcData } = await sb
+    .from("marker_categories")
+    .select("marker_id")
+    .eq("category_id", activeCatId)
+    .eq("is_active", true);
+
+  const markerIds = (mcData || []).map(r => r.marker_id);
+  if (!markerIds.length) return;
+
   const { data, error } = await sb
     .from("markers")
     .select("id,title,rating_avg,rating_count,brand_id")
     .eq("is_active", true)
-    .eq("category_id", m.category_id)
     .eq("group_type", m.group_type)
+    .in("id", markerIds)
     .order("rating_avg", { ascending: false });
 
   if (error || !data?.length) return;
@@ -406,17 +442,14 @@ async function renderRankingWidget(m) {
   const position = currentIdx + 1;
   const total = sorted.length;
   const isFirst = position === 1 && Number(m.rating_count ?? 0) > 0;
-  // Re-render rating card now we know position
   renderRating(m, isFirst);
 
-  // Update edit votes link
   const editLink = document.getElementById("editVotesCatLink");
   if (editLink) editLink.href = "my-votes.html";
 
-  // Position display — use emoji crown here, simple and reliable
-  const crownHtml = isFirst ? `<div style="font-size:24px;line-height:1;">👑</div>` : "";
+  const positionCrownHtml = isFirst ? `<div style="font-size:24px;line-height:1;">👑</div>` : "";
   document.getElementById("rankingPosition").innerHTML = `
-    <div class="ranking-pos-number">${crownHtml}#${position}</div>
+    <div class="ranking-pos-number">${positionCrownHtml}#${position}</div>
     <div class="ranking-pos-sub">of ${total} ${escapeHtml(cat.name)}</div>
   `;
 
@@ -456,7 +489,7 @@ async function renderRankingWidget(m) {
       name = getBrandById(r.brand_id)?.name || r.title;
     }
 
-    const href = `marker.html?id=${encodeURIComponent(r.id)}`;
+    const href = `marker.html?id=${encodeURIComponent(r.id)}&cat=${encodeURIComponent(activeCatId)}`;
     return `
       <a class="rank-row ${w.isCurrent ? "rank-current" : ""}" href="${href}">
         <div class="rank-pos">${w.pos}</div>
@@ -488,12 +521,11 @@ async function renderRankingWidget(m) {
    VOTE ACTIONS
 ══════════════════════════════ */
 async function loadMyVote(user) {
-  const { data, error } = await sb
-    .from("votes")
-    .select("id,vote,is_active")
-    .eq("marker_id", MARKER_ID)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const catId = ACTIVE_CATEGORY_ID || CURRENT_MARKER?.category_id;
+  let q = sb.from("votes").select("id,vote,is_active")
+    .eq("marker_id", MARKER_ID).eq("user_id", user.id);
+  if (catId) q = q.eq("category_id", catId);
+  const { data, error } = await q.maybeSingle();
 
   if (error) { setVoteStatus("Error loading vote."); return; }
 
@@ -518,11 +550,13 @@ async function saveMyVote() {
   const user = await requireAuth();
   if (!user) return;
 
+  const catId = ACTIVE_CATEGORY_ID || CURRENT_MARKER?.category_id;
+
   const { error } = await sb
     .from("votes")
     .upsert(
-      [{ marker_id: MARKER_ID, user_id: user.id, vote: CURRENT_VOTE, is_active: true }],
-      { onConflict: "marker_id,user_id" }
+      [{ marker_id: MARKER_ID, user_id: user.id, vote: CURRENT_VOTE, category_id: catId, is_active: true }],
+      { onConflict: "marker_id,category_id,user_id" }
     );
 
   if (error) { setVoteStatus("Error: " + error.message); return; }
@@ -540,11 +574,11 @@ async function clearMyVote() {
   const user = await requireAuth();
   if (!user) return;
 
-  const { error } = await sb
-    .from("votes")
-    .update({ is_active: false })
-    .eq("marker_id", MARKER_ID)
-    .eq("user_id", user.id);
+  const catId = ACTIVE_CATEGORY_ID || CURRENT_MARKER?.category_id;
+  let q = sb.from("votes").update({ is_active: false })
+    .eq("marker_id", MARKER_ID).eq("user_id", user.id);
+  if (catId) q = q.eq("category_id", catId);
+  const { error } = await q;
 
   if (error) { setVoteStatus("Error: " + error.message); return; }
 
@@ -1154,14 +1188,18 @@ async function initMarkerPage() {
     return;
   }
 
+  // Read category context from URL
+  const catParam = qp("cat");
+  ACTIVE_CATEGORY_ID = catParam ? parseInt(catParam) : null;
+
   setStatus("Loading…");
 
-  wlInit(); // load wishlist state early so heart renders correctly
+  wlInit();
 
   const user = await maybeUser();
 
-  // Load reference data in parallel — don't show voteCard yet, wait until we know is_active
-  const [cbRes, catRes, brandRes, markerRes] = await Promise.all([
+  // Load reference data + marker + marker_categories in parallel
+  const [cbRes, catRes, brandRes, markerRes, mcRes] = await Promise.all([
     sb.from("category_brands").select("category_id,brand_id,is_active").eq("is_active", true),
     sb.from("categories").select("id,name,icon_url,is_active,for_places,for_products").eq("is_active", true).order("name"),
     sb.from("brands").select("id,name,icon_url,is_active").eq("is_active", true).order("name"),
@@ -1169,6 +1207,10 @@ async function initMarkerPage() {
       .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
       .eq("id", MARKER_ID)
       .single(),
+    sb.from("marker_categories")
+      .select("category_id,is_primary,is_active")
+      .eq("marker_id", MARKER_ID)
+      .eq("is_active", true),
   ]);
 
   if (markerRes.error || !markerRes.data) {
@@ -1177,10 +1219,16 @@ async function initMarkerPage() {
     return;
   }
 
-  CATEGORY_BRANDS = cbRes.data || [];
-  CATEGORIES_ALL  = catRes.data || [];
-  BRANDS          = brandRes.data || [];
-  CURRENT_MARKER  = markerRes.data;
+  CATEGORY_BRANDS  = cbRes.data || [];
+  CATEGORIES_ALL   = catRes.data || [];
+  BRANDS           = brandRes.data || [];
+  CURRENT_MARKER   = markerRes.data;
+  MARKER_CATEGORIES = mcRes.data || [];
+
+  // If no valid cat param, fall back to primary category
+  if (ACTIVE_CATEGORY_ID && !MARKER_CATEGORIES.find(mc => mc.category_id === ACTIVE_CATEGORY_ID)) {
+    ACTIVE_CATEGORY_ID = null;
+  }
 
   const m = CURRENT_MARKER;
 
@@ -1192,7 +1240,6 @@ async function initMarkerPage() {
     document.getElementById('commentsCard').style.display = 'none';
     document.getElementById('photosCard') && (document.getElementById('photosCard').style.display = 'none');
 
-    // Render banner in pageStatus — nothing else overwrites this
     const banner = document.getElementById('pageStatus');
     banner.innerHTML = `
       <div class="inactive-banner">
@@ -1204,23 +1251,19 @@ async function initMarkerPage() {
         ${user ? `<button class="tba-btn tba-btn-primary inactive-reactivate-btn" onclick="reactivateMarker()">Reactivate</button>` : ''}
       </div>`;
 
-    // Still render hero and details so title/category are visible
     const creatorName = await resolveCreatorName(m, user);
     renderHero(m, user);
     renderDetails(m, creatorName);
     return;
   }
 
-  // Resolve creator name
   const creatorName = await resolveCreatorName(m, user);
 
-  // Load my vote if logged in (only for active markers)
   if (user) {
     document.getElementById("voteCard").style.display = "block";
     await loadMyVote(user);
   }
 
-  // Render all sections
   renderHero(m, user);
   renderRating(m);
   renderDetails(m, creatorName);

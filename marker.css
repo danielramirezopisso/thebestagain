@@ -1012,3 +1012,47 @@ body {
   border-color: var(--border);
 }
 .share-copy:hover { background: var(--page-bg); }
+
+/* ── Other category chips (Also here for) ── */
+.other-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.other-cat-label {
+  font-size: 11px;
+  color: var(--muted, #888);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 2px;
+}
+
+.other-cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 20px;
+  border: 1.5px solid var(--rule, #e5e5e5);
+  background: var(--surface, #fff);
+  text-decoration: none;
+  color: var(--text, #111);
+  font-size: 12px;
+  font-weight: 500;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.other-cat-chip:hover {
+  border-color: var(--accent, #e0355b);
+  background: var(--surface-hover, #fafafa);
+}
+
+.other-cat-chip img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}

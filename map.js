@@ -1,10 +1,4 @@
-// map.js — Map UX v1.1 (desktop)
-// Improvements:
-// 1) Compact toolbar
-// 2) Clear is a chip near filters
-// 3) Add panel moved right
-// 4) Hover animation for markers
-// 5) Selected panel (no need for popup)
+// map.js — Map UX v2.0 — multi-category markers + sparkle support
 
 let MAP;
 let ADD_MODE = false;
@@ -13,41 +7,32 @@ let LAYER_GROUP;
 let PREVIEW_MARKER = null;
 
 const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
+const SPARKLE_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/sparkle.svg";
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org/reverse";
 
-// focus from Home
 const FOCUS_ID = new URLSearchParams(window.location.search).get("focus");
 let DID_FOCUS = false;
-let LEAFLET_MARKERS_BY_ID = {}; // marker_id -> Leaflet marker instance
-let MARKER_DATA_BY_ID = {};     // marker_id -> marker row
+let LEAFLET_MARKERS_BY_ID = {};
+let MARKER_DATA_BY_ID = {};
 
 let CATEGORIES = [];
-let CAT_ICON = {}; // id -> icon_url
-let CAT_NAME = {}; // id -> name
+let CAT_ICON = {};
+let CAT_NAME = {};
 
-// Filters
 let FILTER_CATEGORY = "";
 let FILTER_RATING_BUCKET = "";
-
-// Selection
 let SELECTED_ID = null;
-
-// Journey mode
 let JOURNEY_MODE = false;
-let MY_VOTED_IDS = new Set(); // marker IDs the current user has voted on
+let MY_VOTED_IDS = new Set();
 
 function qs(id){ return document.getElementById(id); }
-
 function setMapStatus(msg) { qs("mapStatus").textContent = msg || ""; }
 function setSaveStatus(msg) { const el = qs("saveStatus"); if (el) el.textContent = msg || ""; }
 
 function escapeHtml(s) {
   return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 
 function normalizeIconUrl(raw) {
@@ -73,16 +58,14 @@ function colorClassForRating(avg, count) {
   return "rating-1-2";
 }
 
-function makeMarkerIcon(iconUrl, avg, count, greyed) {
+function makeMarkerIcon(iconUrl, avg, count, greyed, isSparkle) {
   const cls = greyed ? "rating-none journey-unvisited" : colorClassForRating(avg, count);
-  const url = iconUrl || DEFAULT_ICON_URL;
-
+  const url = isSparkle ? SPARKLE_ICON_URL : (iconUrl || DEFAULT_ICON_URL);
+  const extraCls = isSparkle ? " tba-marker-sparkle" : "";
   return L.divIcon({
-    className: `tba-marker ${cls}`,
+    className: `tba-marker ${cls}${extraCls}`,
     html: `<div class="tba-marker-inner"><img src="${escapeHtml(url)}" alt="" /></div>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-    popupAnchor: [0, -34],
+    iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -34],
   });
 }
 
@@ -91,8 +74,7 @@ function initRatingDropdown(selId, defaultValue) {
   sel.innerHTML = "";
   for (let i = 1; i <= 10; i++) {
     const opt = document.createElement("option");
-    opt.value = String(i);
-    opt.textContent = String(i);
+    opt.value = String(i); opt.textContent = String(i);
     if (i === defaultValue) opt.selected = true;
     sel.appendChild(opt);
   }
@@ -104,31 +86,22 @@ function showClearIfNeeded() {
 }
 
 function clearFilters() {
-  FILTER_CATEGORY = "";
-  FILTER_RATING_BUCKET = "";
-
+  FILTER_CATEGORY = ""; FILTER_RATING_BUCKET = "";
   qs("catMore").value = "";
-  renderCategoryQuickChips();
-  setActiveRatingBtn("");
-
-  showClearIfNeeded();
-  reloadMarkers();
+  renderCategoryQuickChips(); setActiveRatingBtn("");
+  showClearIfNeeded(); reloadMarkers();
 }
 
 function onCategoryMoreChanged() {
   const v = qs("catMore").value;
   if (!v) return;
   FILTER_CATEGORY = v;
-  renderCategoryQuickChips();
-  showClearIfNeeded();
-  reloadMarkers();
+  renderCategoryQuickChips(); showClearIfNeeded(); reloadMarkers();
 }
 
-// Rating bucket buttons
 function renderRatingButtons() {
   const host = qs("ratingSeg");
   host.innerHTML = "";
-
   const buttons = [
     { key:"", label:"Any", cls:"" },
     { key:"9-10", label:"9–10", cls:"rating-9-10" },
@@ -137,68 +110,41 @@ function renderRatingButtons() {
     { key:"3-4",  label:"3–4",  cls:"rating-3-4" },
     { key:"1-2",  label:"1–2",  cls:"rating-1-2" },
   ];
-
   buttons.forEach(b => {
     const btn = document.createElement("button");
     btn.className = `seg-btn ${b.cls}`.trim();
-    btn.dataset.key = b.key;
-    btn.textContent = b.label;
-    btn.onclick = () => {
-      FILTER_RATING_BUCKET = b.key;
-      setActiveRatingBtn(b.key);
-      showClearIfNeeded();
-      reloadMarkers();
-    };
+    btn.dataset.key = b.key; btn.textContent = b.label;
+    btn.onclick = () => { FILTER_RATING_BUCKET = b.key; setActiveRatingBtn(b.key); showClearIfNeeded(); reloadMarkers(); };
     host.appendChild(btn);
   });
-
   setActiveRatingBtn("");
 }
 
 function setActiveRatingBtn(key) {
-  [...document.querySelectorAll(".seg-btn")].forEach(el => {
-    el.classList.toggle("active", el.dataset.key === key);
-  });
+  [...document.querySelectorAll(".seg-btn")].forEach(el => el.classList.toggle("active", el.dataset.key === key));
 }
 
 function renderCategoryQuickChips() {
   const host = qs("catQuick");
   host.innerHTML = "";
-
   const top4 = CATEGORIES.slice(0, 4);
-
   top4.forEach(c => {
     const a = document.createElement("a");
-    a.href = "#";
-    a.className = "chip";
+    a.href = "#"; a.className = "chip";
     a.onclick = (e) => {
       e.preventDefault();
       FILTER_CATEGORY = (FILTER_CATEGORY === String(c.id)) ? "" : String(c.id);
       qs("catMore").value = FILTER_CATEGORY ? FILTER_CATEGORY : "";
-      renderCategoryQuickChips();
-      showClearIfNeeded();
-      reloadMarkers();
+      renderCategoryQuickChips(); showClearIfNeeded(); reloadMarkers();
     };
     if (FILTER_CATEGORY === String(c.id)) a.classList.add("active");
-
     const icon = getIconUrlForCategory(c.id);
     a.innerHTML = `<img class="chip-ic" src="${escapeHtml(icon)}" alt=""/> <span>${escapeHtml(c.name)}</span>`;
     host.appendChild(a);
   });
-
-  // All chip
   const all = document.createElement("a");
-  all.href = "#";
-  all.className = "chip chip-more";
-  all.textContent = "All";
-  all.onclick = (e) => {
-    e.preventDefault();
-    FILTER_CATEGORY = "";
-    qs("catMore").value = "";
-    renderCategoryQuickChips();
-    showClearIfNeeded();
-    reloadMarkers();
-  };
+  all.href = "#"; all.className = "chip chip-more"; all.textContent = "All";
+  all.onclick = (e) => { e.preventDefault(); FILTER_CATEGORY = ""; qs("catMore").value = ""; renderCategoryQuickChips(); showClearIfNeeded(); reloadMarkers(); };
   if (!FILTER_CATEGORY) all.classList.add("active");
   host.appendChild(all);
 }
@@ -213,40 +159,20 @@ async function reverseGeocodeAddress(lat, lon) {
 
 async function toggleAddMode() {
   const user = await maybeUser();
-  if (!user) {
-    alert("Please login to add places.");
-    window.location.href = "login.html";
-    return;
-  }
-
+  if (!user) { alert("Please login to add places."); window.location.href = "login.html"; return; }
   ADD_MODE = !ADD_MODE;
   const btn = qs("toggleAdd");
-  if (ADD_MODE) {
-    btn.textContent = "✕ Stop adding";
-    btn.classList.add("tba-btn-danger");
-    btn.classList.remove("tba-btn-primary");
-  } else {
-    btn.textContent = "＋ Start adding";
-    btn.classList.remove("tba-btn-danger");
-    btn.classList.add("tba-btn-primary");
-  }
+  if (ADD_MODE) { btn.textContent = "✕ Stop adding"; btn.classList.add("tba-btn-danger"); btn.classList.remove("tba-btn-primary"); }
+  else { btn.textContent = "＋ Start adding"; btn.classList.remove("tba-btn-danger"); btn.classList.add("tba-btn-primary"); }
   qs("addForm").style.display = ADD_MODE ? "block" : "none";
   setSaveStatus("");
-
-  if (!ADD_MODE) {
-    LAST_CLICK = null;
-    if (PREVIEW_MARKER) {
-      MAP.removeLayer(PREVIEW_MARKER);
-      PREVIEW_MARKER = null;
-    }
-  }
+  if (!ADD_MODE) { LAST_CLICK = null; if (PREVIEW_MARKER) { MAP.removeLayer(PREVIEW_MARKER); PREVIEW_MARKER = null; } }
 }
 
 function tryFocusMarker() {
   if (!FOCUS_ID || DID_FOCUS) return;
   const mk = LEAFLET_MARKERS_BY_ID[FOCUS_ID];
   if (!mk) return;
-
   DID_FOCUS = true;
   selectMarkerById(FOCUS_ID, true);
 }
@@ -264,219 +190,157 @@ function fmtOverall(avg, cnt) {
   return `${Number(avg ?? 0).toFixed(2)}/10 (${c} vote${c === 1 ? "" : "s"})`;
 }
 
-/* -------------------------
-   SELECTED PANEL
-------------------------- */
+/* ── SELECTED PANEL ── */
 function clearSelection() {
   SELECTED_ID = null;
   qs("selPanel").style.display = "none";
+}
+
+function renderSelCategoryChips(m, activeCatId) {
+  let chipsEl = qs("selCatChips");
+  if (!chipsEl) {
+    chipsEl = document.createElement("div");
+    chipsEl.id = "selCatChips";
+    chipsEl.className = "sel-cat-chips";
+    const selSub = qs("selSub");
+    if (selSub && selSub.parentNode) selSub.parentNode.insertBefore(chipsEl, selSub.nextSibling);
+  }
+  const allCatIds = [m.category_id, ...(m.extra_categories || [])].filter(Boolean);
+  const uniqueCatIds = [...new Set(allCatIds)];
+  if (uniqueCatIds.length <= 1) { chipsEl.innerHTML = ""; chipsEl.style.display = "none"; return; }
+  chipsEl.style.display = "flex";
+  chipsEl.innerHTML = uniqueCatIds.map(catId => {
+    const isActive = catId === activeCatId;
+    const iconUrl = getIconUrlForCategory(catId);
+    const catName = CAT_NAME[String(catId)] || "";
+    const colorCls = colorClassForRating(m.rating_avg, m.rating_count);
+    return `<button class="sel-cat-chip ${colorCls}${isActive ? " sel-cat-chip-active" : ""}" title="${escapeHtml(catName)}" onclick="switchSelCategory('${escapeHtml(m.id)}',${catId})"><img src="${escapeHtml(iconUrl)}" alt="${escapeHtml(catName)}" /></button>`;
+  }).join("");
+}
+
+function switchSelCategory(markerId, catId) {
+  const m = MARKER_DATA_BY_ID[markerId];
+  if (!m) return;
+  const avg = Number(m.rating_avg ?? 0);
+  const cnt = Number(m.rating_count ?? 0);
+  const cls = colorClassForRating(avg, cnt);
+  qs("selIcon").className = `mini-marker ${cls}`;
+  qs("selIcon").innerHTML = `<img src="${escapeHtml(getIconUrlForCategory(catId))}" alt="" />`;
+  qs("selSub").textContent = CAT_NAME[String(catId)] || "";
+  qs("selOpen").href = `marker.html?id=${encodeURIComponent(markerId)}&cat=${encodeURIComponent(catId)}`;
+  renderSelCategoryChips(m, catId);
 }
 
 function selectMarkerById(id, fly = false) {
   const mk = LEAFLET_MARKERS_BY_ID[id];
   const m = MARKER_DATA_BY_ID[id];
   if (!mk || !m) return;
-
   SELECTED_ID = id;
-
+  const activeCatId = FILTER_CATEGORY ? parseInt(FILTER_CATEGORY) : m.category_id;
   const avg = Number(m.rating_avg ?? 0);
   const cnt = Number(m.rating_count ?? 0);
   const cls = colorClassForRating(avg, cnt);
-
-  // icon
-  const iconUrl = getIconUrlForCategory(m.category_id);
+  const isMultiCat = m.extra_categories && m.extra_categories.length > 0;
+  const showSparkleInPanel = isMultiCat && !FILTER_CATEGORY;
+  const iconUrl = showSparkleInPanel ? SPARKLE_ICON_URL : getIconUrlForCategory(activeCatId || m.category_id);
   qs("selIcon").className = `mini-marker ${cls}`;
   qs("selIcon").innerHTML = `<img src="${escapeHtml(iconUrl)}" alt="" />`;
-
-  // text
   qs("selTitle").textContent = m.title || "—";
   qs("selMeta").textContent = `Overall: ${fmtOverall(avg, cnt)}`;
-  qs("selSub").textContent = CAT_NAME[String(m.category_id)] || "";
-
-  // link
-  qs("selOpen").href = `marker.html?id=${encodeURIComponent(m.id)}`;
-
-  // photo — load first photo async
+  qs("selSub").textContent = CAT_NAME[String(activeCatId || m.category_id)] || "";
+  renderSelCategoryChips(m, activeCatId);
+  const catParam = activeCatId ? `&cat=${encodeURIComponent(activeCatId)}` : "";
+  qs("selOpen").href = `marker.html?id=${encodeURIComponent(m.id)}${catParam}`;
   const selPhoto = qs("selPhoto");
   const selPhotoImg = qs("selPhotoImg");
   selPhoto.style.display = "none";
-  sb.from("marker_photos")
-    .select("storage_path")
-    .eq("marker_id", m.id)
-    .eq("is_active", true)
-    .order("created_at", { ascending: true })
-    .limit(1)
+  sb.from("marker_photos").select("storage_path").eq("marker_id", m.id).eq("is_active", true)
+    .order("created_at", { ascending: true }).limit(1)
     .then(({ data }) => {
       if (data && data.length) {
-        const url = `${SUPABASE_URL}/storage/v1/object/public/marker-photos/${data[0].storage_path}`;
-        selPhotoImg.src = url;
+        selPhotoImg.src = `${SUPABASE_URL}/storage/v1/object/public/marker-photos/${data[0].storage_path}`;
         selPhoto.style.display = "block";
       }
     });
-
-  // show
   qs("selPanel").style.display = "block";
-
-  // heart button
   const wlSlot = qs("selWlBtn");
   if (wlSlot) wlSlot.innerHTML = wlBtnHtml(m.id);
-
-  if (fly) {
-    MAP.flyTo(mk.getLatLng(), Math.max(MAP.getZoom(), 17), { duration: 0.8 });
-  }
+  if (fly) MAP.flyTo(mk.getLatLng(), Math.max(MAP.getZoom(), 17), { duration: 0.8 });
 }
 
 function attachMarkerHoverAndClick(mk, id) {
-  mk.on("mouseover", () => {
-    const el = mk.getElement();
-    if (el) el.classList.add("tba-hover");
-  });
-  mk.on("mouseout", () => {
-    const el = mk.getElement();
-    if (el) el.classList.remove("tba-hover");
-  });
-
-  mk.on("click", () => {
-    selectMarkerById(id, false);
-  });
+  mk.on("mouseover", () => { const el = mk.getElement(); if (el) el.classList.add("tba-hover"); });
+  mk.on("mouseout",  () => { const el = mk.getElement(); if (el) el.classList.remove("tba-hover"); });
+  mk.on("click", () => selectMarkerById(id, false));
 }
 
 async function initMap() {
-  // Hide add panel if logged out
   const user = await maybeUser();
   if (!user) qs("addPanel").style.display = "none";
-
-  // Load wishlist state
   wlInit();
-
-  // Journey mode: always show toggle; load votes if logged in
   updateJourneyToggleUI();
-  if (user) {
-    await refreshMyVotes(user.id);
-  }
-
+  if (user) await refreshMyVotes(user.id);
   initRatingDropdown("m_rating", 7);
   renderRatingButtons();
-
   MAP = L.map("map").setView([41.3889, 2.1618], 15);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "&copy; OpenStreetMap",
-  }).addTo(MAP);
-
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(MAP);
   LAYER_GROUP = L.layerGroup().addTo(MAP);
-
   setMapStatus("Loading categories…");
 
-  const { data: catData, error: catErr } = await sb
-    .from("categories")
-    .select("id,name,icon_url,is_active,for_places")
-    .eq("is_active", true)
-    .eq("for_places", true)
-    .order("id", { ascending: true });
-
-  if (catErr) {
-    setMapStatus("Error loading categories: " + catErr.message);
-    return;
-  }
-
+  const { data: catData, error: catErr } = await sb.from("categories")
+    .select("id,name,icon_url,is_active,for_places").eq("is_active", true).eq("for_places", true).order("id", { ascending: true });
+  if (catErr) { setMapStatus("Error loading categories: " + catErr.message); return; }
   CATEGORIES = catData || [];
-  CAT_ICON = {};
-  CAT_NAME = {};
-  CATEGORIES.forEach(c => {
-    CAT_ICON[String(c.id)] = String(c.icon_url ?? "").trim();
-    CAT_NAME[String(c.id)] = c.name;
-  });
-
-  // Add form categories
+  CAT_ICON = {}; CAT_NAME = {};
+  CATEGORIES.forEach(c => { CAT_ICON[String(c.id)] = String(c.icon_url ?? "").trim(); CAT_NAME[String(c.id)] = c.name; });
   qs("m_category").innerHTML = CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
-
-  // More dropdown
   qs("catMore").innerHTML = `<option value="">More…</option>` + CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join("");
 
-  // top4 by usage
-  const { data: placeCats, error: cntErr } = await sb
-    .from("markers")
-    .select("category_id")
-    .eq("is_active", true)
-    .eq("group_type", "place");
-
+  // Sort by usage via marker_categories
+  const { data: placeCats, error: cntErr } = await sb.from("marker_categories")
+    .select("category_id, markers!inner(is_active, group_type)")
+    .eq("markers.is_active", true).eq("markers.group_type", "place");
   if (!cntErr && placeCats) {
     const counts = {};
-    placeCats.forEach(r => {
-      const k = String(r.category_id ?? "");
-      if (!k) return;
-      counts[k] = (counts[k] || 0) + 1;
-    });
+    placeCats.forEach(r => { const k = String(r.category_id ?? ""); if (!k) return; counts[k] = (counts[k] || 0) + 1; });
     CATEGORIES.sort((a, b) => (counts[String(b.id)] || 0) - (counts[String(a.id)] || 0));
   }
 
-  renderCategoryQuickChips();
-  showClearIfNeeded();
-
+  renderCategoryQuickChips(); showClearIfNeeded();
   await reloadMarkers();
 
-  // Add marker via click
   MAP.on("click", async (e) => {
     const user = await maybeUser();
-    if (!user) return;
-    if (!ADD_MODE) return;
-
+    if (!user || !ADD_MODE) return;
     LAST_CLICK = { lat: e.latlng.lat, lon: e.latlng.lng };
     qs("m_lat").value = LAST_CLICK.lat.toFixed(6);
     qs("m_lon").value = LAST_CLICK.lon.toFixed(6);
-
-    if (PREVIEW_MARKER) {
-      PREVIEW_MARKER.setLatLng([LAST_CLICK.lat, LAST_CLICK.lon]);
-    } else {
-      PREVIEW_MARKER = L.marker([LAST_CLICK.lat, LAST_CLICK.lon], { opacity: 0.7 })
-        .addTo(MAP)
-        .bindPopup("New place location")
-        .openPopup();
-    }
-
+    if (PREVIEW_MARKER) PREVIEW_MARKER.setLatLng([LAST_CLICK.lat, LAST_CLICK.lon]);
+    else PREVIEW_MARKER = L.marker([LAST_CLICK.lat, LAST_CLICK.lon], { opacity: 0.7 }).addTo(MAP).bindPopup("New place location").openPopup();
     qs("m_address").value = "";
     setSaveStatus("Location selected ✅ Looking up address…");
-    try {
-      const addr = await reverseGeocodeAddress(LAST_CLICK.lat, LAST_CLICK.lon);
-      qs("m_address").value = addr;
-      setSaveStatus("Address filled ✅ Now click Save.");
-    } catch {
-      setSaveStatus("Address lookup failed (you can type it manually).");
-    }
+    try { const addr = await reverseGeocodeAddress(LAST_CLICK.lat, LAST_CLICK.lon); qs("m_address").value = addr; setSaveStatus("Address filled ✅ Now click Save."); }
+    catch { setSaveStatus("Address lookup failed (you can type it manually)."); }
   });
 }
 
-/* ══════════════════════════════════════════
-   JOURNEY MODE
-══════════════════════════════════════════ */
+/* ── JOURNEY MODE ── */
 async function refreshMyVotes(userId) {
   if (!userId) return;
-  const { data } = await sb
-    .from("votes")
-    .select("marker_id")
-    .eq("user_id", userId)
-    .eq("is_active", true);
+  const { data } = await sb.from("votes").select("marker_id").eq("user_id", userId).eq("is_active", true);
   MY_VOTED_IDS = new Set((data || []).map(v => v.marker_id));
 }
 
 function showJourneyLoginPrompt() {
-  // Small toast nudging the user to log in
   let el = document.getElementById("journeyLoginToast");
   if (!el) {
-    el = document.createElement("div");
-    el.id = "journeyLoginToast";
-    el.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);" +
-      "background:var(--accent,#e0355b);color:#fff;padding:10px 18px;border-radius:20px;" +
-      "font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);" +
-      "cursor:pointer;white-space:nowrap;";
+    el = document.createElement("div"); el.id = "journeyLoginToast";
+    el.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--accent,#e0355b);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;white-space:nowrap;";
     el.innerHTML = "🔑 Log in to track My Journey &nbsp;→";
     el.onclick = () => window.location.href = "login.html";
     document.body.appendChild(el);
   }
-  el.style.display = "block";
-  clearTimeout(el._t);
+  el.style.display = "block"; clearTimeout(el._t);
   el._t = setTimeout(() => { el.style.display = "none"; }, 3500);
 }
 
@@ -490,10 +354,7 @@ function updateJourneyToggleUI() {
 
 async function toggleJourneyMode() {
   const user = await maybeUser();
-  if (!user) {
-    showJourneyLoginPrompt();
-    return;
-  }
+  if (!user) { showJourneyLoginPrompt(); return; }
   JOURNEY_MODE = !JOURNEY_MODE;
   updateJourneyToggleUI();
   reloadMarkers();
@@ -502,111 +363,88 @@ async function toggleJourneyMode() {
 async function reloadMarkers() {
   setMapStatus("Loading places…");
 
-  let q = sb
-    .from("markers")
-    .select("id,title,rating_avg,rating_count,lat,lon,group_type,is_active,category_id")
-    .eq("is_active", true)
-    .eq("group_type", "place");
+  let markerIds = null;
+  if (FILTER_CATEGORY) {
+    const { data: mcData, error: mcErr } = await sb.from("marker_categories")
+      .select("marker_id").eq("category_id", parseInt(FILTER_CATEGORY)).eq("is_active", true);
+    if (mcErr) { setMapStatus("Error: " + mcErr.message); return; }
+    markerIds = (mcData || []).map(r => r.marker_id);
+    if (!markerIds.length) {
+      LAYER_GROUP.clearLayers(); LEAFLET_MARKERS_BY_ID = {}; MARKER_DATA_BY_ID = {};
+      setMapStatus("No places found."); return;
+    }
+  }
 
-  if (FILTER_CATEGORY) q = q.eq("category_id", FILTER_CATEGORY);
+  let q = sb.from("markers").select("id,title,rating_avg,rating_count,lat,lon,group_type,is_active,category_id")
+    .eq("is_active", true).eq("group_type", "place");
+  if (markerIds) q = q.in("id", markerIds);
   q = applyRatingBucket(q);
 
   const { data, error } = await q;
-
-  if (error) {
-    setMapStatus("Error: " + error.message);
-    return;
-  }
+  if (error) { setMapStatus("Error: " + error.message); return; }
 
   const markers = (data || []).filter(m => m.lat !== null && m.lon !== null);
 
-  LAYER_GROUP.clearLayers();
-  LEAFLET_MARKERS_BY_ID = {};
-  MARKER_DATA_BY_ID = {};
+  // Fetch all category assignments for sparkle detection
+  let extraCatsMap = {};
+  if (markers.length) {
+    const ids = markers.map(m => m.id);
+    const { data: mcAll } = await sb.from("marker_categories").select("marker_id,category_id").in("marker_id", ids).eq("is_active", true);
+    (mcAll || []).forEach(r => { if (!extraCatsMap[r.marker_id]) extraCatsMap[r.marker_id] = []; extraCatsMap[r.marker_id].push(r.category_id); });
+  }
+
+  LAYER_GROUP.clearLayers(); LEAFLET_MARKERS_BY_ID = {}; MARKER_DATA_BY_ID = {};
 
   markers.forEach(m => {
-    const iconUrl = getIconUrlForCategory(m.category_id);
+    const allCats = extraCatsMap[m.id] || [m.category_id];
+    const uniqueCats = [...new Set(allCats)];
+    m.extra_categories = uniqueCats.filter(cid => cid !== m.category_id);
+    const isMultiCat = uniqueCats.length > 1;
+    const useSparkle = isMultiCat && !FILTER_CATEGORY;
+    const iconUrl = FILTER_CATEGORY ? getIconUrlForCategory(parseInt(FILTER_CATEGORY)) : getIconUrlForCategory(m.category_id);
     const avg = Number(m.rating_avg ?? 0);
     const cnt = Number(m.rating_count ?? 0);
     const greyed = JOURNEY_MODE && !MY_VOTED_IDS.has(m.id);
-    const icon = makeMarkerIcon(iconUrl, avg, cnt, greyed);
-
+    const icon = makeMarkerIcon(iconUrl, avg, cnt, greyed, useSparkle);
     const mk = L.marker([m.lat, m.lon], { icon }).addTo(LAYER_GROUP);
-
     LEAFLET_MARKERS_BY_ID[m.id] = mk;
     MARKER_DATA_BY_ID[m.id] = m;
-
     attachMarkerHoverAndClick(mk, m.id);
   });
 
   setMapStatus(`Loaded ${markers.length} place(s).`);
-
-  // focus support (select + fly)
   tryFocusMarker();
 }
 
 async function saveMapMarker() {
   const user = await maybeUser();
   if (!user) { alert("Please login to add places."); window.location.href="login.html"; return; }
-
   setSaveStatus("Saving…");
-
   const title = qs("m_title").value.trim();
-  const category_id = qs("m_category").value;
+  const category_id = parseInt(qs("m_category").value);
   const rating_manual = Number(qs("m_rating").value);
   const address = (qs("m_address")?.value || "").trim();
-
   if (!ADD_MODE) { setSaveStatus("Turn Add ON first."); return; }
   if (!LAST_CLICK) { setSaveStatus("Click the map first to pick a location."); return; }
   if (!title) { setSaveStatus("Title required."); return; }
 
-  const payload = {
-    title,
-    category_id,
-    rating_manual,
-    group_type: "place",
-    is_active: true,
-    lat: LAST_CLICK.lat,
-    lon: LAST_CLICK.lon,
-    address
-  };
+  const { data: markerRow, error: mErr } = await sb.from("markers")
+    .insert([{ title, category_id, rating_manual, group_type: "place", is_active: true, lat: LAST_CLICK.lat, lon: LAST_CLICK.lon, address }])
+    .select("id").single();
+  if (mErr) { setSaveStatus("Error creating place: " + mErr.message); return; }
 
-  const { data: markerRow, error: mErr } = await sb
-    .from("markers")
-    .insert([payload])
-    .select("id")
-    .single();
+  // Insert into marker_categories (primary)
+  await sb.from("marker_categories").insert([{ marker_id: markerRow.id, category_id, is_primary: true, is_active: true }]);
 
-  if (mErr) {
-    setSaveStatus("Error creating place: " + mErr.message);
-    return;
-  }
+  const { error: vErr } = await sb.from("votes")
+    .insert([{ marker_id: markerRow.id, user_id: user.id, vote: rating_manual, category_id, is_active: true }]);
 
-  const { error: vErr } = await sb
-    .from("votes")
-    .insert([{
-      marker_id: markerRow.id,
-      user_id: user.id,
-      vote: rating_manual,
-      is_active: true
-    }]);
-
-  if (vErr) {
-    setSaveStatus("Place saved ✅ but vote failed: " + vErr.message);
-    window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
-    return;
-  }
-
-  window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}`;
+  if (vErr) { setSaveStatus("Place saved ✅ but vote failed: " + vErr.message); }
+  window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}&cat=${category_id}`;
 }
 
-/* ══════════════════════════════════════════════════════
-   LOCATION SEARCH — Nominatim (OpenStreetMap, free)
-══════════════════════════════════════════════════════ */
-
-let searchDebounce = null;
-let searchResults  = [];
-let searchActive   = -1; // keyboard selection index
+/* ── LOCATION SEARCH ── */
+let searchDebounce = null, searchResults = [], searchActive = -1;
 
 function onMapSearchInput() {
   const val = document.getElementById('mapSearchInput').value.trim();
@@ -620,95 +458,40 @@ async function nominatimSearch(q) {
   const res = document.getElementById('mapSearchResults');
   res.style.display = 'block';
   res.innerHTML = '<div class="map-search-loading">Searching…</div>';
-
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`;
     const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
     const data = await r.json();
-
-    searchResults = data;
-    searchActive  = -1;
-
-    if (!data.length) {
-      res.innerHTML = '<div class="map-search-empty">No results found.</div>';
-      return;
-    }
-
+    searchResults = data; searchActive = -1;
+    if (!data.length) { res.innerHTML = '<div class="map-search-empty">No results found.</div>'; return; }
     res.innerHTML = data.map((d, i) => {
-      const name    = d.display_name || '';
-      // Bold the first part (place name), mute the rest
-      const parts   = name.split(', ');
-      const main    = escapeHtml(parts[0]);
-      const sub     = escapeHtml(parts.slice(1, 3).join(', '));
-      return `
-        <div class="map-search-result" data-idx="${i}"
-             onmousedown="selectSearchResult(${i})"
-             onmouseover="highlightResult(${i})">
-          <span class="map-sr-main">${main}</span>
-          ${sub ? `<span class="map-sr-sub">${sub}</span>` : ''}
-        </div>`;
+      const parts = (d.display_name || '').split(', ');
+      return `<div class="map-search-result" data-idx="${i}" onmousedown="selectSearchResult(${i})" onmouseover="highlightResult(${i})"><span class="map-sr-main">${escapeHtml(parts[0])}</span>${parts.slice(1,3).join(', ') ? `<span class="map-sr-sub">${escapeHtml(parts.slice(1,3).join(', '))}</span>` : ''}</div>`;
     }).join('');
-
-  } catch(e) {
-    res.innerHTML = '<div class="map-search-empty">Search unavailable.</div>';
-  }
+  } catch(e) { res.innerHTML = '<div class="map-search-empty">Search unavailable.</div>'; }
 }
 
 function highlightResult(idx) {
   searchActive = idx;
-  document.querySelectorAll('.map-search-result').forEach((el, i) => {
-    el.classList.toggle('active', i === idx);
-  });
+  document.querySelectorAll('.map-search-result').forEach((el, i) => el.classList.toggle('active', i === idx));
 }
 
 function selectSearchResult(idx) {
-  const d = searchResults[idx];
-  if (!d) return;
-
-  const lat = parseFloat(d.lat);
-  const lon = parseFloat(d.lon);
-
-  // Fly to location
-  if (d.boundingbox) {
-    const [s, n, w, e] = d.boundingbox.map(Number);
-    MAP.fitBounds([[s, w], [n, e]], { maxZoom: 17, padding: [30, 30] });
-  } else {
-    MAP.setView([lat, lon], 16);
-  }
-
-  // Place a temporary pin
+  const d = searchResults[idx]; if (!d) return;
+  if (d.boundingbox) { const [s,n,w,e] = d.boundingbox.map(Number); MAP.fitBounds([[s,w],[n,e]], { maxZoom:17, padding:[30,30] }); }
+  else MAP.setView([parseFloat(d.lat), parseFloat(d.lon)], 16);
   if (window._searchPin) window._searchPin.remove();
-  window._searchPin = L.marker([lat, lon], {
-    icon: L.divIcon({
-      className: '',
-      html: `<div class="search-pin">📍</div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32]
-    })
-  }).addTo(MAP);
-
-  // Update input + hide results
-  document.getElementById('mapSearchInput').value = d.display_name.split(', ').slice(0, 2).join(', ');
+  window._searchPin = L.marker([parseFloat(d.lat), parseFloat(d.lon)], { icon: L.divIcon({ className:'', html:`<div class="search-pin">📍</div>`, iconSize:[32,32], iconAnchor:[16,32] }) }).addTo(MAP);
+  document.getElementById('mapSearchInput').value = d.display_name.split(', ').slice(0,2).join(', ');
   hideSearchResults();
 }
 
 function onMapSearchKey(e) {
-  const items = document.querySelectorAll('.map-search-result');
-  if (!items.length) return;
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    highlightResult(Math.min(searchActive + 1, items.length - 1));
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    highlightResult(Math.max(searchActive - 1, 0));
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (searchActive >= 0) selectSearchResult(searchActive);
-    else if (searchResults.length) selectSearchResult(0);
-  } else if (e.key === 'Escape') {
-    clearMapSearch();
-  }
+  const items = document.querySelectorAll('.map-search-result'); if (!items.length) return;
+  if (e.key==='ArrowDown') { e.preventDefault(); highlightResult(Math.min(searchActive+1, items.length-1)); }
+  else if (e.key==='ArrowUp') { e.preventDefault(); highlightResult(Math.max(searchActive-1, 0)); }
+  else if (e.key==='Enter') { e.preventDefault(); if (searchActive>=0) selectSearchResult(searchActive); else if (searchResults.length) selectSearchResult(0); }
+  else if (e.key==='Escape') clearMapSearch();
 }
 
 function clearMapSearch() {
@@ -721,13 +504,9 @@ function clearMapSearch() {
 function hideSearchResults() {
   const res = document.getElementById('mapSearchResults');
   if (res) res.style.display = 'none';
-  searchResults = [];
-  searchActive  = -1;
+  searchResults = []; searchActive = -1;
 }
 
-// Close results when clicking elsewhere
 document.addEventListener('click', e => {
-  if (!document.getElementById('mapSearchWrap')?.contains(e.target)) {
-    hideSearchResults();
-  }
+  if (!document.getElementById('mapSearchWrap')?.contains(e.target)) hideSearchResults();
 });

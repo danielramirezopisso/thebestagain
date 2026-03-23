@@ -481,3 +481,105 @@ async function toggleBrandLink(category_id, brand_id, shouldLink) {
     .eq("category_id", category_id);
   ALL_CATEGORY_BRANDS = data || [];
 }
+
+/* ══════════════════════════════
+   MARKER CATEGORIES (multi-category management)
+══════════════════════════════ */
+
+let MC_MARKER_ID = null;
+let MC_MARKER_TITLE = "";
+let MC_CURRENT = []; // current marker_categories rows
+
+function setMcStatus(msg) {
+  const el = document.getElementById("mcStatus");
+  if (el) el.textContent = msg || "";
+}
+
+async function loadMarkerForCategories() {
+  const input = document.getElementById("mcMarkerSearch").value.trim();
+  if (!input) { setMcStatus("Enter a marker title to search."); return; }
+  setMcStatus("Searching…");
+
+  const { data, error } = await sb
+    .from("markers")
+    .select("id,title,category_id,group_type,is_active")
+    .ilike("title", `%${input}%`)
+    .eq("is_active", true)
+    .limit(10);
+
+  if (error) { setMcStatus("Error: " + error.message); return; }
+  if (!data?.length) { setMcStatus("No markers found."); document.getElementById("mcResults").innerHTML = ""; return; }
+
+  document.getElementById("mcResults").innerHTML = data.map(m => `
+    <div class="mc-result-row">
+      <span>${escapeHtml(m.title)}</span>
+      <button onclick="selectMarkerForMC('${escapeHtml(m.id)}', '${escapeHtml(m.title.replace(/'/g,"&#39;"))}')">Manage categories</button>
+    </div>
+  `).join("");
+  setMcStatus(`${data.length} marker(s) found.`);
+}
+
+async function selectMarkerForMC(markerId, markerTitle) {
+  MC_MARKER_ID = markerId;
+  MC_MARKER_TITLE = markerTitle;
+  setMcStatus("Loading categories…");
+  document.getElementById("mcPanel").style.display = "block";
+  document.getElementById("mcPanelTitle").textContent = `Categories for: ${markerTitle}`;
+
+  const { data, error } = await sb
+    .from("marker_categories")
+    .select("id,category_id,is_primary,is_active")
+    .eq("marker_id", markerId);
+
+  if (error) { setMcStatus("Error: " + error.message); return; }
+  MC_CURRENT = data || [];
+
+  renderMCPanel();
+  setMcStatus("");
+}
+
+function renderMCPanel() {
+  const linkedIds = new Set(MC_CURRENT.filter(r => r.is_active).map(r => r.category_id));
+  const primaryId = MC_CURRENT.find(r => r.is_primary && r.is_active)?.category_id;
+  const allCats = ALL_CATEGORIES.filter(c => c.is_active && c.for_places);
+
+  document.getElementById("mcCatList").innerHTML = allCats.map(c => {
+    const isLinked = linkedIds.has(c.id);
+    const isPrimary = c.id === primaryId;
+    return `
+      <label class="brand-check-card ${isLinked ? "linked" : ""}">
+        <input type="checkbox" ${isLinked ? "checked" : ""} onchange="toggleMarkerCategory(${c.id}, this.checked)" />
+        <div>
+          <div class="brand-check-name">${escapeHtml(c.name)} ${isPrimary ? "⭐ primary" : ""}</div>
+          <div class="brand-check-status">${isLinked ? "Linked" : "Not linked"}</div>
+        </div>
+      </label>
+    `;
+  }).join("");
+}
+
+async function toggleMarkerCategory(category_id, shouldLink) {
+  if (!MC_MARKER_ID) return;
+  setMcStatus("Saving…");
+
+  const existing = MC_CURRENT.find(r => r.category_id === category_id);
+
+  if (shouldLink) {
+    if (existing) {
+      await sb.from("marker_categories").update({ is_active: true }).eq("id", existing.id);
+    } else {
+      await sb.from("marker_categories").insert([{ marker_id: MC_MARKER_ID, category_id, is_primary: false, is_active: true }]);
+    }
+  } else {
+    if (existing) {
+      if (existing.is_primary) { setMcStatus("Cannot remove primary category. Change primary first."); renderMCPanel(); return; }
+      await sb.from("marker_categories").update({ is_active: false }).eq("id", existing.id);
+    }
+  }
+
+  // Reload
+  const { data } = await sb.from("marker_categories").select("id,category_id,is_primary,is_active").eq("marker_id", MC_MARKER_ID);
+  MC_CURRENT = data || [];
+  renderMCPanel();
+  setMcStatus("Saved ✅");
+}

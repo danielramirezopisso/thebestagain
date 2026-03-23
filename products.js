@@ -455,7 +455,7 @@ async function saveProduct(){
 
   const { error: vErr } = await sb
     .from("votes")
-    .insert([{ marker_id: markerRow.id, user_id: user.id, vote: v, is_active: true }]);
+    .insert([{ marker_id: markerRow.id, user_id: user.id, vote: v, category_id: category_id, is_active: true }]);
 
   if (vErr) {
     setPStatus("Saved marker ✅ but vote failed: " + vErr.message);
