@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Rutas — The Best Again</title>
+  <meta name="description" content="Curated food discovery routes in Barcelona and Madrid. Find the best tortilla, pizza, bravas and more." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="rutas.css" />
+</head>
+
+<body class="rutas-page" onload="initRutasPage()">
+
+  <header class="topbar topbar-sticky">
+    <a class="brand" href="index.html">The Best Again</a>
+    <nav class="nav" id="mainNav">
+      <a href="index.html">Home</a>
+      <a href="list.html">List</a>
+      <a href="map.html">Map</a>
+      <a href="products.html">Products</a>
+      <a class="active" href="rutas.html">Rutas</a>
+    </nav>
+    <div class="nav-right">
+      <div id="authHeaderSlot"></div>
+    </div>
+  </header>
+
+  <main class="rutas-main">
+
+    <!-- HERO -->
+    <section class="rutas-hero">
+      <div class="rutas-hero-label">Curated picks</div>
+      <h1 class="rutas-hero-title">Rutas</h1>
+      <p class="rutas-hero-sub">Discover the best of each dish, one place at a time.</p>
+    </section>
+
+    <!-- CITY SELECTOR -->
+    <section class="rutas-section" id="citySection">
+      <div class="rutas-section-label">Select a city</div>
+      <div class="city-grid">
+        <button class="city-card city-card-active" id="cityBCN" onclick="selectCity('BCN')">
+          <div class="city-card-name">BCN</div>
+          <div class="city-card-sub">Barcelona</div>
+        </button>
+        <button class="city-card city-card-disabled" id="cityMAD" disabled title="Coming soon">
+          <div class="city-card-name">MAD</div>
+          <div class="city-card-sub">Coming soon</div>
+          <div class="city-card-soon">🔜</div>
+        </button>
+      </div>
+    </section>
+
+    <!-- CATEGORY SELECTOR -->
+    <section class="rutas-section" id="catSection" style="display:none;">
+      <div class="rutas-section-label">Select a category</div>
+      <div class="rutas-cat-chips" id="rutasCatChips"></div>
+    </section>
+
+    <!-- RUTA GRID -->
+    <section class="rutas-section" id="rutaSection" style="display:none;">
+      <div class="ruta-header" id="rutaHeader"></div>
+      <div class="ruta-progress-bar" id="rutaProgressBar">
+        <div class="ruta-progress-fill" id="rutaProgressFill"></div>
+      </div>
+      <div class="ruta-progress-label" id="rutaProgressLabel"></div>
+      <div class="ruta-grid" id="rutaGrid"></div>
+    </section>
+
+    <div id="rutasStatus" class="rutas-status muted"></div>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js"></script>
+  <script src="header-auth.js"></script>
+  <script>renderAuthHeader();</script>
+  <script src="wishlist-btn.js"></script>
+  <script src="rutas.js"></script>
+
+</body>
+</html>
