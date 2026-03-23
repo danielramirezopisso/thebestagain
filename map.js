@@ -289,7 +289,19 @@ function attachMarkerHoverAndClick(mk, id) {
 
 async function initMap() {
   const user = await maybeUser();
-  if (!user) qs("addPanel").style.display = "none";
+  // On desktop: show add panel always, but redirect to login if not logged in
+  // On mobile: panel is hidden via CSS, hint button shown instead
+  if (!user) {
+    // Replace the start-adding button with a login prompt version
+    const toggleBtn = qs("toggleAdd");
+    if (toggleBtn) {
+      toggleBtn.textContent = "＋ Start adding";
+      toggleBtn.onclick = () => {
+        alert("Please log in to add places.");
+        window.location.href = "login.html";
+      };
+    }
+  }
   wlInit();
   updateJourneyToggleUI();
   if (user) await refreshMyVotes(user.id);

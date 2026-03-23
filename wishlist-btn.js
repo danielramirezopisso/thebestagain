@@ -75,7 +75,7 @@ function wlBtnHtml(markerId, extraClass = "") {
     onclick="event.stopPropagation(); wlToggle('${markerId}', this)"
     aria-label="${liked ? "Remove from wishlist" : "Add to wishlist"}"
     title="${liked ? "Remove from wishlist" : "Save to wishlist"}"
-  >♥</button>`;
+  >🏷️</button>`;
 }
 
 /* ── Init: call on every page that shows hearts ── */
