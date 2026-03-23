@@ -150,9 +150,12 @@
         </div>
       </div>
 
-      <!-- Selected marker panel (new) -->
+      <!-- Selected marker panel -->
       <div class="map-panel map-panel-selected" id="selPanel" style="display:none;">
-        <div class="panel-title">Selected</div>
+        <div class="sel-header">
+          <div class="panel-title">Selected</div>
+          <button class="sel-close-btn" onclick="clearSelection()" title="Close">✕</button>
+        </div>
         <div class="panel-sub muted" id="selSub"></div>
 
         <div id="selPhoto" class="sel-photo" style="display:none;"><img id="selPhotoImg" src="" alt="" /></div>
@@ -166,10 +169,14 @@
           </div>
         </div>
 
+        <!-- Quick vote -->
+        <div class="sel-vote-section">
+          <div id="selVoteWrap"></div>
+        </div>
+
         <div class="sel-actions">
           <a id="selOpen" class="tba-btn tba-btn-primary" href="#">Open</a>
           <span id="selWlBtn"></span>
-          <button class="tba-btn" onclick="clearSelection()">Close</button>
         </div>
       </div>
 

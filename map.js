@@ -22,6 +22,7 @@ let CAT_NAME = {};
 let FILTER_CATEGORY = "";
 let FILTER_RATING_BUCKET = "";
 let SELECTED_ID = null;
+let QUICK_VOTE_VALUE = null;   // current pending quick vote in drawer
 let JOURNEY_MODE = false;
 let MY_VOTED_IDS = new Set();
 
@@ -229,6 +230,7 @@ function switchSelCategory(markerId, catId) {
   qs("selSub").textContent = CAT_NAME[String(catId)] || "";
   qs("selOpen").href = `marker.html?id=${encodeURIComponent(markerId)}&cat=${encodeURIComponent(catId)}`;
   renderSelCategoryChips(m, catId);
+  initQuickVote(markerId, catId);
 }
 
 function selectMarkerById(id, fly = false) {
@@ -266,6 +268,9 @@ function selectMarkerById(id, fly = false) {
   const wlSlot = qs("selWlBtn");
   if (wlSlot) wlSlot.innerHTML = wlBtnHtml(m.id);
   if (fly) MAP.flyTo(mk.getLatLng(), Math.max(MAP.getZoom(), 17), { duration: 0.8 });
+
+  // Init quick vote for this marker+category
+  initQuickVote(m.id, activeCatId || m.category_id);
 }
 
 function attachMarkerHoverAndClick(mk, id) {
@@ -385,12 +390,19 @@ async function reloadMarkers() {
 
   const markers = (data || []).filter(m => m.lat !== null && m.lon !== null);
 
-  // Fetch all category assignments for sparkle detection
-  let extraCatsMap = {};
+  // Fetch all category assignments for sparkle detection (include is_primary)
+  let extraCatsMap = {};   // marker_id -> [category_id, ...]
+  let primaryCatMap = {};  // marker_id -> category_id (primary)
   if (markers.length) {
     const ids = markers.map(m => m.id);
-    const { data: mcAll } = await sb.from("marker_categories").select("marker_id,category_id").in("marker_id", ids).eq("is_active", true);
-    (mcAll || []).forEach(r => { if (!extraCatsMap[r.marker_id]) extraCatsMap[r.marker_id] = []; extraCatsMap[r.marker_id].push(r.category_id); });
+    const { data: mcAll } = await sb.from("marker_categories")
+      .select("marker_id,category_id,is_primary")
+      .in("marker_id", ids).eq("is_active", true);
+    (mcAll || []).forEach(r => {
+      if (!extraCatsMap[r.marker_id]) extraCatsMap[r.marker_id] = [];
+      extraCatsMap[r.marker_id].push(r.category_id);
+      if (r.is_primary) primaryCatMap[r.marker_id] = r.category_id;
+    });
   }
 
   LAYER_GROUP.clearLayers(); LEAFLET_MARKERS_BY_ID = {}; MARKER_DATA_BY_ID = {};
@@ -399,9 +411,15 @@ async function reloadMarkers() {
     const allCats = extraCatsMap[m.id] || [m.category_id];
     const uniqueCats = [...new Set(allCats)];
     m.extra_categories = uniqueCats.filter(cid => cid !== m.category_id);
+    m.primary_category_id = primaryCatMap[m.id] || m.category_id;
     const isMultiCat = uniqueCats.length > 1;
     const useSparkle = isMultiCat && !FILTER_CATEGORY;
-    const iconUrl = FILTER_CATEGORY ? getIconUrlForCategory(parseInt(FILTER_CATEGORY)) : getIconUrlForCategory(m.category_id);
+
+    const iconUrl = FILTER_CATEGORY
+      ? getIconUrlForCategory(parseInt(FILTER_CATEGORY))
+      : getIconUrlForCategory(m.primary_category_id);
+
+    // Sparkle color uses primary category rating (= marker's own rating_avg since primary is source of truth for now)
     const avg = Number(m.rating_avg ?? 0);
     const cnt = Number(m.rating_count ?? 0);
     const greyed = JOURNEY_MODE && !MY_VOTED_IDS.has(m.id);
@@ -441,6 +459,86 @@ async function saveMapMarker() {
 
   if (vErr) { setSaveStatus("Place saved ✅ but vote failed: " + vErr.message); }
   window.location.href = `marker.html?id=${encodeURIComponent(markerRow.id)}&cat=${category_id}`;
+}
+
+/* ── QUICK VOTE IN DRAWER ── */
+let QUICK_VOTE_OPEN = false;
+
+async function initQuickVote(markerId, catId) {
+  QUICK_VOTE_VALUE = null;
+  QUICK_VOTE_OPEN = false;
+  const el = qs("selVoteWrap");
+  if (!el) return;
+
+  const user = await maybeUser();
+  if (!user) {
+    el.innerHTML = `<button class="sel-vote-chip" onclick="window.location.href='login.html'">🔑 Log in to vote</button>`;
+    return;
+  }
+
+  // Load existing vote for this marker+category
+  let q = sb.from("votes").select("id,vote,is_active")
+    .eq("marker_id", markerId).eq("user_id", user.id);
+  if (catId) q = q.eq("category_id", catId);
+  const { data: existing } = await q.maybeSingle();
+
+  if (existing?.is_active) QUICK_VOTE_VALUE = Number(existing.vote);
+
+  renderQuickVoteChip(markerId, catId);
+}
+
+function renderQuickVoteChip(markerId, catId) {
+  const el = qs("selVoteWrap");
+  if (!el) return;
+
+  const hasVote = QUICK_VOTE_VALUE !== null;
+  const chipLabel = hasVote ? `★ My vote: ${QUICK_VOTE_VALUE}` : `★ Vote`;
+  const chipCls = hasVote ? "sel-vote-chip sel-vote-chip-voted" : "sel-vote-chip";
+
+  const btns = QUICK_VOTE_OPEN
+    ? `<div class="sel-vote-btns">${Array.from({ length: 10 }, (_, i) => i + 1).map(i => {
+        const sel = QUICK_VOTE_VALUE === i;
+        return `<button class="sel-vote-btn${sel ? " sel-vote-selected" : ""}" onclick="selectQuickVote(${i},'${markerId}',${catId || "null"})">${i}</button>`;
+      }).join("")}</div>`
+    : "";
+
+  el.innerHTML = `
+    <button class="${chipCls}" onclick="toggleQuickVote('${markerId}',${catId || "null"})">${escapeHtml(chipLabel)}</button>
+    ${btns}
+  `;
+}
+
+function toggleQuickVote(markerId, catId) {
+  QUICK_VOTE_OPEN = !QUICK_VOTE_OPEN;
+  renderQuickVoteChip(markerId, catId);
+}
+
+async function selectQuickVote(value, markerId, catId) {
+  const user = await maybeUser();
+  if (!user) { window.location.href = "login.html"; return; }
+
+  QUICK_VOTE_VALUE = value;
+  QUICK_VOTE_OPEN = false;
+  renderQuickVoteChip(markerId, catId);
+
+  // Show saving state on the chip
+  const chip = qs("selVoteWrap")?.querySelector(".sel-vote-chip");
+  if (chip) chip.textContent = "Saving…";
+
+  const payload = { marker_id: markerId, user_id: user.id, vote: value, is_active: true };
+  if (catId) payload.category_id = catId;
+
+  const { error } = await sb.from("votes").upsert(
+    [payload],
+    { onConflict: catId ? "marker_id,category_id,user_id" : "marker_id,user_id" }
+  );
+
+  if (error) {
+    if (chip) chip.textContent = "Error ❌";
+  } else {
+    MY_VOTED_IDS.add(markerId);
+    renderQuickVoteChip(markerId, catId); // re-render with saved value
+  }
 }
 
 /* ── LOCATION SEARCH ── */

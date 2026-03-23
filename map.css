@@ -462,3 +462,86 @@ body.map-page{
   0%, 100% { transform: scale(1); }
   50%       { transform: scale(1.1); }
 }
+
+/* ── Quick vote in drawer ── */
+.sel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.sel-close-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--muted, #888);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.sel-close-btn:hover { background: var(--rule, #eee); color: var(--text, #111); }
+
+.sel-vote-section {
+  margin: 8px 0 4px;
+}
+
+/* The vote chip — collapsed state */
+.sel-vote-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--rule, #e5e5e5);
+  background: var(--surface, #fff);
+  color: var(--text, #111);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.sel-vote-chip:hover {
+  border-color: var(--accent, #e0355b);
+  background: #fff0f3;
+}
+
+/* Chip when user has already voted */
+.sel-vote-chip-voted {
+  border-color: var(--accent, #e0355b);
+  color: var(--accent, #e0355b);
+  background: #fff0f3;
+}
+
+/* Expanded 1–10 buttons */
+.sel-vote-btns {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.sel-vote-btn {
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1.5px solid var(--rule, #e5e5e5);
+  border-radius: 6px;
+  background: var(--surface, #fff);
+  color: var(--text, #111);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, border-color 0.12s, transform 0.1s;
+}
+.sel-vote-btn:hover {
+  border-color: var(--accent, #e0355b);
+  background: #fff0f3;
+  transform: scale(1.08);
+}
+.sel-vote-selected {
+  background: var(--accent, #e0355b) !important;
+  color: #fff !important;
+  border-color: var(--accent, #e0355b) !important;
+}
