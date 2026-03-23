@@ -214,7 +214,9 @@ function renderSelCategoryChips(m, activeCatId) {
     const isActive = catId === activeCatId;
     const iconUrl = getIconUrlForCategory(catId);
     const catName = CAT_NAME[String(catId)] || "";
-    const colorCls = colorClassForRating(m.rating_avg, m.rating_count);
+    // Use per-category rating if available, fall back to overall
+    const catRating = m.cat_ratings?.[catId] || {};
+    const colorCls = colorClassForRating(catRating.avg ?? m.rating_avg, catRating.count ?? m.rating_count);
     return `<button class="sel-cat-chip ${colorCls}${isActive ? " sel-cat-chip-active" : ""}" title="${escapeHtml(catName)}" onclick="switchSelCategory('${escapeHtml(m.id)}',${catId})"><img src="${escapeHtml(iconUrl)}" alt="${escapeHtml(catName)}" /></button>`;
   }).join("");
 }
@@ -222,12 +224,14 @@ function renderSelCategoryChips(m, activeCatId) {
 function switchSelCategory(markerId, catId) {
   const m = MARKER_DATA_BY_ID[markerId];
   if (!m) return;
-  const avg = Number(m.rating_avg ?? 0);
-  const cnt = Number(m.rating_count ?? 0);
+  const catRating = m.cat_ratings?.[catId] || {};
+  const avg = Number(catRating.avg ?? m.rating_avg ?? 0);
+  const cnt = Number(catRating.count ?? m.rating_count ?? 0);
   const cls = colorClassForRating(avg, cnt);
   qs("selIcon").className = `mini-marker ${cls}`;
   qs("selIcon").innerHTML = `<img src="${escapeHtml(getIconUrlForCategory(catId))}" alt="" />`;
   qs("selSub").textContent = CAT_NAME[String(catId)] || "";
+  qs("selMeta").textContent = `Rating: ${fmtOverall(avg, cnt)}`;
   qs("selOpen").href = `marker.html?id=${encodeURIComponent(markerId)}&cat=${encodeURIComponent(catId)}`;
   renderSelCategoryChips(m, catId);
   initQuickVote(markerId, catId);
@@ -248,7 +252,11 @@ function selectMarkerById(id, fly = false) {
   qs("selIcon").className = `mini-marker ${cls}`;
   qs("selIcon").innerHTML = `<img src="${escapeHtml(iconUrl)}" alt="" />`;
   qs("selTitle").textContent = m.title || "—";
-  qs("selMeta").textContent = `Overall: ${fmtOverall(avg, cnt)}`;
+  // Show per-category rating if available, fall back to overall
+  const activeCatRating = m.cat_ratings?.[activeCatId || m.category_id] || {};
+  const dispAvg = activeCatRating.avg ?? m.rating_avg;
+  const dispCnt = activeCatRating.count ?? m.rating_count;
+  qs("selMeta").textContent = `Rating: ${fmtOverall(dispAvg, dispCnt)}`;
   qs("selSub").textContent = CAT_NAME[String(activeCatId || m.category_id)] || "";
   renderSelCategoryChips(m, activeCatId);
   const catParam = activeCatId ? `&cat=${encodeURIComponent(activeCatId)}` : "";
@@ -329,6 +337,23 @@ async function initMap() {
   });
 }
 
+function showDesktopHint() {
+  let toast = document.getElementById("desktopHintToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "desktopHintToast";
+    toast.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);" +
+      "background:#333;color:#fff;padding:10px 18px;border-radius:20px;" +
+      "font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);" +
+      "white-space:nowrap;text-align:center;max-width:280px;white-space:normal;line-height:1.4;";
+    toast.textContent = "💻 Adding places works best on desktop — open thebestagain.com on your computer!";
+    document.body.appendChild(toast);
+  }
+  toast.style.display = "block";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.display = "none"; }, 4000);
+}
+
 /* ── JOURNEY MODE ── */
 async function refreshMyVotes(userId) {
   if (!userId) return;
@@ -390,18 +415,24 @@ async function reloadMarkers() {
 
   const markers = (data || []).filter(m => m.lat !== null && m.lon !== null);
 
-  // Fetch all category assignments for sparkle detection (include is_primary)
+  // Fetch all category assignments + per-category ratings
   let extraCatsMap = {};   // marker_id -> [category_id, ...]
   let primaryCatMap = {};  // marker_id -> category_id (primary)
+  let catRatingMap = {};   // marker_id -> { category_id -> {avg, count} }
   if (markers.length) {
     const ids = markers.map(m => m.id);
     const { data: mcAll } = await sb.from("marker_categories")
-      .select("marker_id,category_id,is_primary")
+      .select("marker_id,category_id,is_primary,rating_avg,rating_count")
       .in("marker_id", ids).eq("is_active", true);
     (mcAll || []).forEach(r => {
       if (!extraCatsMap[r.marker_id]) extraCatsMap[r.marker_id] = [];
       extraCatsMap[r.marker_id].push(r.category_id);
       if (r.is_primary) primaryCatMap[r.marker_id] = r.category_id;
+      if (!catRatingMap[r.marker_id]) catRatingMap[r.marker_id] = {};
+      catRatingMap[r.marker_id][r.category_id] = {
+        avg: r.rating_avg,
+        count: r.rating_count ?? 0
+      };
     });
   }
 
@@ -412,6 +443,7 @@ async function reloadMarkers() {
     const uniqueCats = [...new Set(allCats)];
     m.extra_categories = uniqueCats.filter(cid => cid !== m.category_id);
     m.primary_category_id = primaryCatMap[m.id] || m.category_id;
+    m.cat_ratings = catRatingMap[m.id] || {}; // per-category ratings
     const isMultiCat = uniqueCats.length > 1;
     const useSparkle = isMultiCat && !FILTER_CATEGORY;
 
@@ -419,9 +451,10 @@ async function reloadMarkers() {
       ? getIconUrlForCategory(parseInt(FILTER_CATEGORY))
       : getIconUrlForCategory(m.primary_category_id);
 
-    // Sparkle color uses primary category rating (= marker's own rating_avg since primary is source of truth for now)
-    const avg = Number(m.rating_avg ?? 0);
-    const cnt = Number(m.rating_count ?? 0);
+    // Sparkle color = primary category rating
+    const primaryRating = m.cat_ratings[m.primary_category_id] || {};
+    const avg = Number(primaryRating.avg ?? m.rating_avg ?? 0);
+    const cnt = Number(primaryRating.count ?? m.rating_count ?? 0);
     const greyed = JOURNEY_MODE && !MY_VOTED_IDS.has(m.id);
     const icon = makeMarkerIcon(iconUrl, avg, cnt, greyed, useSparkle);
     const mk = L.marker([m.lat, m.lon], { icon }).addTo(LAYER_GROUP);

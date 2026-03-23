@@ -146,6 +146,16 @@ function renderHero(m, user) {
   }
 }
 
+// Get rating for the active category, fall back to overall marker rating
+function getActiveCatRating(m) {
+  const catId = ACTIVE_CATEGORY_ID || m.category_id;
+  const mc = MARKER_CATEGORIES.find(r => r.category_id === catId);
+  if (mc && Number(mc.rating_count ?? 0) > 0) {
+    return { avg: Number(mc.rating_avg ?? 0), count: Number(mc.rating_count ?? 0) };
+  }
+  return { avg: Number(m.rating_avg ?? 0), count: Number(m.rating_count ?? 0) };
+}
+
 // Render "Also here for" chips linking to other categories this marker belongs to
 function renderOtherCategoryChips(m, activeCatId) {
   let el = document.getElementById("otherCatChips");
@@ -181,7 +191,8 @@ function updatePageSEO(m) {
 
   const catName   = cat?.name   || "";
   const brandName = brand?.name || "";
-  const score     = m.rating_avg ? `${Number(m.rating_avg).toFixed(1)}/10` : "";
+  const { avg: seoAvg } = getActiveCatRating(m);
+  const score     = seoAvg ? `${Number(seoAvg).toFixed(1)}/10` : "";
   const location  = m.address   ? ` · ${m.address}` : "";
 
   // Build title: "El Fanalet · Best Croissant de Chocolate · 8.2/10 — The Best Again"
@@ -264,8 +275,7 @@ async function reactivateMarker() {
    RENDER RATING CARD
 ══════════════════════════════ */
 function renderRating(m, isFirst) {
-  const avg = Number(m.rating_avg ?? 0);
-  const cnt = Number(m.rating_count ?? 0);
+  const { avg, count: cnt } = getActiveCatRating(m);
   const cls = colorClass(avg, cnt);
   const bCls = barClass(avg, cnt);
   const pct = cnt ? Math.round((avg / 10) * 100) : 0;
@@ -441,7 +451,8 @@ async function renderRankingWidget(m) {
 
   const position = currentIdx + 1;
   const total = sorted.length;
-  const isFirst = position === 1 && Number(m.rating_count ?? 0) > 0;
+  const { count: activeCnt } = getActiveCatRating(m);
+  const isFirst = position === 1 && activeCnt > 0;
   renderRating(m, isFirst);
 
   const editLink = document.getElementById("editVotesCatLink");
@@ -1208,7 +1219,7 @@ async function initMarkerPage() {
       .eq("id", MARKER_ID)
       .single(),
     sb.from("marker_categories")
-      .select("category_id,is_primary,is_active")
+      .select("category_id,is_primary,is_active,rating_avg,rating_count")
       .eq("marker_id", MARKER_ID)
       .eq("is_active", true),
   ]);

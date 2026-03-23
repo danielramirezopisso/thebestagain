@@ -202,6 +202,10 @@ body.map-page{
   .journey-opt {
     padding: 4px 9px;
   }
+  /* Hide add-place panel on mobile — too fiddly on small screens */
+  #addPanel {
+    display: none !important;
+  }
 }
 
 /* ══════════════════════════════
@@ -213,6 +217,7 @@ body.map-page{
 
   .journey-float-wrap {
     bottom: calc(18px + env(safe-area-inset-bottom));
+    z-index: 900; /* above the selection panel at 800 */
   }
   .map-toolbar {
     flex-direction: column;
@@ -544,4 +549,33 @@ body.map-page{
   background: var(--accent, #e0355b) !important;
   color: #fff !important;
   border-color: var(--accent, #e0355b) !important;
+}
+
+/* ── Mobile add-place hint button ── */
+.mobile-add-hint {
+  display: none; /* hidden on desktop */
+}
+
+@media (max-width: 768px) {
+  .mobile-add-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--rule, #e5e5e5);
+    background: var(--surface, #fff);
+    color: var(--muted, #888);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 600;
+  }
+  .mobile-add-hint:hover {
+    border-color: var(--accent, #e0355b);
+    color: var(--accent, #e0355b);
+  }
 }
