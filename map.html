@@ -71,6 +71,10 @@
 
       <div class="toolbar-right">
         <span id="mapStatus" class="muted"></span>
+        <label class="chain-toggle-wrap" title="Hide chain restaurants">
+          <input type="checkbox" id="chainToggle" checked onchange="onChainToggleChanged()" />
+          <span class="chain-toggle-label">Chains</span>
+        </label>
         <div class="toolbar-suggest">
           <span class="request-link" onclick="openTraction('requestCategory', null)">💡 Suggest a place category</span>
         </div>

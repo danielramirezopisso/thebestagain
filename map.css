@@ -580,3 +580,23 @@ body.map-page{
     color: var(--accent, #e0355b);
   }
 }
+
+/* ── Chain toggle in toolbar ── */
+.chain-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #888);
+  white-space: nowrap;
+  user-select: none;
+}
+.chain-toggle-wrap input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent, #e0355b);
+  cursor: pointer;
+}
+.chain-toggle-label { cursor: pointer; }

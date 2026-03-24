@@ -140,6 +140,22 @@
           <div class="ranking-list" id="rankingList"></div>
         </div>
 
+        <!-- More from this brand (products only) -->
+        <div class="card m-card" id="moreBrandCard" style="display:none;">
+          <div class="m-card-head-row">
+            <span class="m-card-head" id="moreBrandHead">More from this brand</span>
+          </div>
+          <div class="ranking-list" id="moreBrandList"></div>
+        </div>
+
+        <!-- Others from this chain (places only) -->
+        <div class="card m-card" id="moreChainCard" style="display:none;">
+          <div class="m-card-head-row">
+            <span class="m-card-head" id="moreChainHead">Others from this chain</span>
+          </div>
+          <div class="ranking-list" id="moreChainList"></div>
+        </div>
+
         <!-- Comments card -->
         <div class="card m-card" id="commentsCard">
           <div class="m-card-head-row">
@@ -189,6 +205,14 @@
         <div class="edit-field" id="brandRow" style="display:none;">
           <label>Brand</label>
           <select id="e_brand"></select>
+        </div>
+        <div class="edit-field edit-row" id="productNameRow" style="display:none;">
+          <label>Product name <span class="muted" style="font-weight:400;font-size:11px;">(optional)</span></label>
+          <input id="e_product_name" placeholder="e.g. Classic Recipe" />
+        </div>
+        <div class="edit-field edit-row" id="chainRow" style="display:none;">
+          <label>Chain</label>
+          <select id="e_chain_id"></select>
         </div>
         <div class="edit-field">
           <label>Address</label>

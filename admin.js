@@ -35,7 +35,7 @@ async function initAdminPage() {
   }
 
   document.getElementById("adminContent").style.display = "block";
-  await Promise.all([loadCategories(), loadBrands()]);
+  await Promise.all([loadCategories(), loadBrands(), loadChains()]);
   populateLinkCatSelect();
 }
 
@@ -582,4 +582,144 @@ async function toggleMarkerCategory(category_id, shouldLink) {
   MC_CURRENT = data || [];
   renderMCPanel();
   setMcStatus("Saved ✅");
+}
+
+/* ══════════════════════════════
+   CHAINS MANAGEMENT
+══════════════════════════════ */
+
+let ALL_CHAINS = [];
+let CHAIN_MARKER_ID = null;
+let CHAIN_MARKER_TITLE = "";
+
+function setChainsStatus(msg) {
+  const el = document.getElementById("chainsStatus");
+  if (el) el.textContent = msg || "";
+}
+
+// Load all chains and render table
+async function loadChains() {
+  setChainsStatus("Loading…");
+  const { data, error } = await sb.from("chains")
+    .select("id,name,is_active,created_at")
+    .order("name", { ascending: true });
+  if (error) { setChainsStatus("Error: " + error.message); return; }
+  ALL_CHAINS = data || [];
+  renderChainsTable();
+  setChainsStatus(`${ALL_CHAINS.length} chain(s).`);
+}
+
+function renderChainsTable() {
+  const wrap = document.getElementById("chainsTable");
+  if (!ALL_CHAINS.length) { wrap.innerHTML = `<p class="muted">No chains yet.</p>`; return; }
+  wrap.innerHTML = `
+    <table class="admin-table">
+      <thead><tr><th>ID</th><th>Name</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${ALL_CHAINS.map(c => `
+          <tr class="${c.is_active ? "" : "inactive"}">
+            <td>${c.id}</td>
+            <td><b>${escapeHtml(c.name)}</b></td>
+            <td><span class="pill ${c.is_active ? "pill-active" : "pill-inactive"}">${c.is_active ? "Active" : "Inactive"}</span></td>
+            <td><div class="row-actions">
+              <button onclick="editChain(${c.id})">Edit</button>
+              ${c.is_active
+                ? `<button style="border-color:#ef4444;color:#ef4444;" onclick="deactivateChain(${c.id})">Deactivate</button>`
+                : `<button onclick="reactivateChain(${c.id})">Reactivate</button>`}
+            </div></td>
+          </tr>`).join("")}
+      </tbody>
+    </table>`;
+}
+
+function openNewChainModal() {
+  document.getElementById("chain_id").value = "";
+  document.getElementById("chain_name").value = "";
+  document.getElementById("chainModalTitle").textContent = "New Chain";
+  document.getElementById("chainModalStatus").textContent = "";
+  openModal("chainModal");
+}
+
+function editChain(id) {
+  const c = ALL_CHAINS.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById("chain_id").value = c.id;
+  document.getElementById("chain_name").value = c.name;
+  document.getElementById("chainModalTitle").textContent = "Edit Chain";
+  document.getElementById("chainModalStatus").textContent = "";
+  openModal("chainModal");
+}
+
+async function saveChain() {
+  const id = parseInt(document.getElementById("chain_id").value) || null;
+  const name = document.getElementById("chain_name").value.trim();
+  const statusEl = document.getElementById("chainModalStatus");
+  if (!name) { statusEl.textContent = "Name is required."; return; }
+  statusEl.textContent = "Saving…";
+  if (id) {
+    const { error } = await sb.from("chains").update({ name }).eq("id", id);
+    if (error) { statusEl.textContent = "Error: " + error.message; return; }
+  } else {
+    const { error } = await sb.from("chains").insert([{ name, is_active: true }]);
+    if (error) { statusEl.textContent = "Error: " + error.message; return; }
+  }
+  closeModal("chainModal");
+  await loadChains();
+}
+
+async function deactivateChain(id) {
+  const c = ALL_CHAINS.find(x => x.id === id);
+  confirm("Deactivate Chain", `Deactivate "${c?.name}"?`, async () => {
+    await sb.from("chains").update({ is_active: false }).eq("id", id);
+    await loadChains();
+  });
+}
+
+async function reactivateChain(id) {
+  await sb.from("chains").update({ is_active: true }).eq("id", id);
+  await loadChains();
+}
+
+// Assign a marker to a chain
+async function loadMarkerForChain() {
+  const input = document.getElementById("chainMarkerSearch").value.trim();
+  if (!input) { setChainsStatus("Enter a marker title to search."); return; }
+  setChainsStatus("Searching…");
+  const { data, error } = await sb.from("markers")
+    .select("id,title,chain_id,group_type,is_active")
+    .ilike("title", `%${input}%`).eq("is_active", true).eq("group_type", "place").limit(10);
+  if (error) { setChainsStatus("Error: " + error.message); return; }
+  if (!data?.length) { setChainsStatus("No places found."); document.getElementById("chainMarkerResults").innerHTML = ""; return; }
+
+  document.getElementById("chainMarkerResults").innerHTML = data.map(m => {
+    const currentChain = ALL_CHAINS.find(c => c.id === m.chain_id);
+    return `
+      <div class="mc-result-row">
+        <span>${escapeHtml(m.title)} ${currentChain ? `<span class="muted">(${escapeHtml(currentChain.name)})</span>` : ""}</span>
+        <button onclick="selectMarkerForChain('${escapeHtml(m.id)}','${escapeHtml(m.title.replace(/'/g,"&#39;"))}',${m.chain_id || "null"})">Assign chain</button>
+      </div>`;
+  }).join("");
+  setChainsStatus(`${data.length} place(s) found.`);
+}
+
+async function selectMarkerForChain(markerId, markerTitle, currentChainId) {
+  CHAIN_MARKER_ID = markerId;
+  CHAIN_MARKER_TITLE = markerTitle;
+  const panel = document.getElementById("chainAssignPanel");
+  panel.style.display = "block";
+  document.getElementById("chainAssignTitle").textContent = `Assign chain to: ${markerTitle}`;
+
+  const sel = document.getElementById("chainAssignSelect");
+  sel.innerHTML = `<option value="">— No chain —</option>` +
+    ALL_CHAINS.filter(c => c.is_active).map(c =>
+      `<option value="${c.id}" ${c.id === currentChainId ? "selected" : ""}>${escapeHtml(c.name)}</option>`
+    ).join("");
+}
+
+async function saveMarkerChain() {
+  const chainId = parseInt(document.getElementById("chainAssignSelect").value) || null;
+  const { error } = await sb.from("markers").update({ chain_id: chainId }).eq("id", CHAIN_MARKER_ID);
+  if (error) { setChainsStatus("Error: " + error.message); return; }
+  document.getElementById("chainAssignPanel").style.display = "none";
+  setChainsStatus(`Chain assigned ✅ to ${CHAIN_MARKER_TITLE}`);
 }

@@ -138,6 +138,38 @@
         </div>
       </section>
 
+      <!-- ══════════════════════════════
+           CHAINS
+      ══════════════════════════════ -->
+      <section class="admin-section collapsed" id="sec-chains">
+        <div class="section-head" onclick="toggleSection('sec-chains')">
+          <h2>⛓ Chains</h2>
+          <p class="muted">Create restaurant chains and assign place markers to them.</p>
+        </div>
+        <div class="section-body">
+          <button class="tba-btn tba-btn-primary" onclick="openNewChainModal()" style="margin-bottom:14px;">+ New Chain</button>
+          <div id="chainsStatus" class="status-bar muted"></div>
+          <div id="chainsTable"></div>
+
+          <div style="margin-top:24px;border-top:1px solid var(--rule);padding-top:16px;">
+            <div class="admin-label">Assign a place to a chain</div>
+            <div style="display:flex;gap:8px;align-items:center;margin:10px 0;">
+              <input id="chainMarkerSearch" placeholder="Search place by title…" style="flex:1;" onkeydown="if(event.key==='Enter')loadMarkerForChain()" />
+              <button onclick="loadMarkerForChain()">Search</button>
+            </div>
+            <div id="chainMarkerResults" style="margin-bottom:12px;"></div>
+            <div id="chainAssignPanel" style="display:none;background:var(--faint);padding:14px;border-radius:10px;margin-top:8px;">
+              <div id="chainAssignTitle" style="font-weight:700;margin-bottom:10px;"></div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <select id="chainAssignSelect" style="flex:1;"></select>
+                <button class="tba-btn tba-btn-primary" onclick="saveMarkerChain()">Save</button>
+                <button onclick="document.getElementById('chainAssignPanel').style.display='none'">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </div><!-- /adminContent -->
   </main>
 
@@ -224,6 +256,24 @@
           <button onclick="closeModal('confirmModal')">Cancel</button>
           <button class="tba-btn" id="confirmBtn" style="border-color:#ef4444;color:#ef4444;">Deactivate</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chain Modal -->
+  <div id="chainModal" class="modal-overlay" style="display:none;" onclick="closeModalOnBg(event,'chainModal')">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span id="chainModalTitle">New Chain</span>
+        <button class="modal-close" onclick="closeModal('chainModal')">✕</button>
+      </div>
+      <input type="hidden" id="chain_id" />
+      <label>Name</label>
+      <input id="chain_name" placeholder="e.g. Can Pizza" />
+      <span id="chainModalStatus" class="muted"></span>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button class="tba-btn tba-btn-primary" onclick="saveChain()">Save</button>
+        <button onclick="closeModal('chainModal')">Cancel</button>
       </div>
     </div>
   </div>

@@ -21,6 +21,7 @@ let CAT_NAME = {};
 
 let FILTER_CATEGORY = "";
 let FILTER_RATING_BUCKET = "";
+let FILTER_CHAINS = true; // true = show chains, false = hide them
 let SELECTED_ID = null;
 let QUICK_VOTE_VALUE = null;   // current pending quick vote in drawer
 let JOURNEY_MODE = false;
@@ -81,14 +82,22 @@ function initRatingDropdown(selId, defaultValue) {
   }
 }
 
+function onChainToggleChanged() {
+  FILTER_CHAINS = qs("chainToggle").checked;
+  showClearIfNeeded();
+  reloadMarkers();
+}
+
 function showClearIfNeeded() {
-  const any = !!FILTER_CATEGORY || !!FILTER_RATING_BUCKET;
+  const any = !!FILTER_CATEGORY || !!FILTER_RATING_BUCKET || !FILTER_CHAINS;
   qs("btnClearFilters").style.display = any ? "inline-flex" : "none";
 }
 
 function clearFilters() {
-  FILTER_CATEGORY = ""; FILTER_RATING_BUCKET = "";
+  FILTER_CATEGORY = ""; FILTER_RATING_BUCKET = ""; FILTER_CHAINS = true;
   qs("catMore").value = "";
+  const chainToggle = qs("chainToggle");
+  if (chainToggle) chainToggle.checked = true;
   renderCategoryQuickChips(); setActiveRatingBtn("");
   showClearIfNeeded(); reloadMarkers();
 }
@@ -417,7 +426,7 @@ async function reloadMarkers() {
     }
   }
 
-  let q = sb.from("markers").select("id,title,rating_avg,rating_count,lat,lon,group_type,is_active,category_id")
+  let q = sb.from("markers").select("id,title,rating_avg,rating_count,lat,lon,group_type,is_active,category_id,chain_id")
     .eq("is_active", true).eq("group_type", "place");
   if (markerIds) q = q.in("id", markerIds);
   q = applyRatingBucket(q);
@@ -425,7 +434,11 @@ async function reloadMarkers() {
   const { data, error } = await q;
   if (error) { setMapStatus("Error: " + error.message); return; }
 
-  const markers = (data || []).filter(m => m.lat !== null && m.lon !== null);
+  // Apply chain filter client-side
+  const markers = (data || []).filter(m =>
+    m.lat !== null && m.lon !== null &&
+    (FILTER_CHAINS || !m.chain_id)
+  );
 
   // Fetch all category assignments + per-category ratings
   let extraCatsMap = {};   // marker_id -> [category_id, ...]

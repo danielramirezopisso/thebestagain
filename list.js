@@ -10,6 +10,7 @@ let FILTER_TYPE = "";       // "" | "place" | "product"
 let FILTER_CATEGORY = "";   // "" | category id (integer)
 let FILTER_BUCKET = "";     // "" | "9-10" | "7-8" etc.
 let FILTER_SEARCH = "";
+let FILTER_CHAINS = true; // true = show chains, false = hide chains
 
 // Sort state
 let SORT_COL = "votes";     // "title" | "type" | "category" | "votes" | "rating"
@@ -34,7 +35,7 @@ function setCount(shown, total) {
 }
 
 function showClearIfNeeded() {
-  const any = FILTER_TYPE || FILTER_CATEGORY || FILTER_BUCKET || FILTER_SEARCH;
+  const any = FILTER_TYPE || FILTER_CATEGORY || FILTER_BUCKET || FILTER_SEARCH || !FILTER_CHAINS;
   document.getElementById("btnClearFilters").style.display = any ? "inline-flex" : "none";
 }
 
@@ -144,6 +145,7 @@ function clearListFilters() {
   FILTER_CATEGORY = "";
   FILTER_BUCKET = "";
   FILTER_SEARCH = "";
+  FILTER_CHAINS = true;
 
   document.getElementById("searchInput").value = "";
   document.querySelectorAll(".type-btn").forEach(b => {
@@ -249,6 +251,7 @@ function filterRows(rows) {
       const needle = FILTER_SEARCH;
       if (!title.includes(needle) && !addr.includes(needle) && !brand.includes(needle) && !cat.includes(needle)) return false;
     }
+    if (!FILTER_CHAINS && m.chain_id) return false;
     return true;
   });
 }
@@ -315,8 +318,11 @@ function renderTable() {
             info = `<span class="muted" style="font-size:12px;">📍 ${escapeHtml(m.address)}</span>`;
           } else if (m.group_type === "product" && m.brand_id) {
             const brand = BRAND_BY_ID[m.brand_id]?.name || "";
-            if (brand) info = `<span class="muted" style="font-size:12px;">🏷️ ${escapeHtml(brand)}</span>`;
+            const productLabel = m.product_name ? `${escapeHtml(brand)} · <span style="font-weight:400;">${escapeHtml(m.product_name)}</span>` : escapeHtml(brand);
+            if (brand) info = `<span class="muted" style="font-size:12px;">🏷️ ${productLabel}</span>`;
           }
+
+          const chainBadge = m.chain_id ? `<span class="chain-badge" title="Part of a chain">⛓</span>` : "";
 
           const typeTag = m.group_type === "place"
             ? `<span class="type-tag type-tag-place">📍 Place</span>`
@@ -324,7 +330,7 @@ function renderTable() {
 
           return `
             <tr class="${unvisited ? "journey-unvisited-row" : ""}" onclick="window.location.href='marker.html?id=${encodeURIComponent(m.id)}&cat=${encodeURIComponent(FILTER_CATEGORY || m.category_id)}'">
-              <td class="col-title"><b>${escapeHtml(m.title)}</b></td>
+              <td class="col-title"><b>${escapeHtml(m.title)}</b> ${chainBadge}</td>
               <td class="col-type">${typeTag}</td>
               <td class="col-cat">${escapeHtml(cat)}</td>
               <td class="col-votes"><span class="rating-votes">${escapeHtml(votesTxt)}</span></td>
@@ -381,6 +387,15 @@ function showJourneyLoginPromptInline(wrapperId) {
   el._t = setTimeout(() => { el.style.display = "none"; }, 3500);
 }
 
+/* ── CHAIN TOGGLE ── */
+function toggleChainFilter(btn) {
+  FILTER_CHAINS = !FILTER_CHAINS;
+  btn.classList.toggle("active", FILTER_CHAINS);
+  btn.textContent = FILTER_CHAINS ? "⛓ Chains: On" : "⛓ Chains: Off";
+  showClearIfNeeded();
+  renderTable();
+}
+
 /* ── INIT ── */
 async function initListPage() {
   renderRatingButtons();
@@ -411,7 +426,7 @@ async function initListPage() {
   // Load markers
   const { data, error } = await sb
     .from("markers")
-    .select("id,title,group_type,category_id,brand_id,address,rating_avg,rating_count,is_active")
+    .select("id,title,group_type,category_id,brand_id,address,rating_avg,rating_count,is_active,product_name,chain_id")
     .eq("is_active", true);
 
   if (error) { document.getElementById("listWrap").textContent = "Error: " + error.message; return; }

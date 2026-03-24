@@ -294,13 +294,14 @@ function renderLane(catId, markersForCat){
 
   const itemsHtml = visible.map(m=>{
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
+    const displayName = m.product_name ? `${brand} · ${m.product_name}` : brand;
     const unvisited = JOURNEY_MODE_PROD && !MY_VOTED_IDS_PROD.has(m.id);
     return `
       <div class="item-row${unvisited ? " journey-unvisited-item" : ""}">
         <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}">
           <div class="item-left">
             ${brandIconSlotHtml(m.brand_id)}
-            <div class="item-name">${escapeHtml(brand)}</div>
+            <div class="item-name">${escapeHtml(displayName)}</div>
           </div>
           ${ratingBadgeHtml(m)}
         </a>
@@ -346,12 +347,13 @@ function renderDrawer(){
   rows = sortMarkers(rows.slice(), DRAWER_SORT);
   qs("drawerList").innerHTML = rows.map(m=>{
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
+    const displayName = m.product_name ? `${brand} · ${m.product_name}` : brand;
     return `
       <div class="item-row">
         <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}">
           <div class="item-left">
             ${brandIconSlotHtml(m.brand_id)}
-            <div class="item-name">${escapeHtml(brand)}</div>
+            <div class="item-name">${escapeHtml(displayName)}</div>
           </div>
           ${ratingBadgeHtml(m)}
         </a>
@@ -411,20 +413,19 @@ async function saveProduct(){
 
   const category_id = parseInt(qs("p_category").value) || null;
   const brand_id = parseInt(qs("p_brand").value) || null;
+  const product_name = (qs("p_product_name")?.value || "").trim() || null;
   const v = Number(qs("p_vote").value);
 
   if (!category_id) { setPStatus("Category required."); return; }
   if (!brand_id) { setPStatus("Brand required."); return; }
   if (!(v >= 1 && v <= 10)) { setPStatus("Vote must be 1–10."); return; }
 
-  const { data: existing, error: eErr } = await sb
-    .from("markers")
-    .select("id")
-    .eq("is_active", true)
-    .eq("group_type", "product")
-    .eq("category_id", category_id)
-    .eq("brand_id", brand_id)
-    .maybeSingle();
+  // Check for duplicate (same category + brand + product_name)
+  let dupQ = sb.from("markers").select("id").eq("is_active", true)
+    .eq("group_type", "product").eq("category_id", category_id).eq("brand_id", brand_id);
+  if (product_name) dupQ = dupQ.eq("product_name", product_name);
+  else dupQ = dupQ.is("product_name", null);
+  const { data: existing, error: eErr } = await dupQ.maybeSingle();
 
   if (eErr) { setPStatus("Error: " + eErr.message); return; }
   if (existing?.id) {
@@ -435,10 +436,10 @@ async function saveProduct(){
 
   const catName = CAT_BY_ID[category_id]?.name || String(category_id);
   const brandName = BRAND_BY_ID[brand_id]?.name || String(brand_id);
-  const title = `${catName} · ${brandName}`;
+  const title = product_name ? `${catName} · ${brandName} · ${product_name}` : `${catName} · ${brandName}`;
 
   const payload = {
-    title, category_id, brand_id,
+    title, category_id, brand_id, product_name,
     group_type: "product",
     is_active: true,
     rating_manual: v,

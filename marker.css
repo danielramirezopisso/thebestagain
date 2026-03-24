@@ -1056,3 +1056,19 @@ body {
   height: 16px;
   object-fit: contain;
 }
+
+/* ── More from brand / Others from chain widgets ── */
+.rank-sub-addr {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted, #aaa);
+  margin-top: 1px;
+}
+
+/* ── Chain badge in list ── */
+.chain-badge {
+  font-size: 11px;
+  opacity: 0.5;
+  margin-left: 3px;
+  vertical-align: middle;
+}

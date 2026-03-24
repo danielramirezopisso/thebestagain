@@ -1,15 +1,16 @@
 // marker.js v6 — multi-category context aware
 
 let MARKER_ID = null;
-let ACTIVE_CATEGORY_ID = null; // category context from ?cat= param
+let ACTIVE_CATEGORY_ID = null;
 let CURRENT_MARKER = null;
-let CURRENT_VOTE = null;       // number | null (current user's vote value)
-let CURRENT_VOTE_ID = null;    // uuid of vote row
+let CURRENT_VOTE = null;
+let CURRENT_VOTE_ID = null;
 
 let CATEGORIES_ALL = [];
 let BRANDS = [];
 let CATEGORY_BRANDS = [];
-let MARKER_CATEGORIES = [];    // all categories this marker belongs to
+let MARKER_CATEGORIES = [];
+let CHAINS_ALL = [];       // all chains (for lookup by id)
 
 let miniMapInstance = null;
 
@@ -102,6 +103,11 @@ function renderHero(m, user) {
   if (!isPlace && m.brand_id) {
     const brand = getBrandById(m.brand_id);
     if (brand) sub.push(brand.name);
+  }
+  if (!isPlace && m.product_name) sub.push(m.product_name);
+  if (isPlace && m.chain_id) {
+    const chain = CHAINS_ALL.find(c => c.id === m.chain_id);
+    if (chain) sub.push(`⛓ ${chain.name}`);
   }
   document.getElementById("markerSubtitle").textContent = sub.join(" · ");
 
@@ -358,8 +364,15 @@ function renderDetails(m, creatorName) {
   if (!isPlace && brand) {
     rows.push({ key: "Brand", val: escapeHtml(brand.name) });
   }
+  if (!isPlace && m.product_name) {
+    rows.push({ key: "Product", val: escapeHtml(m.product_name) });
+  }
   if (cat) {
     rows.push({ key: "Category", val: escapeHtml(cat.name) });
+  }
+  if (isPlace && m.chain_id) {
+    const chain = CHAINS_ALL.find(c => c.id === m.chain_id);
+    if (chain) rows.push({ key: "Chain", val: escapeHtml(chain.name) });
   }
   rows.push({ key: "Added", val: escapeHtml(formatDate(m.created_at)) });
   rows.push({ key: "By", val: `<span id="createdByName">${escapeHtml(creatorName || "…")}</span>` });
@@ -529,6 +542,107 @@ async function renderRankingWidget(m) {
 }
 
 /* ══════════════════════════════
+   MORE FROM THIS BRAND
+══════════════════════════════ */
+async function renderMoreFromBrand(m) {
+  const card = document.getElementById("moreBrandCard");
+  if (!card || m.group_type !== "product" || !m.brand_id) return;
+
+  const brand = getBrandById(m.brand_id);
+  if (!brand) return;
+
+  // Load all active products from same brand, excluding current marker
+  const { data, error } = await sb
+    .from("markers")
+    .select("id,title,rating_avg,rating_count,category_id,product_name,brand_id")
+    .eq("is_active", true)
+    .eq("group_type", "product")
+    .eq("brand_id", m.brand_id)
+    .neq("id", MARKER_ID)
+    .order("rating_avg", { ascending: false });
+
+  if (error || !data?.length) return;
+
+  document.getElementById("moreBrandHead").textContent = `More from ${brand.name}`;
+
+  const activeCatId = ACTIVE_CATEGORY_ID || m.category_id;
+  document.getElementById("moreBrandList").innerHTML = data.map(r => {
+    const avg = Number(r.rating_avg ?? 0);
+    const cnt = Number(r.rating_count ?? 0);
+    const cls = colorClass(avg, cnt);
+    const scoreText = cnt ? avg.toFixed(1) : "—";
+    const cat = getCategoryById(r.category_id);
+    const displayName = r.product_name
+      ? `${escapeHtml(cat?.name || "")} · ${escapeHtml(r.product_name)}`
+      : escapeHtml(cat?.name || r.title);
+    const href = `marker.html?id=${encodeURIComponent(r.id)}&cat=${r.category_id}`;
+    return `
+      <a class="rank-row" href="${href}">
+        <div class="rank-name">${displayName}</div>
+        <div class="rank-score ${cls}">${escapeHtml(scoreText)}</div>
+      </a>`;
+  }).join("");
+
+  card.style.display = "block";
+}
+
+/* ══════════════════════════════
+   OTHERS FROM THIS CHAIN
+══════════════════════════════ */
+async function renderOthersFromChain(m) {
+  const card = document.getElementById("moreChainCard");
+  if (!card || m.group_type !== "place" || !m.chain_id) return;
+
+  const chain = CHAINS_ALL.find(c => c.id === m.chain_id);
+  if (!chain) return;
+
+  const activeCatId = ACTIVE_CATEGORY_ID || m.category_id;
+
+  // Load all active places from same chain in the same category, excluding current
+  const { data: mcData } = await sb
+    .from("marker_categories")
+    .select("marker_id")
+    .eq("category_id", activeCatId)
+    .eq("is_active", true);
+
+  const catMarkerIds = (mcData || []).map(r => r.marker_id);
+  if (!catMarkerIds.length) return;
+
+  const { data, error } = await sb
+    .from("markers")
+    .select("id,title,rating_avg,rating_count,address")
+    .eq("is_active", true)
+    .eq("group_type", "place")
+    .eq("chain_id", m.chain_id)
+    .in("id", catMarkerIds)
+    .neq("id", MARKER_ID)
+    .order("rating_avg", { ascending: false });
+
+  if (error || !data?.length) return;
+
+  document.getElementById("moreChainHead").textContent = `Others from ${chain.name}`;
+
+  document.getElementById("moreChainList").innerHTML = data.map(r => {
+    const avg = Number(r.rating_avg ?? 0);
+    const cnt = Number(r.rating_count ?? 0);
+    const cls = colorClass(avg, cnt);
+    const scoreText = cnt ? avg.toFixed(1) : "—";
+    const shortAddr = r.address ? r.address.split(",").slice(0, 2).join(",") : "";
+    const href = `marker.html?id=${encodeURIComponent(r.id)}&cat=${activeCatId}`;
+    return `
+      <a class="rank-row" href="${href}">
+        <div class="rank-name">
+          ${escapeHtml(r.title)}
+          ${shortAddr ? `<div class="rank-sub-addr">${escapeHtml(shortAddr)}</div>` : ""}
+        </div>
+        <div class="rank-score ${cls}">${escapeHtml(scoreText)}</div>
+      </a>`;
+  }).join("");
+
+  card.style.display = "block";
+}
+
+/* ══════════════════════════════
    VOTE ACTIONS
 ══════════════════════════════ */
 async function loadMyVote(user) {
@@ -659,6 +773,11 @@ function onEditGroupChanged() {
   showBrandRow(g === "product");
   renderCategoryOptions(g, null);
   setTitleReadonly(g === "product");
+  // Show product_name only for products, chain only for places
+  const pnRow = document.getElementById("productNameRow");
+  const chainRow = document.getElementById("chainRow");
+  if (pnRow) pnRow.style.display = g === "product" ? "" : "none";
+  if (chainRow) chainRow.style.display = g === "place" ? "" : "none";
   if (g === "product") {
     const cat_id = parseInt(document.getElementById("e_category").value) || null;
     renderBrandOptions(null, cat_id);
@@ -713,6 +832,23 @@ function fillEditForm() {
   document.getElementById("e_lat").value = m.lat ?? "";
   document.getElementById("e_lon").value = m.lon ?? "";
 
+  // product_name field
+  const pnField = document.getElementById("e_product_name");
+  if (pnField) {
+    pnField.value = m.product_name || "";
+    pnField.closest(".edit-row")?.style.setProperty("display", m.group_type === "product" ? "" : "none");
+  }
+
+  // chain field (places only)
+  const chainField = document.getElementById("e_chain_id");
+  if (chainField) {
+    chainField.innerHTML = `<option value="">— No chain —</option>` +
+      CHAINS_ALL.filter(c => c.is_active).map(c =>
+        `<option value="${c.id}" ${c.id === m.chain_id ? "selected" : ""}>${escapeHtml(c.name)}</option>`
+      ).join("");
+    chainField.closest(".edit-row")?.style.setProperty("display", m.group_type === "place" ? "" : "none");
+  }
+
   const catSel = document.getElementById("e_category");
   if (catSel && !catSel.dataset.bound) {
     catSel.addEventListener("change", onEditCategoryChanged);
@@ -754,16 +890,24 @@ async function saveEdits() {
     ? (parseInt(document.getElementById("e_brand").value) || null)
     : null;
 
+  const product_name = group_type === "product"
+    ? (document.getElementById("e_product_name")?.value.trim() || null)
+    : null;
+  const chain_id = group_type === "place"
+    ? (parseInt(document.getElementById("e_chain_id")?.value) || null)
+    : null;
+
   let title = document.getElementById("e_title").value.trim();
   if (group_type === "product") {
     if (!brand_id) { setEditStatus("Brand is required for products."); return; }
-    title = computeProductTitle(category_id, brand_id);
+    const pn = product_name ? ` · ${product_name}` : "";
+    title = computeProductTitle(category_id, brand_id) + pn;
   }
   if (!title) { setEditStatus("Title is required."); return; }
 
   const { data, error } = await sb
     .from("markers")
-    .update({ title, group_type, category_id, brand_id, address, lat, lon })
+    .update({ title, group_type, category_id, brand_id, product_name, chain_id, address, lat, lon })
     .eq("id", MARKER_ID)
     .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
     .single();
@@ -1209,19 +1353,20 @@ async function initMarkerPage() {
 
   const user = await maybeUser();
 
-  // Load reference data + marker + marker_categories in parallel
-  const [cbRes, catRes, brandRes, markerRes, mcRes] = await Promise.all([
+  // Load reference data + marker + marker_categories + chains in parallel
+  const [cbRes, catRes, brandRes, markerRes, mcRes, chainRes] = await Promise.all([
     sb.from("category_brands").select("category_id,brand_id,is_active").eq("is_active", true),
     sb.from("categories").select("id,name,icon_url,is_active,for_places,for_products").eq("is_active", true).order("name"),
     sb.from("brands").select("id,name,icon_url,is_active").eq("is_active", true).order("name"),
     sb.from("markers")
-      .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
+      .select("id,title,group_type,category_id,brand_id,product_name,chain_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
       .eq("id", MARKER_ID)
       .single(),
     sb.from("marker_categories")
       .select("category_id,is_primary,is_active,rating_avg,rating_count")
       .eq("marker_id", MARKER_ID)
       .eq("is_active", true),
+    sb.from("chains").select("id,name,is_active").eq("is_active", true),
   ]);
 
   if (markerRes.error || !markerRes.data) {
@@ -1235,6 +1380,7 @@ async function initMarkerPage() {
   BRANDS           = brandRes.data || [];
   CURRENT_MARKER   = markerRes.data;
   MARKER_CATEGORIES = mcRes.data || [];
+  CHAINS_ALL       = chainRes.data || [];
 
   // If no valid cat param, fall back to primary category
   if (ACTIVE_CATEGORY_ID && !MARKER_CATEGORIES.find(mc => mc.category_id === ACTIVE_CATEGORY_ID)) {
@@ -1283,6 +1429,8 @@ async function initMarkerPage() {
   if (m.group_type === "place") renderMiniMap(m);
 
   await renderRankingWidget(m);
+  await renderMoreFromBrand(m);
+  await renderOthersFromChain(m);
   await initComments(user);
 
   setStatus("");
