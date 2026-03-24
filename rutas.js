@@ -1,27 +1,24 @@
-// rutas.js v1 — City → Category → 12-item ruta grid
+// rutas.js v2 — full redesign with map, celebrations, sticky bar, tier teaser
 
 let SELECTED_CITY = 'BCN';
 let SELECTED_CAT_ID = null;
-let ALL_RUTAS = [];        // rutas rows for selected city
-let RUTA_ITEMS = [];       // ruta_items for selected ruta
-let MY_VOTES = {};         // marker_id -> { vote, category_id }
-let CATEGORIES_MAP = {};   // id -> category row
+let ACTIVE_RUTA = null;
+let ALL_RUTAS = [];
+let RUTA_ITEMS = [];
+let MY_VOTES = {};
+let CATEGORIES_MAP = {};
+let CURRENT_USER = null;
+let RUTA_MAP_INSTANCE = null;
+let RUTA_MAP_OPEN = false;
 
 function escapeHtml(s) {
-  return String(s ?? '')
-    .replaceAll('&','&amp;').replaceAll('<','&lt;')
+  return String(s ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;')
     .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
 }
 
-function setStatus(msg) {
-  const el = document.getElementById('rutasStatus');
-  if (el) el.textContent = msg || '';
-}
-
-function colorClassForScore(avg, count) {
-  const cnt = Number(count ?? 0);
-  if (!cnt || !avg) return 'ruta-score-none';
-  const x = Number(avg);
+function colorClassForScore(v) {
+  const x = Number(v ?? 0);
+  if (!x) return 'ruta-score-none';
   if (x >= 9) return 'ruta-score-9-10';
   if (x >= 7) return 'ruta-score-7-8';
   if (x >= 5) return 'ruta-score-5-6';
@@ -29,326 +26,448 @@ function colorClassForScore(avg, count) {
   return 'ruta-score-1-2';
 }
 
-let CURRENT_USER = null; // track logged in user
+function absIconUrl(iconUrl) {
+  if (!iconUrl) return '';
+  if (iconUrl.startsWith('http')) return iconUrl;
+  return window.location.href.replace(/\/[^/]*(\?.*)?$/, '/') + iconUrl;
+}
 
 /* ══════════════════════════════
    INIT
 ══════════════════════════════ */
 async function initRutasPage() {
-  setStatus('Loading…');
-
-  const { data: catData } = await sb
-    .from('categories')
-    .select('id,name,icon_url,is_active')
-    .eq('is_active', true);
-
+  const { data: catData } = await sb.from('categories')
+    .select('id,name,icon_url,is_active').eq('is_active', true);
   (catData || []).forEach(c => CATEGORIES_MAP[c.id] = c);
 
   CURRENT_USER = await maybeUser();
   if (CURRENT_USER) await loadMyVotes(CURRENT_USER.id);
 
   await selectCity('BCN');
-  setStatus('');
 }
 
 async function loadMyVotes(userId) {
-  const { data } = await sb
-    .from('votes')
-    .select('marker_id, vote, category_id, is_active')
-    .eq('user_id', userId)
-    .eq('is_active', true);
-
+  const { data } = await sb.from('votes')
+    .select('marker_id,vote,category_id,is_active')
+    .eq('user_id', userId).eq('is_active', true);
   MY_VOTES = {};
-  (data || []).forEach(v => {
-    // key: marker_id + category_id for specificity
-    const key = `${v.marker_id}__${v.category_id}`;
-    MY_VOTES[key] = v;
-  });
+  (data || []).forEach(v => { MY_VOTES[`${v.marker_id}__${v.category_id}`] = v; });
 }
 
 /* ══════════════════════════════
-   CITY SELECTION
+   CITY
 ══════════════════════════════ */
 async function selectCity(city) {
   SELECTED_CITY = city;
   SELECTED_CAT_ID = null;
 
-  // Update city card UI
-  document.querySelectorAll('.city-card').forEach(el => el.classList.remove('city-card-active'));
+  document.querySelectorAll('.city-tab').forEach(el => el.classList.remove('city-tab-active'));
   const btn = document.getElementById(`city${city}`);
-  if (btn) btn.classList.add('city-card-active');
+  if (btn) btn.classList.add('city-tab-active');
 
-  // Load rutas for this city
-  const { data, error } = await sb
-    .from('rutas')
+  const { data, error } = await sb.from('rutas')
     .select('id,name,city,category_id,tier,is_active')
-    .eq('city', city)
-    .eq('is_active', true)
-    .order('tier', { ascending: true });
-
-  if (error) { setStatus('Error loading rutas.'); return; }
+    .eq('city', city).eq('is_active', true).order('tier');
   ALL_RUTAS = data || [];
 
-  renderCatChips();
+  closeRuta();
+  renderCatCards();
 
-  // Show cat section, hide ruta section
-  document.getElementById('catSection').style.display = 'block';
-  document.getElementById('rutaSection').style.display = 'none';
+  const catSection = document.getElementById('catSection');
+  catSection.style.display = 'block';
+  // Stagger card animations
+  setTimeout(() => {
+    document.querySelectorAll('.rutas-cat-card').forEach((el, i) => {
+      el.style.animationDelay = `${i * 0.05}s`;
+    });
+  }, 10);
 }
 
 /* ══════════════════════════════
-   CATEGORY CHIPS
+   CATEGORY CARDS
 ══════════════════════════════ */
-function renderCatChips() {
-  const host = document.getElementById('rutasCatChips');
+function renderCatCards() {
+  const host = document.getElementById('rutasCatGrid');
   if (!host) return;
-
   host.innerHTML = '';
 
   ALL_RUTAS.forEach(ruta => {
     const cat = CATEGORIES_MAP[ruta.category_id];
     if (!cat) return;
 
-    const btn = document.createElement('button');
-    btn.className = 'rutas-cat-chip' + (SELECTED_CAT_ID === ruta.category_id ? ' active' : '');
-    btn.onclick = () => selectCategory(ruta.category_id);
+    // Count user's votes for this ruta (from MY_VOTES — we don't know total yet, show 0/?)
+    const votedInCat = Object.values(MY_VOTES)
+      .filter(v => v.category_id === ruta.category_id).length;
 
-    const iconUrl = cat.icon_url || '';
-    const absUrl = iconUrl.startsWith('http') ? iconUrl
-      : window.location.href.replace(/\/[^/]*(\?.*)?$/, '/') + iconUrl;
+    const card = document.createElement('div');
+    card.className = 'rutas-cat-card';
+    card.onclick = () => selectCategory(ruta.category_id);
 
-    btn.innerHTML = `
-      ${iconUrl ? `<img src="${escapeHtml(absUrl)}" alt="" />` : ''}
-      <span>${escapeHtml(cat.name)}</span>
+    const icon = absIconUrl(cat.icon_url);
+    card.innerHTML = `
+      ${icon ? `<img src="${escapeHtml(icon)}" alt="" />` : '<span style="font-size:28px;">🍽️</span>'}
+      <div class="rutas-cat-card-name">${escapeHtml(cat.name)}</div>
+      ${votedInCat > 0 ? `<div class="rutas-cat-card-count">${votedInCat} tried</div>` : ''}
+      <div class="rutas-cat-card-progress" id="catProgress-${ruta.category_id}" style="width:0%"></div>
     `;
-    host.appendChild(btn);
+    host.appendChild(card);
+  });
+
+  // After items load we can update progress widths
+  updateCatCardProgress();
+}
+
+function updateCatCardProgress() {
+  // We update these properly once ruta items are loaded per category
+  // For now just show proportional to votes/12
+  ALL_RUTAS.forEach(ruta => {
+    const el = document.getElementById(`catProgress-${ruta.category_id}`);
+    if (!el) return;
+    const voted = Object.values(MY_VOTES).filter(v => v.category_id === ruta.category_id).length;
+    const pct = Math.min(100, Math.round((voted / 12) * 100));
+    el.style.width = `${pct}%`;
+    if (pct === 100) el.classList.add('complete');
   });
 }
 
 /* ══════════════════════════════
-   CATEGORY SELECTION → load ruta
+   SELECT CATEGORY → load ruta
 ══════════════════════════════ */
 async function selectCategory(catId) {
   SELECTED_CAT_ID = catId;
 
-  // Update chip UI
-  document.querySelectorAll('.rutas-cat-chip').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.rutas-cat-chip').forEach(el => {
-    if (el.onclick.toString().includes(catId)) el.classList.add('active');
+  document.querySelectorAll('.rutas-cat-card').forEach(el => el.classList.remove('active'));
+  const cards = document.querySelectorAll('.rutas-cat-card');
+  ALL_RUTAS.forEach((ruta, i) => {
+    if (ruta.category_id === catId && cards[i]) cards[i].classList.add('active');
   });
-  renderCatChips(); // re-render chips with active state
 
-  // Find the ruta for this city + category
   const ruta = ALL_RUTAS.find(r => r.category_id === catId);
-  if (!ruta) { setStatus('No ruta found for this category.'); return; }
+  if (!ruta) return;
 
-  setStatus('Loading ruta…');
-
-  // Load ruta items with marker data
-  const { data, error } = await sb
-    .from('ruta_items')
-    .select(`
-      id, position, is_paid,
-      markers (
-        id, title, address, rating_avg, rating_count, is_active, category_id
-      )
-    `)
-    .eq('ruta_id', ruta.id)
-    .eq('is_active', true)
+  const { data, error } = await sb.from('ruta_items')
+    .select(`id, position, is_paid, markers(id,title,address,rating_avg,rating_count,is_active,category_id,lat,lon)`)
+    .eq('ruta_id', ruta.id).eq('is_active', true)
     .order('position', { ascending: true });
 
-  if (error) { setStatus('Error loading ruta items.'); return; }
-  // Keep inactive markers too — we show them as "unavailable"
+  if (error) return;
   RUTA_ITEMS = data || [];
+  ACTIVE_RUTA = ruta;
 
-  renderRuta(ruta);
-  setStatus('');
+  showRutaSection(ruta);
 }
 
 /* ══════════════════════════════
-   RENDER RUTA
+   SHOW RUTA
 ══════════════════════════════ */
-let ACTIVE_RUTA_CAT_ID = null; // track current ruta's category for vote actions
-
-function renderRuta(ruta) {
-  ACTIVE_RUTA_CAT_ID = ruta.category_id;
+function showRutaSection(ruta) {
   const cat = CATEGORIES_MAP[ruta.category_id];
   const section = document.getElementById('rutaSection');
   section.style.display = 'block';
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // Header
-  document.getElementById('rutaHeader').innerHTML = `
-    <div class="ruta-header-title">La Selección · ${escapeHtml(cat?.name || '')}</div>
-    <div class="ruta-header-sub">${escapeHtml(ruta.city)} · ${RUTA_ITEMS.filter(ri => ri.markers?.is_active).length} curated places</div>
-  `;
+  document.getElementById('rutaTitleLabel').textContent = 'La Selección · ' + (cat?.name || '');
+  document.getElementById('rutaTitle').textContent = SELECTED_CITY === 'BCN' ? 'Barcelona' : 'Madrid';
 
-  // Count voted (active markers only)
-  const activeItems = RUTA_ITEMS.filter(ri => ri.markers?.is_active);
-  const votedCount = activeItems.filter(ri => {
-    const key = `${ri.markers.id}__${ruta.category_id}`;
-    return !!MY_VOTES[key];
-  }).length;
+  updateProgress(ruta);
+  renderGrid(ruta);
+  initRutaMap(ruta);
 
-  const total = activeItems.length;
-  const pct = total ? Math.round((votedCount / total) * 100) : 0;
-
-  document.getElementById('rutaProgressFill').style.width = `${pct}%`;
-  document.getElementById('rutaProgressLabel').textContent =
-    votedCount === total && total > 0
-      ? `✅ Ruta complete! You've tried all ${total} places.`
-      : `${votedCount} of ${total} tried`;
-
-  // Login prompt if not logged in
-  let loginHtml = '';
+  // Show logged-out overlay if needed
   if (!CURRENT_USER) {
-    loginHtml = `<div class="rutas-login-prompt">
-      <a href="login.html">Log in</a> to track your progress and vote directly here.
-    </div>`;
+    document.getElementById('rutaLoggedOutOverlay').style.display = 'flex';
   }
 
-  const gridHtml = RUTA_ITEMS.map(ri => renderRutaItem(ri, ruta.category_id)).join('');
-  document.getElementById('rutaGrid').innerHTML = loginHtml + gridHtml;
+  // Sticky bar
+  updateStickyBar(ruta);
+}
+
+function closeRuta() {
+  document.getElementById('rutaSection').style.display = 'none';
+  document.getElementById('rutaStickyBar').style.display = 'none';
+  document.getElementById('rutaLoggedOutOverlay').style.display = 'none';
+  ACTIVE_RUTA = null;
+  RUTA_ITEMS = [];
+  if (RUTA_MAP_INSTANCE) { RUTA_MAP_INSTANCE.remove(); RUTA_MAP_INSTANCE = null; }
+  RUTA_MAP_OPEN = false;
+  document.getElementById('rutaMapWrap').style.display = 'none';
+  const toggle = document.getElementById('rutaMapToggle');
+  if (toggle) toggle.textContent = '🗺 Show on map';
 }
 
 /* ══════════════════════════════
-   RENDER RUTA ITEM CARD
+   PROGRESS
 ══════════════════════════════ */
-function renderRutaItem(ri, catId) {
+function countVoted(ruta) {
+  const activeItems = RUTA_ITEMS.filter(ri => ri.markers?.is_active);
+  return activeItems.filter(ri => !!MY_VOTES[`${ri.markers.id}__${ruta.category_id}`]).length;
+}
+
+function updateProgress(ruta) {
+  const activeItems = RUTA_ITEMS.filter(ri => ri.markers?.is_active);
+  const total = activeItems.length;
+  const voted = countVoted(ruta);
+  const pct = total ? Math.round((voted / total) * 100) : 0;
+  const complete = voted === total && total > 0;
+
+  const fill = document.getElementById('rutaProgressFill');
+  const text = document.getElementById('rutaProgressText');
+  if (fill) { fill.style.width = `${pct}%`; fill.classList.toggle('complete', complete); }
+  if (text) text.textContent = complete ? '✅ Complete!' : `${voted} / ${total}`;
+
+  // Tier teaser — always show
+  document.getElementById('rutaTierTeaser').style.display = 'block';
+
+  updateStickyBar(ruta, voted, total, pct, complete);
+  updateCatCardProgress();
+}
+
+function updateStickyBar(ruta, voted, total, pct, complete) {
+  const cat = CATEGORIES_MAP[ruta?.category_id];
+  const bar = document.getElementById('rutaStickyBar');
+  if (!bar) return;
+  bar.style.display = 'flex';
+
+  if (voted === undefined) {
+    voted = countVoted(ruta);
+    total = RUTA_ITEMS.filter(ri => ri.markers?.is_active).length;
+    pct = total ? Math.round((voted / total) * 100) : 0;
+    complete = voted === total && total > 0;
+  }
+
+  document.getElementById('rutaStickyName').textContent = cat?.name || '';
+  document.getElementById('rutaStickyCount').textContent = `${voted}/${total}`;
+  const fill = document.getElementById('rutaStickyFill');
+  if (fill) { fill.style.width = `${pct}%`; fill.classList.toggle('complete', complete); }
+}
+
+/* ══════════════════════════════
+   RENDER GRID
+══════════════════════════════ */
+function renderGrid(ruta) {
+  const catId = ruta.category_id;
+
+  // Sort: voted first (by score desc), unvoted last
+  const sorted = [...RUTA_ITEMS].sort((a, b) => {
+    const aVote = MY_VOTES[`${a.markers?.id}__${catId}`];
+    const bVote = MY_VOTES[`${b.markers?.id}__${catId}`];
+    if (aVote && bVote) return Number(bVote.vote) - Number(aVote.vote);
+    if (aVote) return -1;
+    if (bVote) return 1;
+    return a.position - b.position;
+  });
+
+  document.getElementById('rutaGrid').innerHTML = sorted.map((ri, idx) =>
+    renderRutaItem(ri, catId, idx)
+  ).join('');
+}
+
+function renderRutaItem(ri, catId, animIdx) {
   const m = ri.markers;
   if (!m) return '';
-
   const isInactive = !m.is_active;
   const key = `${m.id}__${catId}`;
   const myVote = MY_VOTES[key];
   const hasVoted = !!myVote;
-
   const cat = CATEGORIES_MAP[catId];
-  const iconUrl = cat?.icon_url || '';
-  const absUrl = iconUrl.startsWith('http') ? iconUrl
-    : window.location.href.replace(/\/[^/]*(\?.*)?$/, '/') + iconUrl;
-
-  const avg = Number(m.rating_avg ?? 0);
-  const cnt = Number(m.rating_count ?? 0);
-
+  const icon = absIconUrl(cat?.icon_url || '');
   const href = `marker.html?id=${encodeURIComponent(m.id)}&cat=${catId}`;
+  const delay = `animation-delay:${animIdx * 0.03}s`;
 
-  // ── Inactive marker ──
-  if (isInactive) {
-    return `
-      <div class="ruta-item ruta-item-inactive">
-        <div class="ruta-item-num">${ri.position}</div>
-        <div class="ruta-item-icon">
-          ${iconUrl ? `<img src="${escapeHtml(absUrl)}" alt="" />` : '🍽️'}
-        </div>
-        <div class="ruta-item-name">${escapeHtml(m.title)}</div>
-        <span class="ruta-item-closed">Temporarily closed</span>
-      </div>
-    `;
-  }
+  if (isInactive) return `
+    <div class="ruta-item ruta-item-inactive" style="${delay}">
+      <div class="ruta-item-num">${ri.position}</div>
+      <div class="ruta-item-icon">${icon ? `<img src="${escapeHtml(icon)}" alt="" />` : '🍽️'}</div>
+      <div class="ruta-item-name">${escapeHtml(m.title)}</div>
+      <span class="ruta-item-closed">Closed</span>
+    </div>`;
 
-  // ── Active marker ──
-  const votedClass = hasVoted ? 'ruta-item-voted' : '';
   const checkHtml = hasVoted ? `<div class="ruta-item-check">✓</div>` : '';
-
-  const myScoreHtml = hasVoted
-    ? `<span class="ruta-item-score ${colorClassForScore(myVote.vote, 1)}">${Number(myVote.vote).toFixed(0)}</span>`
+  const scoreHtml = hasVoted
+    ? `<span class="ruta-item-score ${colorClassForScore(myVote.vote)}">${Number(myVote.vote).toFixed(0)}</span>`
     : '';
-
-  // Vote chip — only for logged in users who haven't voted yet
-  const voteChipHtml = CURRENT_USER && !hasVoted
-    ? `<button class="ruta-vote-chip" onclick="toggleRutaVote(event,'${m.id}',${catId})">★ Vote</button>
-       <div class="ruta-vote-btns" id="rvb-${m.id}" style="display:none;">
-         ${Array.from({length:10},(_,i)=>i+1).map(i =>
-           `<button class="ruta-vote-btn" onclick="castRutaVote(event,${i},'${m.id}',${catId})">${i}</button>`
-         ).join('')}
-       </div>`
-    : '';
+  const voteChipHtml = CURRENT_USER && !hasVoted ? `
+    <button class="ruta-vote-chip" onclick="toggleRutaVote(event,'${m.id}',${catId})">★ Vote</button>
+    <div class="ruta-vote-btns" id="rvb-${m.id}" style="display:none;">
+      ${[1,2,3,4,5,6,7,8,9,10].map(i =>
+        `<button class="ruta-vote-btn" onclick="castRutaVote(event,${i},'${m.id}',${catId})">${i}</button>`
+      ).join('')}
+    </div>` : '';
 
   return `
-    <a class="ruta-item ${votedClass}" href="${href}" id="ri-${m.id}">
+    <a class="ruta-item${hasVoted ? ' ruta-item-voted' : ''}" href="${href}" id="ri-${m.id}" style="${delay}">
       ${checkHtml}
       <div class="ruta-item-num">${ri.position}</div>
-      <div class="ruta-item-icon">
-        ${iconUrl ? `<img src="${escapeHtml(absUrl)}" alt="" />` : '🍽️'}
-      </div>
+      <div class="ruta-item-icon">${icon ? `<img src="${escapeHtml(icon)}" alt="" />` : '🍽️'}</div>
       <div class="ruta-item-name">${escapeHtml(m.title)}</div>
-      ${myScoreHtml}
+      ${scoreHtml}
       ${voteChipHtml}
-    </a>
-  `;
+    </a>`;
 }
 
 /* ══════════════════════════════
-   INLINE VOTE ON RUTA CARD
+   INLINE VOTE
 ══════════════════════════════ */
 function toggleRutaVote(e, markerId, catId) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  // Close all other open vote panels first
+  e.preventDefault(); e.stopPropagation();
   document.querySelectorAll('.ruta-vote-btns').forEach(el => {
     if (el.id !== `rvb-${markerId}`) el.style.display = 'none';
   });
-
   const btns = document.getElementById(`rvb-${markerId}`);
-  if (!btns) return;
-  btns.style.display = btns.style.display === 'none' ? 'grid' : 'none';
+  if (btns) btns.style.display = btns.style.display === 'none' ? 'grid' : 'none';
 }
 
 async function castRutaVote(e, value, markerId, catId) {
-  e.preventDefault();
-  e.stopPropagation();
+  e.preventDefault(); e.stopPropagation();
+  if (!CURRENT_USER) { window.location.href = 'login.html'; return; }
 
-  const user = await maybeUser();
-  if (!user) { window.location.href = 'login.html'; return; }
-
-  // Optimistic UI — collapse buttons, show saving state
   const btns = document.getElementById(`rvb-${markerId}`);
   if (btns) btns.style.display = 'none';
-
   const chip = document.querySelector(`#ri-${markerId} .ruta-vote-chip`);
   if (chip) chip.textContent = 'Saving…';
 
   const { error } = await sb.from('votes').upsert(
-    [{ marker_id: markerId, user_id: user.id, vote: value, category_id: catId, is_active: true }],
+    [{ marker_id: markerId, user_id: CURRENT_USER.id, vote: value, category_id: catId, is_active: true }],
     { onConflict: 'marker_id,category_id,user_id' }
   );
+  if (error) { if (chip) chip.textContent = '★ Vote'; return; }
 
-  if (error) {
-    if (chip) chip.textContent = '★ Vote';
-    return;
+  // Update local state
+  MY_VOTES[`${markerId}__${catId}`] = { marker_id: markerId, vote: value, category_id: catId, is_active: true };
+
+  // Card pop animation
+  const card = document.getElementById(`ri-${markerId}`);
+  if (card) {
+    card.classList.add('ruta-item-popping');
+    setTimeout(() => card.classList.remove('ruta-item-popping'), 350);
+    // Re-render this card
+    const ri = RUTA_ITEMS.find(r => r.markers?.id === markerId);
+    if (ri) {
+      const newHtml = renderRutaItem(ri, catId, 0);
+      const tmp = document.createElement('div');
+      tmp.innerHTML = newHtml;
+      const newCard = tmp.firstElementChild;
+      if (newCard) { newCard.style.animationDelay = '0s'; card.replaceWith(newCard); }
+    }
   }
 
-  // Update local MY_VOTES and re-render just this card
-  const key = `${markerId}__${catId}`;
-  MY_VOTES[key] = { marker_id: markerId, vote: value, category_id: catId, is_active: true };
+  updateProgress(ACTIVE_RUTA);
 
-  // Find the ruta item and re-render
-  const ri = RUTA_ITEMS.find(r => r.markers?.id === markerId);
-  if (ri) {
-    const card = document.getElementById(`ri-${markerId}`);
-    if (card) card.outerHTML = renderRutaItem(ri, catId);
-  }
-
-  // Update progress bar
-  const ruta = ALL_RUTAS.find(r => r.category_id === catId);
-  if (ruta) renderProgress(ruta);
-}
-
-function renderProgress(ruta) {
+  // Check for completion
   const activeItems = RUTA_ITEMS.filter(ri => ri.markers?.is_active);
-  const votedCount = activeItems.filter(ri => {
-    const key = `${ri.markers.id}__${ruta.category_id}`;
-    return !!MY_VOTES[key];
-  }).length;
-  const total = activeItems.length;
-  const pct = total ? Math.round((votedCount / total) * 100) : 0;
-  const fill = document.getElementById('rutaProgressFill');
-  const label = document.getElementById('rutaProgressLabel');
-  if (fill) fill.style.width = `${pct}%`;
-  if (label) label.textContent = votedCount === total && total > 0
-    ? `✅ Ruta complete! You've tried all ${total} places.`
-    : `${votedCount} of ${total} tried`;
+  const voted = countVoted(ACTIVE_RUTA);
+  if (voted === activeItems.length && activeItems.length > 0) {
+    setTimeout(() => showCompletion(ACTIVE_RUTA), 600);
+  }
 }
 
+/* ══════════════════════════════
+   MAP
+══════════════════════════════ */
+function toggleRutaMap() {
+  RUTA_MAP_OPEN = !RUTA_MAP_OPEN;
+  const wrap = document.getElementById('rutaMapWrap');
+  const toggle = document.getElementById('rutaMapToggle');
+  wrap.style.display = RUTA_MAP_OPEN ? 'block' : 'none';
+  toggle.textContent = RUTA_MAP_OPEN ? '🗺 Hide map' : '🗺 Show on map';
+  if (RUTA_MAP_OPEN && !RUTA_MAP_INSTANCE) initRutaMap(ACTIVE_RUTA);
+  if (RUTA_MAP_INSTANCE) setTimeout(() => RUTA_MAP_INSTANCE.invalidateSize(), 50);
+}
+
+function initRutaMap(ruta) {
+  if (!ruta) return;
+  const mapWrap = document.getElementById('rutaMapWrap');
+  // On desktop always show map; on mobile only if toggled
+  const isMobile = window.innerWidth <= 768;
+  if (!isMobile) mapWrap.style.display = 'block';
+
+  if (RUTA_MAP_INSTANCE) { RUTA_MAP_INSTANCE.remove(); RUTA_MAP_INSTANCE = null; }
+
+  const markers = RUTA_ITEMS.filter(ri => ri.markers?.lat && ri.markers?.lon && ri.markers?.is_active);
+  if (!markers.length) { if (!isMobile) mapWrap.style.display = 'none'; return; }
+
+  const catId = ruta.category_id;
+  const cat = CATEGORIES_MAP[catId];
+  const iconUrl = absIconUrl(cat?.icon_url || '');
+
+  setTimeout(() => {
+    RUTA_MAP_INSTANCE = L.map('rutaMap', { zoomControl: true, scrollWheelZoom: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap', maxZoom: 18
+    }).addTo(RUTA_MAP_INSTANCE);
+
+    const lMarkers = [];
+    markers.forEach(ri => {
+      const m = ri.markers;
+      const myVote = MY_VOTES[`${m.id}__${catId}`];
+      const cls = myVote ? colorClassForScore(myVote.vote) : 'ruta-score-none';
+      const icon = L.divIcon({
+        className: `tba-marker ${cls}`,
+        html: `<div class="tba-marker-inner">${iconUrl ? `<img src="${escapeHtml(iconUrl)}" alt="" />` : ''}</div>`,
+        iconSize: [30, 30], iconAnchor: [15, 15]
+      });
+      const mk = L.marker([m.lat, m.lon], { icon }).addTo(RUTA_MAP_INSTANCE);
+      mk.bindPopup(`<b>${escapeHtml(m.title)}</b>${myVote ? `<br>Your vote: ${myVote.vote}` : ''}`);
+      lMarkers.push(mk);
+    });
+
+    const group = L.featureGroup(lMarkers);
+    RUTA_MAP_INSTANCE.fitBounds(group.getBounds().pad(0.15));
+  }, 100);
+}
+
+/* ══════════════════════════════
+   COMPLETION
+══════════════════════════════ */
+function showCompletion(ruta) {
+  const cat = CATEGORIES_MAP[ruta.category_id];
+  const catId = ruta.category_id;
+
+  document.getElementById('rutaCompleteSub').textContent =
+    `You've tried all 12 ${cat?.name || ''} spots in ${SELECTED_CITY === 'BCN' ? 'Barcelona' : 'Madrid'}.`;
+
+  // Top 3
+  const voted = RUTA_ITEMS
+    .filter(ri => ri.markers?.is_active && MY_VOTES[`${ri.markers.id}__${catId}`])
+    .map(ri => ({ title: ri.markers.title, score: Number(MY_VOTES[`${ri.markers.id}__${catId}`].vote) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('rutaCompleteTop3').innerHTML = `
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Your top picks</div>
+    ${voted.map((v, i) => `
+      <div class="ruta-top3-row">
+        <span class="ruta-top3-pos">${medals[i] || (i+1)}</span>
+        <span class="ruta-top3-name">${escapeHtml(v.title)}</span>
+        <span class="ruta-top3-score ${colorClassForScore(v.score)}">${v.score}</span>
+      </div>`).join('')}
+  `;
+
+  // Share card
+  const topName = voted[0]?.title || '';
+  document.getElementById('rutaCompleteShareCard').innerHTML = `
+    <div class="ruta-complete-share-title">✅ La Selección de ${escapeHtml(cat?.name || '')} · ${SELECTED_CITY === 'BCN' ? 'Barcelona' : 'Madrid'}</div>
+    <div style="margin-top:4px;">12/12 · My top pick: ${escapeHtml(topName)}</div>
+    <div style="margin-top:2px;font-size:11px;opacity:0.7;">thebestagain.com/rutas</div>
+  `;
+
+  document.getElementById('rutaCompleteOverlay').style.display = 'flex';
+}
+
+function closeCompletion() {
+  document.getElementById('rutaCompleteOverlay').style.display = 'none';
+  // Re-sort grid to show all voted on top
+  if (ACTIVE_RUTA) renderGrid(ACTIVE_RUTA);
+}
+
+function shareRutaCompletion() {
+  const cat = CATEGORIES_MAP[ACTIVE_RUTA?.category_id];
+  const city = SELECTED_CITY === 'BCN' ? 'Barcelona' : 'Madrid';
+  const text = `✅ I completed La Selección de ${cat?.name || ''} en ${city} — 12/12 on @thebestagain!\nthebestagain.com/rutas`;
+  if (navigator.share) {
+    navigator.share({ text, url: 'https://thebestagain.com/rutas' }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
+  }
+}
