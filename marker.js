@@ -643,6 +643,65 @@ async function renderOthersFromChain(m) {
 }
 
 /* ══════════════════════════════
+   ALSO WORTH TRYING
+══════════════════════════════ */
+async function renderAlsoWorthTrying(m) {
+  // Only for places, only if there are others in same category
+  const activeCatId = ACTIVE_CATEGORY_ID || m.category_id;
+
+  // Get top 4 others in same category via marker_categories
+  const { data: mcData } = await sb.from("marker_categories")
+    .select("marker_id").eq("category_id", activeCatId).eq("is_active", true);
+
+  const catIds = (mcData || []).map(r => r.marker_id).filter(id => id !== MARKER_ID);
+  if (!catIds.length) return;
+
+  const { data, error } = await sb.from("markers")
+    .select("id,title,rating_avg,rating_count,address")
+    .eq("is_active", true)
+    .in("id", catIds)
+    .order("rating_avg", { ascending: false })
+    .limit(4);
+
+  if (error || !data?.length) return;
+
+  // Find or create the container
+  let card = document.getElementById("alsoWorthCard");
+  if (!card) {
+    card = document.createElement("div");
+    card.id = "alsoWorthCard";
+    card.className = "card m-card also-worth-card";
+    // Insert before comments card
+    const commentsCard = document.getElementById("commentsCard");
+    if (commentsCard?.parentNode) commentsCard.parentNode.insertBefore(card, commentsCard);
+  }
+
+  const cat = getCategoryById(activeCatId);
+  card.innerHTML = `
+    <div class="m-card-head-row">
+      <span class="m-card-head">Also worth trying</span>
+      <a href="ranking.html" class="m-card-link">See rankings →</a>
+    </div>
+    <div class="also-worth-grid">
+      ${data.map(r => {
+        const avg = Number(r.rating_avg ?? 0);
+        const cnt = Number(r.rating_count ?? 0);
+        const cls = colorClass(avg, cnt);
+        const score = cnt ? avg.toFixed(1) : "—";
+        const addr = r.address ? r.address.split(",").slice(0,2).join(",") : "";
+        const href = `marker.html?id=${encodeURIComponent(r.id)}&cat=${activeCatId}`;
+        return `
+          <a class="also-worth-item" href="${href}">
+            <div class="also-worth-name">${escapeHtml(r.title)}</div>
+            ${addr ? `<div class="also-worth-addr">${escapeHtml(addr)}</div>` : ""}
+            <span class="also-worth-score ${cls}">${escapeHtml(score)}</span>
+          </a>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+/* ══════════════════════════════
    VOTE ACTIONS
 ══════════════════════════════ */
 async function loadMyVote(user) {
@@ -1431,6 +1490,7 @@ async function initMarkerPage() {
   await renderRankingWidget(m);
   await renderMoreFromBrand(m);
   await renderOthersFromChain(m);
+  await renderAlsoWorthTrying(m);
   await initComments(user);
 
   setStatus("");

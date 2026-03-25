@@ -1072,3 +1072,50 @@ body {
   margin-left: 3px;
   vertical-align: middle;
 }
+
+/* ── Also worth trying ── */
+.also-worth-card { margin-top: 0; }
+
+.also-worth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.also-worth-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--faint, #f5f5f3);
+  text-decoration: none;
+  transition: background 0.14s;
+}
+.also-worth-item:hover { background: var(--accent-bg, rgba(45,74,138,0.08)); text-decoration: none; }
+
+.also-worth-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #111);
+  line-height: 1.3;
+}
+.also-worth-addr {
+  font-size: 10px;
+  color: var(--muted, #888);
+  line-height: 1.3;
+}
+.also-worth-score {
+  display: inline-flex;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 2px;
+  align-self: flex-start;
+}
+
+@media (max-width: 600px) {
+  .also-worth-grid { grid-template-columns: 1fr; }
+}
