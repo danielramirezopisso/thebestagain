@@ -541,7 +541,13 @@ async function selectMarkerForMC(markerId, markerTitle) {
 function renderMCPanel() {
   const linkedIds = new Set(MC_CURRENT.filter(r => r.is_active).map(r => r.category_id));
   const primaryId = MC_CURRENT.find(r => r.is_primary && r.is_active)?.category_id;
+  // Show all active place categories
   const allCats = ALL_CATEGORIES.filter(c => c.is_active && c.for_places);
+
+  if (!allCats.length) {
+    document.getElementById("mcCatList").innerHTML = `<p class="muted">No place categories loaded. Try reopening this section.</p>`;
+    return;
+  }
 
   document.getElementById("mcCatList").innerHTML = allCats.map(c => {
     const isLinked = linkedIds.has(c.id);
@@ -551,7 +557,7 @@ function renderMCPanel() {
         <input type="checkbox" ${isLinked ? "checked" : ""} onchange="toggleMarkerCategory(${c.id}, this.checked)" />
         <div>
           <div class="brand-check-name">${escapeHtml(c.name)} ${isPrimary ? "⭐ primary" : ""}</div>
-          <div class="brand-check-status">${isLinked ? "Linked" : "Not linked"}</div>
+          <div class="brand-check-status">${isLinked ? "✓ Linked" : "Not linked"}</div>
         </div>
       </label>
     `;
@@ -581,7 +587,7 @@ async function toggleMarkerCategory(category_id, shouldLink) {
   const { data } = await sb.from("marker_categories").select("id,category_id,is_primary,is_active").eq("marker_id", MC_MARKER_ID);
   MC_CURRENT = data || [];
   renderMCPanel();
-  setMcStatus("Saved ✅");
+  setMcStatus("Saved ✅ — " + (shouldLink ? "category linked" : "category unlinked"));
 }
 
 /* ══════════════════════════════
@@ -718,8 +724,18 @@ async function selectMarkerForChain(markerId, markerTitle, currentChainId) {
 
 async function saveMarkerChain() {
   const chainId = parseInt(document.getElementById("chainAssignSelect").value) || null;
+  const chainName = chainId
+    ? ALL_CHAINS.find(c => c.id === chainId)?.name || "selected chain"
+    : "no chain";
   const { error } = await sb.from("markers").update({ chain_id: chainId }).eq("id", CHAIN_MARKER_ID);
   if (error) { setChainsStatus("Error: " + error.message); return; }
   document.getElementById("chainAssignPanel").style.display = "none";
-  setChainsStatus(`Chain assigned ✅ to ${CHAIN_MARKER_TITLE}`);
+  document.getElementById("chainMarkerResults").innerHTML = "";
+  document.getElementById("chainMarkerSearch").value = "";
+  const msg = chainId
+    ? `✅ "${CHAIN_MARKER_TITLE}" assigned to ${chainName}`
+    : `✅ Chain removed from "${CHAIN_MARKER_TITLE}"`;
+  setChainsStatus(msg);
+  CHAIN_MARKER_ID = null;
+  CHAIN_MARKER_TITLE = "";
 }

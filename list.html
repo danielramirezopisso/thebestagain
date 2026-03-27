@@ -62,7 +62,10 @@
           <button class="type-btn" data-type="product" onclick="setTypeFilter(this, 'product')">🛒 Products</button>
         </div>
         <div class="list-filter-spacer"></div>
-        <button class="type-btn active" id="chainFilterBtn" onclick="toggleChainFilter(this)" title="Toggle chain restaurants">⛓ Chains: On</button>
+        <label class="chain-toggle-wrap" title="Hide chain restaurants">
+          <input type="checkbox" id="chainToggleList" checked onchange="onListChainToggleChanged()" />
+          <span class="chain-toggle-label">Chains</span>
+        </label>
         <div class="journey-inline-toggle" id="listJourneyWrap">
           <div class="journey-float-toggle" onclick="toggleJourneyModeList()">
             <span class="journey-opt journey-opt-active" id="listJOptDiscover">🌍 Discover</span>

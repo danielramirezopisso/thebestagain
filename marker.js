@@ -680,7 +680,7 @@ async function renderAlsoWorthTrying(m) {
   card.innerHTML = `
     <div class="m-card-head-row">
       <span class="m-card-head">Also worth trying</span>
-      <a href="ranking.html" class="m-card-link">See rankings →</a>
+      <a href="list.html?category=${encodeURIComponent(activeCatId)}" class="m-card-link">See all →</a>
     </div>
     <div class="also-worth-grid">
       ${data.map(r => {
@@ -1199,7 +1199,7 @@ function renderCommentRow(c, user, nameById, reactionsByComment, repliesByParent
   const existingReactions = Object.entries(reactionCounts).map(([emoji, count]) => {
     const emojiB64 = btoa(unescape(encodeURIComponent(emoji)));
     const reacted  = myReactions.has(emoji);
-    const clickFn  = user ? `toggleReactionB64('${c.id}','${emojiB64}')` : "location.href='login.html'";
+    const clickFn  = user ? `toggleReactionB64('${c.id}','${emojiB64}')` : "location.href='login.html?redirect='+encodeURIComponent(location.href)";
     return `<button class="reaction-pill ${reacted ? "reacted" : ""}"
       onclick="${clickFn}" title="${reacted ? "Remove reaction" : "React"}">
       ${emoji} ${count}
@@ -1569,7 +1569,7 @@ async function uploadPhoto(input) {
   if (!file) return;
 
   const user = await maybeUser();
-  if (!user) { window.location.href = 'login.html'; return; }
+  if (!user) { window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href); return; }
   if (PHOTOS.length >= MAX_PHOTOS) { setPhotoStatus(`Max ${MAX_PHOTOS} photos reached.`); return; }
 
   // Validate type + size (5MB max)

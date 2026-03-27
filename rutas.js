@@ -9,6 +9,7 @@ let MY_VOTES = {};
 let CATEGORIES_MAP = {};
 let CURRENT_USER = null;
 let RUTA_MAP_INSTANCE = null;
+let RUTA_ITEMS_BY_CAT = {}; // category_id -> ruta_items array
 let RUTA_MAP_OPEN = false;
 
 function escapeHtml(s) {
@@ -95,9 +96,8 @@ function renderCatCards() {
     const cat = CATEGORIES_MAP[ruta.category_id];
     if (!cat) return;
 
-    // Count user's votes for this ruta (from MY_VOTES — we don't know total yet, show 0/?)
-    const votedInCat = Object.values(MY_VOTES)
-      .filter(v => v.category_id === ruta.category_id).length;
+    // We'll update this after items load; for now show nothing
+    const votedInCat = 0; // placeholder, updated by updateCatCardProgress
 
     const card = document.createElement('div');
     card.className = 'rutas-cat-card';
@@ -107,7 +107,7 @@ function renderCatCards() {
     card.innerHTML = `
       ${icon ? `<img src="${escapeHtml(icon)}" alt="" />` : '<span style="font-size:28px;">🍽️</span>'}
       <div class="rutas-cat-card-name">${escapeHtml(cat.name)}</div>
-      ${votedInCat > 0 ? `<div class="rutas-cat-card-count">${votedInCat} tried</div>` : ''}
+      <div class="rutas-cat-card-count" id="catCount-${ruta.category_id}"></div>
       <div class="rutas-cat-card-progress" id="catProgress-${ruta.category_id}" style="width:0%"></div>
     `;
     host.appendChild(card);
@@ -118,15 +118,25 @@ function renderCatCards() {
 }
 
 function updateCatCardProgress() {
-  // We update these properly once ruta items are loaded per category
-  // For now just show proportional to votes/12
+  // Uses RUTA_ITEMS_BY_CAT populated after loading each ruta
   ALL_RUTAS.forEach(ruta => {
-    const el = document.getElementById(`catProgress-${ruta.category_id}`);
-    if (!el) return;
-    const voted = Object.values(MY_VOTES).filter(v => v.category_id === ruta.category_id).length;
-    const pct = Math.min(100, Math.round((voted / 12) * 100));
-    el.style.width = `${pct}%`;
-    if (pct === 100) el.classList.add('complete');
+    const progressEl = document.getElementById(`catProgress-${ruta.category_id}`);
+    const countEl = document.getElementById(`catCount-${ruta.category_id}`);
+    const items = RUTA_ITEMS_BY_CAT[ruta.category_id] || [];
+    if (!items.length) return;
+    const total = items.filter(ri => ri.markers?.is_active).length;
+    const voted = items.filter(ri => {
+      if (!ri.markers?.is_active) return false;
+      return !!MY_VOTES[`${ri.markers.id}__${ruta.category_id}`];
+    }).length;
+    const pct = total ? Math.round((voted / total) * 100) : 0;
+    if (progressEl) {
+      progressEl.style.width = `${pct}%`;
+      if (pct >= 100) progressEl.classList.add('complete');
+    }
+    if (countEl) {
+      countEl.textContent = voted > 0 ? `${voted}/${total}` : '';
+    }
   });
 }
 
@@ -152,8 +162,10 @@ async function selectCategory(catId) {
 
   if (error) return;
   RUTA_ITEMS = data || [];
+  RUTA_ITEMS_BY_CAT[ruta.category_id] = RUTA_ITEMS;
   ACTIVE_RUTA = ruta;
 
+  updateCatCardProgress();
   showRutaSection(ruta);
 }
 
@@ -319,7 +331,7 @@ function toggleRutaVote(e, markerId, catId) {
 
 async function castRutaVote(e, value, markerId, catId) {
   e.preventDefault(); e.stopPropagation();
-  if (!CURRENT_USER) { window.location.href = 'login.html'; return; }
+  if (!CURRENT_USER) { window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href); return; }
 
   const btns = document.getElementById(`rvb-${markerId}`);
   if (btns) btns.style.display = 'none';
@@ -384,17 +396,28 @@ function initRutaMap(ruta) {
   if (RUTA_MAP_INSTANCE) { RUTA_MAP_INSTANCE.remove(); RUTA_MAP_INSTANCE = null; }
 
   const markers = RUTA_ITEMS.filter(ri => ri.markers?.lat && ri.markers?.lon && ri.markers?.is_active);
-  if (!markers.length) { if (!isMobile) mapWrap.style.display = 'none'; return; }
+  const CITY_CENTERS = {
+    BCN: [41.3888, 2.1589],
+    MAD: [40.4168, -3.7038]
+  };
+
+  if (!markers.length) {
+    if (!isMobile) mapWrap.style.display = 'none';
+    return;
+  }
 
   const catId = ruta.category_id;
   const cat = CATEGORIES_MAP[catId];
   const iconUrl = absIconUrl(cat?.icon_url || '');
+
+  const cityCenter = SELECTED_CITY === 'MAD' ? [40.4168, -3.7038] : [41.3888, 2.1589];
 
   setTimeout(() => {
     RUTA_MAP_INSTANCE = L.map('rutaMap', { zoomControl: true, scrollWheelZoom: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap', maxZoom: 18
     }).addTo(RUTA_MAP_INSTANCE);
+    RUTA_MAP_INSTANCE.setView(cityCenter, 13); // default city center
 
     const lMarkers = [];
     markers.forEach(ri => {
@@ -412,7 +435,12 @@ function initRutaMap(ruta) {
     });
 
     const group = L.featureGroup(lMarkers);
-    RUTA_MAP_INSTANCE.fitBounds(group.getBounds().pad(0.15));
+    try {
+      RUTA_MAP_INSTANCE.fitBounds(group.getBounds().pad(0.15));
+    } catch(e) {
+      const center = CITY_CENTERS[SELECTED_CITY] || [41.3888, 2.1589];
+      RUTA_MAP_INSTANCE.setView(center, 13);
+    }
   }, 100);
 }
 

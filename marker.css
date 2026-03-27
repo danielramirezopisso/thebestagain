@@ -293,9 +293,13 @@
 }
 .vote-btns {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.vote-btns::-webkit-scrollbar { display: none; }
 .vote-btn {
   width: 36px;
   height: 36px;

@@ -461,3 +461,8 @@
   .skeleton-card-lg, .skeleton-card-sm { height: 200px; }
   .ranking-grid-skeleton { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Crown colour variants via CSS filter */
+.crown-gold   { filter: none; }  /* original gold colour */
+.crown-silver { filter: grayscale(1) brightness(1.6); }
+.crown-bronze { filter: sepia(1) saturate(2) hue-rotate(350deg) brightness(0.85); }

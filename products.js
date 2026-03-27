@@ -497,7 +497,7 @@ function showJourneyLoginPrompt() {
       "font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);" +
       "cursor:pointer;white-space:nowrap;";
     el.innerHTML = "🔑 Log in to track My Journey &nbsp;\u2192";
-    el.onclick = () => window.location.href = "login.html";
+    el.onclick = () => window.location.href = "login.html?redirect=" + encodeURIComponent(window.location.href);
     document.body.appendChild(el);
   }
   el.style.display = "block";

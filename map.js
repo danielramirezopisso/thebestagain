@@ -169,7 +169,7 @@ async function reverseGeocodeAddress(lat, lon) {
 
 async function toggleAddMode() {
   const user = await maybeUser();
-  if (!user) { alert("Please login to add places."); window.location.href = "login.html"; return; }
+  if (!user) { alert("Please login to add places."); window.location.href = "login.html?redirect=" + encodeURIComponent(window.location.href); return; }
   ADD_MODE = !ADD_MODE;
   const btn = qs("toggleAdd");
   if (ADD_MODE) { btn.textContent = "✕ Stop adding"; btn.classList.add("tba-btn-danger"); btn.classList.remove("tba-btn-primary"); }
@@ -307,7 +307,7 @@ async function initMap() {
       toggleBtn.textContent = "＋ Start adding";
       toggleBtn.onclick = () => {
         alert("Please log in to add places.");
-        window.location.href = "login.html";
+        window.location.href = "login.html?redirect=" + encodeURIComponent(window.location.href);
       };
     }
   }
@@ -388,7 +388,7 @@ function showJourneyLoginPrompt() {
     el = document.createElement("div"); el.id = "journeyLoginToast";
     el.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--accent,#e0355b);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;white-space:nowrap;";
     el.innerHTML = "🔑 Log in to track My Journey &nbsp;→";
-    el.onclick = () => window.location.href = "login.html";
+    el.onclick = () => window.location.href = "login.html?redirect=" + encodeURIComponent(window.location.href);
     document.body.appendChild(el);
   }
   el.style.display = "block"; clearTimeout(el._t);
@@ -573,7 +573,7 @@ function toggleQuickVote(markerId, catId) {
 
 async function selectQuickVote(value, markerId, catId) {
   const user = await maybeUser();
-  if (!user) { window.location.href = "login.html"; return; }
+  if (!user) { window.location.href = "login.html?redirect=" + encodeURIComponent(window.location.href); return; }
 
   QUICK_VOTE_VALUE = value;
   QUICK_VOTE_OPEN = false;

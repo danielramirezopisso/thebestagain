@@ -16,6 +16,7 @@
 
   <header class="topbar topbar-sticky">
     <a class="brand" href="index.html">The Best Again</a>
+    <button class="burger" id="burgerBtn" onclick="toggleNav()" aria-label="Menu" aria-expanded="false">&#9776;</button>
     <nav class="nav" id="mainNav">
       <a href="index.html">Home</a>
       <a href="list.html">List</a>
@@ -91,8 +92,8 @@
         <div class="ruta-loggedout-icon">🗺️</div>
         <h3>Track your progress</h3>
         <p>Log in to vote on each place and track how many you've tried.</p>
-        <a href="login.html" class="tba-btn tba-btn-primary">Log in</a>
-        <a href="login.html?mode=signup" class="tba-btn" style="margin-top:8px;">Create account</a>
+        <a href="#" onclick="window.location.href='login.html?redirect='+encodeURIComponent(window.location.href)" class="tba-btn tba-btn-primary">Log in</a>
+        <a href="#" onclick="window.location.href='login.html?mode=signup&redirect='+encodeURIComponent(window.location.href)" class="tba-btn" style="margin-top:8px;">Create account</a>
       </div>
     </div>
 
@@ -121,5 +122,23 @@
   <script>renderAuthHeader();</script>
   <script src="wishlist-btn.js"></script>
   <script src="rutas.js"></script>
+
+  <script>
+  function toggleNav() {
+    const nav = document.getElementById('mainNav');
+    const btn = document.getElementById('burgerBtn');
+    const open = nav.classList.toggle('nav-open');
+    btn.innerHTML = open ? '&#10005;' : '&#9776;';
+    btn.setAttribute('aria-expanded', open);
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('mainNav');
+    if (nav) nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      nav.classList.remove('nav-open');
+      const btn = document.getElementById('burgerBtn');
+      if (btn) { btn.innerHTML = '&#9776;'; btn.setAttribute('aria-expanded', false); }
+    }));
+  });
+  </script>
 </body>
 </html>

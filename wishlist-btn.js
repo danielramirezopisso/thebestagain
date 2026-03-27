@@ -23,31 +23,36 @@ async function wlLoad() {
 async function wlToggle(markerId, btn) {
   const user = await maybeUser();
   if (!user) {
-    window.location.href = "login.html";
+    window.location.href = "login.html?redirect=" + encodeURIComponent(window.location.href);
     return;
   }
 
   const wasLiked = WL_SET.has(markerId);
-  // Optimistic UI
-  if (wasLiked) {
-    WL_SET.delete(markerId);
-  } else {
-    WL_SET.add(markerId);
-  }
-  _wlSetBtnState(btn, !wasLiked);
 
+  // Optimistic UI immediately
+  if (wasLiked) { WL_SET.delete(markerId); } else { WL_SET.add(markerId); }
+  _wlRefreshAll(); // refresh ALL buttons including the one clicked
+
+  // Persist to DB
+  let error = null;
   if (wasLiked) {
-    await sb.from("wishlists")
+    const res = await sb.from("wishlists")
       .delete()
       .eq("user_id", user.id)
       .eq("marker_id", markerId);
+    error = res.error;
   } else {
-    await sb.from("wishlists")
+    const res = await sb.from("wishlists")
       .upsert({ user_id: user.id, marker_id: markerId }, { onConflict: "user_id,marker_id" });
+    error = res.error;
   }
 
-  // Refresh all buttons for this marker on the page
-  _wlRefreshAll();
+  // If DB failed, revert optimistic update
+  if (error) {
+    if (wasLiked) { WL_SET.add(markerId); } else { WL_SET.delete(markerId); }
+    _wlRefreshAll();
+    console.error("Wishlist error:", error.message);
+  }
 }
 
 /* ── Render all heart buttons on the page ── */
@@ -75,7 +80,7 @@ function wlBtnHtml(markerId, extraClass = "") {
     onclick="event.stopPropagation(); wlToggle('${markerId}', this)"
     aria-label="${liked ? "Remove from wishlist" : "Add to wishlist"}"
     title="${liked ? "Remove from wishlist" : "Save to wishlist"}"
-  >🏷️</button>`;
+  ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></button>`;
 }
 
 /* ── Init: call on every page that shows hearts ── */

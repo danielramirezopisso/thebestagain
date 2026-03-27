@@ -192,14 +192,22 @@
   .filter-row { flex-direction: column; align-items: flex-start; gap: 6px; }
   .filter-label { min-width: auto; }
 
-  /* Top filter row: stack search on its own line, then type+journey below */
+  /* Top filter row: search full width first line, controls below */
   .list-filter-row--top {
     flex-wrap: wrap;
     gap: 6px;
+    align-items: center;
   }
-  .search-wrap { max-width: 100%; min-width: 0; width: 100%; }
+  .search-wrap {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+    order: -1; /* always first */
+    flex-basis: 100%;
+  }
   .type-toggle { flex-shrink: 0; }
   .list-filter-spacer { display: none; }
+  .chain-toggle-wrap { margin-left: 0; }
 
   /* Bottom filter row: chips scroll horizontally */
   .list-filter-row--bottom {
@@ -280,3 +288,23 @@ tr.journey-unvisited-row:hover td {
   opacity: 0.7;
   filter: grayscale(0.2);
 }
+
+/* ── Chain toggle (checkbox style, matches map) ── */
+.chain-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #888);
+  white-space: nowrap;
+  user-select: none;
+}
+.chain-toggle-wrap input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent, #2d4a8a);
+  cursor: pointer;
+}
+.chain-toggle-label { cursor: pointer; }

@@ -140,10 +140,11 @@ function renderRanking(items, catId) {
   const gridItems   = items.filter(r => r.position >= 4 && r.position <= 10);
   const bonusItem   = items.find(r => r.position === 11);
 
-  const crownSrc = pos => {
-    if (pos === 1) return 'icons/ranking/gold.svg';
-    if (pos === 2) return 'icons/ranking/silver.svg';
-    return 'icons/ranking/bronze.svg';
+  const crownSrc = pos => 'icons/ranking/crown_ranking.svg';
+  const crownClass = pos => {
+    if (pos === 1) return 'crown-gold';
+    if (pos === 2) return 'crown-silver';
+    return 'crown-bronze';
   };
 
   // Heading
@@ -173,7 +174,7 @@ function renderRanking(items, catId) {
               ${photo
                 ? `<img src="${escapeHtml(photo)}" alt="${escapeHtml(m?.title)}" loading="lazy" />`
                 : `<div class="podium-photo-placeholder">${icon ? `<img src="${escapeHtml(icon)}" style="width:64px;opacity:0.25;" />` : '🍽️'}</div>`}
-              <img class="podium-crown" src="${crownSrc(item.position)}" alt="#${item.position}" />
+              <img class="podium-crown ${crownClass(item.position)}" src="${crownSrc(item.position)}" alt="#${item.position}" />
             </div>
             <div class="podium-body">
               <div class="podium-pos">#${item.position}</div>

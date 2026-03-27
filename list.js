@@ -146,6 +146,8 @@ function clearListFilters() {
   FILTER_BUCKET = "";
   FILTER_SEARCH = "";
   FILTER_CHAINS = true;
+  const chainCb = document.getElementById("chainToggleList");
+  if (chainCb) chainCb.checked = true;
 
   document.getElementById("searchInput").value = "";
   document.querySelectorAll(".type-btn").forEach(b => {
@@ -379,7 +381,7 @@ function showJourneyLoginPromptInline(wrapperId) {
       "font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);" +
       "cursor:pointer;white-space:nowrap;";
     el.innerHTML = "🔑 Log in to track My Journey &nbsp;→";
-    el.onclick = () => window.location.href = "login.html";
+    el.onclick = () => window.location.href = "login.html?redirect=" + encodeURIComponent(window.location.href);
     document.body.appendChild(el);
   }
   el.style.display = "block";
@@ -388,10 +390,8 @@ function showJourneyLoginPromptInline(wrapperId) {
 }
 
 /* ── CHAIN TOGGLE ── */
-function toggleChainFilter(btn) {
-  FILTER_CHAINS = !FILTER_CHAINS;
-  btn.classList.toggle("active", FILTER_CHAINS);
-  btn.textContent = FILTER_CHAINS ? "⛓ Chains: On" : "⛓ Chains: Off";
+function onListChainToggleChanged() {
+  FILTER_CHAINS = document.getElementById("chainToggleList").checked;
   showClearIfNeeded();
   renderTable();
 }
