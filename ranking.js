@@ -140,7 +140,11 @@ function renderRanking(items, catId) {
   const gridItems   = items.filter(r => r.position >= 4 && r.position <= 10);
   const bonusItem   = items.find(r => r.position === 11);
 
-  const crownSrc = pos => 'icons/ranking/crown_ranking.svg';
+  const crownSrc = pos => {
+    if (pos === 1) return 'icons/ranking/gold_crown.svg';
+    if (pos === 2) return 'icons/ranking/silver_crown.svg';
+    return 'icons/ranking/bronze_crown.svg';
+  };
   const crownClass = pos => {
     if (pos === 1) return 'crown-gold';
     if (pos === 2) return 'crown-silver';

@@ -395,29 +395,19 @@ function initRutaMap(ruta) {
 
   if (RUTA_MAP_INSTANCE) { RUTA_MAP_INSTANCE.remove(); RUTA_MAP_INSTANCE = null; }
 
+  const cityCenter = SELECTED_CITY === 'MAD' ? [40.4168, -3.7038] : [41.3888, 2.1589];
   const markers = RUTA_ITEMS.filter(ri => ri.markers?.lat && ri.markers?.lon && ri.markers?.is_active);
-  const CITY_CENTERS = {
-    BCN: [41.3888, 2.1589],
-    MAD: [40.4168, -3.7038]
-  };
-
-  if (!markers.length) {
-    if (!isMobile) mapWrap.style.display = 'none';
-    return;
-  }
 
   const catId = ruta.category_id;
   const cat = CATEGORIES_MAP[catId];
   const iconUrl = absIconUrl(cat?.icon_url || '');
-
-  const cityCenter = SELECTED_CITY === 'MAD' ? [40.4168, -3.7038] : [41.3888, 2.1589];
 
   setTimeout(() => {
     RUTA_MAP_INSTANCE = L.map('rutaMap', { zoomControl: true, scrollWheelZoom: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap', maxZoom: 18
     }).addTo(RUTA_MAP_INSTANCE);
-    RUTA_MAP_INSTANCE.setView(cityCenter, 13); // default city center
+    RUTA_MAP_INSTANCE.setView(cityCenter, 13); // always default to city first
 
     const lMarkers = [];
     markers.forEach(ri => {

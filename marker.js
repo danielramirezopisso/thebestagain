@@ -250,9 +250,12 @@ function shareMarker() {
     navigator.share({ title, text, url }).catch(() => {});
     return;
   }
-  // Fallback: show share panel
+  // Fallback: toggle share panel
   const panel = document.getElementById("sharePanel");
-  if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
+  if (!panel) return;
+  const isOpen = panel.dataset.open === "1";
+  panel.dataset.open = isOpen ? "0" : "1";
+  panel.style.display = isOpen ? "none" : "flex";
 }
 
 function copyMarkerLink() {

@@ -30,7 +30,7 @@
       <a href="rutas.html">Rutas</a>
       <a class="active" href="ranking.html">Rankings</a>
     </nav>
-    <div class="nav-right"><div id="authHeaderSlot"></div></div>
+    <div class="nav-right"><button class="burger" id="burgerBtn" onclick="toggleNav()" aria-label="Menu" aria-expanded="false">&#9776;</button><div id="authHeaderSlot"></div></div>
   </header>
 
   <main class="ranking-main">
@@ -84,5 +84,23 @@
   <script>renderAuthHeader();</script>
   <script src="ranking.js"></script>
 
+
+  <script>
+  function toggleNav() {
+    const nav = document.getElementById('mainNav');
+    const btn = document.getElementById('burgerBtn');
+    const open = nav.classList.toggle('nav-open');
+    btn.innerHTML = open ? '&#10005;' : '&#9776;';
+    btn.setAttribute('aria-expanded', open);
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('mainNav');
+    if (nav) nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      nav.classList.remove('nav-open');
+      const btn = document.getElementById('burgerBtn');
+      if (btn) { btn.innerHTML = '&#9776;'; btn.setAttribute('aria-expanded', false); }
+    }));
+  });
+  </script>
 </body>
 </html>
