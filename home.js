@@ -81,8 +81,13 @@ async function initHomePage() {
   await loadMarkers();
 
   renderCravingsSplit();
-  renderRecent();
   surpriseMe();
+
+  // Load new sections in parallel (non-blocking)
+  loadHeroStat();
+  loadMapPreviewPins();
+  loadRutasPreview();
+  loadRankingsPreview();
 }
 
 async function loadLookups() {
@@ -426,4 +431,130 @@ async function submitVoteModal() {
   const spotBtn = document.getElementById('spotVoteBtn');
   if (spotBtn) spotBtn.textContent = `★ My vote: ${score}`;
   setTimeout(closeVoteModal, 900);
+}
+
+/* ══════════════════════════════
+   HERO STAT
+══════════════════════════════ */
+async function loadHeroStat() {
+  const { count } = await sb.from("markers").select("id", { count: "exact", head: true })
+    .eq("is_active", true).eq("group_type", "place");
+  const el = document.getElementById("heroStat");
+  if (el && count) el.textContent = `${count}+ places rated in Barcelona & Madrid`;
+}
+
+/* ══════════════════════════════
+   MAP PREVIEW PINS
+══════════════════════════════ */
+async function loadMapPreviewPins() {
+  const host = document.getElementById("mapPreviewPins");
+  if (!host) return;
+  // Show top-rated places as floating pins
+  const { data } = await sb.from("markers")
+    .select("id,category_id,rating_avg,rating_count")
+    .eq("is_active", true).eq("group_type", "place")
+    .not("rating_avg", "is", null)
+    .order("rating_avg", { ascending: false }).limit(6);
+  if (!data?.length) return;
+  host.innerHTML = data.map(m => {
+    const cls = colorClassForRating(m.rating_avg, m.rating_count);
+    const icon = iconForCategory(m.category_id);
+    return `<div class="map-pin-preview ${cls}"><img src="${escapeHtml(icon)}" alt="" /></div>`;
+  }).join("");
+}
+
+/* ══════════════════════════════
+   RUTAS PREVIEW
+══════════════════════════════ */
+async function loadRutasPreview() {
+  const host = document.getElementById("homeRutasGrid");
+  if (!host) return;
+
+  const { data: rutas } = await sb.from("rutas")
+    .select("id,name,city,category_id,tier")
+    .eq("is_active", true).order("category_id").limit(3);
+
+  if (!rutas?.length) { host.innerHTML = ""; return; }
+
+  // Load user votes for progress
+  let myVotes = {};
+  const user = await maybeUser();
+  if (user) {
+    const { data: vd } = await sb.from("votes")
+      .select("marker_id,category_id").eq("user_id", user.id).eq("is_active", true);
+    (vd || []).forEach(v => { myVotes[`${v.marker_id}__${v.category_id}`] = true; });
+  }
+
+  // Load ruta items to know total per ruta
+  const rutaIds = rutas.map(r => r.id);
+  const { data: allItems } = await sb.from("ruta_items")
+    .select("ruta_id,marker_id,markers(is_active)").in("ruta_id", rutaIds).eq("is_active", true);
+
+  const itemsByRuta = {};
+  (allItems || []).forEach(ri => {
+    if (!itemsByRuta[ri.ruta_id]) itemsByRuta[ri.ruta_id] = [];
+    if (ri.markers?.is_active) itemsByRuta[ri.ruta_id].push(ri.marker_id);
+  });
+
+  host.innerHTML = rutas.map(ruta => {
+    const cat = CAT[String(ruta.category_id)];
+    const icon = iconForCategory(ruta.category_id);
+    const items = itemsByRuta[ruta.id] || [];
+    const total = items.length || 12;
+    const voted = user ? items.filter(mid => myVotes[`${mid}__${ruta.category_id}`]).length : 0;
+    const pct = total ? Math.round((voted / total) * 100) : 0;
+    const cityLabel = ruta.city === "BCN" ? "Barcelona" : "Madrid";
+    return `
+      <a class="home-ruta-card" href="rutas.html">
+        <img class="home-ruta-card-icon" src="${escapeHtml(icon)}" alt="" />
+        <div class="home-ruta-card-name">${escapeHtml(cat?.name || ruta.name)}</div>
+        <div class="home-ruta-card-city">${escapeHtml(cityLabel)}</div>
+        ${user ? `<div class="home-ruta-card-count">${voted}/${total} tried</div>` : ""}
+        <div class="home-ruta-card-progress">
+          <div class="home-ruta-card-fill" style="width:${pct}%"></div>
+        </div>
+      </a>`;
+  }).join("");
+}
+
+/* ══════════════════════════════
+   RANKINGS PREVIEW
+══════════════════════════════ */
+async function loadRankingsPreview() {
+  const host = document.getElementById("homeRankingPreview");
+  if (!host) return;
+
+  // Get top 3 from any available ranking (pick first category that has data)
+  const { data: rankings } = await sb.from("rankings")
+    .select("position,category_id,markers(id,title,rating_avg,rating_count)")
+    .eq("year", 2025).eq("is_active", true)
+    .lte("position", 3).order("position");
+
+  if (!rankings?.length) { host.innerHTML = ""; return; }
+
+  const crownSrc = pos => {
+    if (pos === 1) return "icons/ranking/gold_crown.svg";
+    if (pos === 2) return "icons/ranking/silver_crown.svg";
+    return "icons/ranking/bronze_crown.svg";
+  };
+
+  host.innerHTML = rankings.map(r => {
+    const m = r.markers;
+    const avg = Number(m?.rating_avg ?? 0);
+    const cnt = Number(m?.rating_count ?? 0);
+    const cls = colorClassForRating(avg, cnt);
+    const score = cnt ? avg.toFixed(1) : "—";
+    const cat = CAT[String(r.category_id)];
+    const href = `marker.html?id=${encodeURIComponent(m?.id)}&cat=${r.category_id}`;
+    const posClass = r.position <= 3 ? `pos-${r.position}` : "";
+    return `
+      <a class="home-ranking-row" href="${href}">
+        <img class="home-ranking-crown" src="${crownSrc(r.position)}" alt="#${r.position}" />
+        <div class="home-ranking-info">
+          <div class="home-ranking-name">${escapeHtml(m?.title || "")}</div>
+          <div class="home-ranking-cat">${escapeHtml(cat?.name || "")}</div>
+        </div>
+        <span class="home-ranking-score ${cls}">${escapeHtml(score)}</span>
+      </a>`;
+  }).join("");
 }
