@@ -161,11 +161,14 @@ function renderChipRow(containerId, cats, moreHref) {
     return;
   }
 
-  const chips = cats.map(c => {
-    return `<a class="chip" href="list.html?category=${encodeURIComponent(c.id)}">${escapeHtml(c.name)}</a>`;
+  const chips = cats.map(cat => {
+    const iconUrl = normalizeIconUrl(cat.icon_url || "");
+    const iconHtml = iconUrl
+      ? `<img class="chip-ic" src="${escapeHtml(iconUrl)}" alt="" />`
+      : "";
+    return `<a class="chip" href="list.html?category=${encodeURIComponent(cat.id)}">${iconHtml}${escapeHtml(cat.name)}</a>`;
   });
 
-  // Add "..." chip
   chips.push(`
     <a class="chip chip-more" href="${escapeHtml(moreHref)}" title="Open without filters">
       <span>…</span>
@@ -526,12 +529,19 @@ async function loadRankingsPreview() {
   if (!host) return;
 
   // Get top 3 from any available ranking (pick first category that has data)
-  const { data: rankings } = await sb.from("rankings")
+  // Get top 3 from the first category that has data
+  const { data: allRankings } = await sb.from("rankings")
     .select("position,category_id,markers(id,title,rating_avg,rating_count)")
     .eq("year", 2025).eq("is_active", true)
-    .lte("position", 3).order("position");
+    .lte("position", 3).order("category_id").order("position");
 
-  if (!rankings?.length) { host.innerHTML = ""; return; }
+  if (!allRankings?.length) { host.innerHTML = ""; return; }
+
+  // Pick the category with most entries (most complete)
+  const countByCat = {};
+  allRankings.forEach(r => { countByCat[r.category_id] = (countByCat[r.category_id] || 0) + 1; });
+  const bestCat = Object.entries(countByCat).sort((a,b) => b[1]-a[1])[0][0];
+  const rankings = allRankings.filter(r => String(r.category_id) === String(bestCat));
 
   const crownSrc = pos => {
     if (pos === 1) return "icons/ranking/gold_crown.svg";
@@ -640,9 +650,9 @@ async function initHomeMap() {
 
   // Show top-rated places as markers
   const places = ALL_MARKERS
-    .filter(m => m.group_type === "place" && m.lat && m.lon && m.rating_count > 0)
+    .filter(m => m.group_type === "place" && m.lat && m.lon)
     .sort((a, b) => Number(b.rating_avg) - Number(a.rating_avg))
-    .slice(0, 30);
+    .slice(0, 80);
 
   places.forEach(m => {
     const avg = Number(m.rating_avg ?? 0);
@@ -721,12 +731,32 @@ async function loadRankingsPreview() {
   const host = document.getElementById("homeRankingPreview");
   if (!host) return;
 
-  const { data: rankings } = await sb.from("rankings")
+  // Get all #1 positions across all categories — one winner per category
+  // Falls back to top 3 from any category if only one exists
+  const { data: allRankings } = await sb.from("rankings")
     .select("position,category_id,markers(id,title,rating_avg,rating_count)")
     .eq("year", 2025).eq("is_active", true)
-    .lte("position", 3).order("position");
+    .order("position");
 
-  if (!rankings?.length) { host.innerHTML = ""; return; }
+  if (!allRankings?.length) { host.innerHTML = ""; return; }
+
+  // Show: one #1 per category, up to 3 categories
+  const seenCats = new Set();
+  const rankings = [];
+  for (const r of allRankings) {
+    if (r.position === 1 && !seenCats.has(r.category_id)) {
+      seenCats.add(r.category_id);
+      rankings.push(r);
+      if (rankings.length >= 3) break;
+    }
+  }
+  // If fewer than 3 categories, fill with top-ranked from any category
+  if (rankings.length < 3) {
+    for (const r of allRankings) {
+      if (rankings.length >= 3) break;
+      if (!rankings.find(x => x.markers?.id === r.markers?.id)) rankings.push(r);
+    }
+  }
 
   const crownSrc = pos => {
     if (pos === 1) return "icons/ranking/gold_crown.svg";
