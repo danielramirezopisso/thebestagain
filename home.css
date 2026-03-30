@@ -28,9 +28,9 @@
 
 /* ── Main ── */
 .home-main {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 0 24px 100px;
+  /* max-width and margin:auto come from .container class in base.css */
+  /* Override container padding for home page */
+  padding: 40px 24px 100px;
 }
 
 /* ══ HERO ══ */
