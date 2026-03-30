@@ -82,10 +82,11 @@ async function initHomePage() {
 
   renderCravingsSplit();
   surpriseMe();
+  startHeroRotation();
 
-  // Load new sections in parallel (non-blocking)
+  // Non-blocking
   loadHeroStat();
-  loadMapPreviewPins();
+  initHomeMap();
   loadRutasPreview();
   loadRankingsPreview();
 }
@@ -555,6 +556,200 @@ async function loadRankingsPreview() {
           <div class="home-ranking-cat">${escapeHtml(cat?.name || "")}</div>
         </div>
         <span class="home-ranking-score ${cls}">${escapeHtml(score)}</span>
+      </a>`;
+  }).join("");
+}
+
+/* ══════════════════════════════
+   ROTATING HERO CATEGORY
+══════════════════════════════ */
+const ROTATING_CATEGORIES = [
+  "Pizza Margherita",
+  "Tortilla de Patatas",
+  "Patatas Bravas",
+  "Cheesecake",
+  "Croqueta de Pollo",
+  "Tiramisu",
+  "Ensaladilla Rusa",
+  "Flan",
+  "Vermouth",
+  "Croissant de Chocolate",
+];
+
+let rotatingIdx = 0;
+
+function startHeroRotation() {
+  const el = document.getElementById("heroRotating");
+  if (!el) return;
+
+  // Optionally enrich with real categories from DB
+  const dbCats = Object.values(CAT).filter(c => c.for_places).map(c => c.name);
+  const cats = dbCats.length >= 4 ? dbCats : ROTATING_CATEGORIES;
+
+  el.textContent = cats[0];
+  el.classList.add("fade-in");
+
+  setInterval(() => {
+    el.classList.add("fade-out");
+    el.classList.remove("fade-in");
+    setTimeout(() => {
+      rotatingIdx = (rotatingIdx + 1) % cats.length;
+      el.textContent = cats[rotatingIdx];
+      el.classList.remove("fade-out");
+      el.classList.add("fade-in");
+    }, 350);
+  }, 2500);
+}
+
+/* ══════════════════════════════
+   HERO STAT
+══════════════════════════════ */
+async function loadHeroStat() {
+  const el = document.getElementById("heroStat");
+  if (!el) return;
+  const { count } = await sb.from("markers")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true).eq("group_type", "place");
+  if (count) el.textContent = `${count}+ places · Barcelona & Madrid`;
+}
+
+/* ══════════════════════════════
+   HOME MAP (real Leaflet)
+══════════════════════════════ */
+let HOME_MAP = null;
+
+async function initHomeMap() {
+  const container = document.getElementById("homeMap");
+  if (!container || window.innerWidth <= 768) return;
+
+  // Init map centred on Barcelona
+  HOME_MAP = L.map("homeMap", {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    dragging: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+    touchZoom: false,
+    attributionControl: false,
+  }).setView([41.3888, 2.1589], 13);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+  }).addTo(HOME_MAP);
+
+  // Show top-rated places as markers
+  const places = ALL_MARKERS
+    .filter(m => m.group_type === "place" && m.lat && m.lon && m.rating_count > 0)
+    .sort((a, b) => Number(b.rating_avg) - Number(a.rating_avg))
+    .slice(0, 30);
+
+  places.forEach(m => {
+    const avg = Number(m.rating_avg ?? 0);
+    const cnt = Number(m.rating_count ?? 0);
+    const cls = colorClassForRating(avg, cnt);
+    const icon = iconForCategory(m.category_id);
+    const leafIcon = L.divIcon({
+      className: `tba-marker ${cls}`,
+      html: `<div class="tba-marker-inner"><img src="${escapeHtml(icon)}" alt="" /></div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+    L.marker([m.lat, m.lon], { icon: leafIcon })
+      .addTo(HOME_MAP)
+      .on("click", () => { window.location.href = `marker.html?id=${encodeURIComponent(m.id)}`; });
+  });
+
+  // Fix map rendering after it becomes visible
+  setTimeout(() => HOME_MAP.invalidateSize(), 200);
+}
+
+/* ══════════════════════════════
+   RUTAS PREVIEW
+══════════════════════════════ */
+async function loadRutasPreview() {
+  const host = document.getElementById("homeRutasGrid");
+  if (!host) return;
+
+  const { data: rutas } = await sb.from("rutas")
+    .select("id,name,city,category_id,tier")
+    .eq("is_active", true).order("category_id").limit(3);
+
+  if (!rutas?.length) { host.innerHTML = ""; return; }
+
+  let myVotes = {};
+  const user = await maybeUser();
+  if (user) {
+    const { data: vd } = await sb.from("votes")
+      .select("marker_id,category_id").eq("user_id", user.id).eq("is_active", true);
+    (vd || []).forEach(v => { myVotes[`${v.marker_id}__${v.category_id}`] = true; });
+  }
+
+  const rutaIds = rutas.map(r => r.id);
+  const { data: allItems } = await sb.from("ruta_items")
+    .select("ruta_id,marker_id,markers(is_active)").in("ruta_id", rutaIds).eq("is_active", true);
+
+  const itemsByRuta = {};
+  (allItems || []).forEach(ri => {
+    if (!itemsByRuta[ri.ruta_id]) itemsByRuta[ri.ruta_id] = [];
+    if (ri.markers?.is_active) itemsByRuta[ri.ruta_id].push(ri.marker_id);
+  });
+
+  host.innerHTML = rutas.map(ruta => {
+    const cat = CAT[String(ruta.category_id)];
+    const icon = normalizeIconUrl(cat?.icon_url || "") || DEFAULT_ICON_URL;
+    const items = itemsByRuta[ruta.id] || [];
+    const total = items.length || 12;
+    const voted = user ? items.filter(mid => myVotes[`${mid}__${ruta.category_id}`]).length : 0;
+    const pct = total ? Math.round((voted / total) * 100) : 0;
+    const cityLabel = ruta.city === "BCN" ? "Barcelona" : "Madrid";
+    return `
+      <a class="home-ruta-card" href="rutas.html">
+        <img class="home-ruta-icon" src="${escapeHtml(icon)}" alt="" />
+        <div class="home-ruta-name">${escapeHtml(cat?.name || ruta.name)}</div>
+        <div class="home-ruta-city">${escapeHtml(cityLabel)}</div>
+        ${user ? `<div class="home-ruta-count">${voted}/${total} tried</div>` : ""}
+        <div class="home-ruta-bar"><div class="home-ruta-fill" style="width:${pct}%"></div></div>
+      </a>`;
+  }).join("");
+}
+
+/* ══════════════════════════════
+   RANKINGS PREVIEW
+══════════════════════════════ */
+async function loadRankingsPreview() {
+  const host = document.getElementById("homeRankingPreview");
+  if (!host) return;
+
+  const { data: rankings } = await sb.from("rankings")
+    .select("position,category_id,markers(id,title,rating_avg,rating_count)")
+    .eq("year", 2025).eq("is_active", true)
+    .lte("position", 3).order("position");
+
+  if (!rankings?.length) { host.innerHTML = ""; return; }
+
+  const crownSrc = pos => {
+    if (pos === 1) return "icons/ranking/gold_crown.svg";
+    if (pos === 2) return "icons/ranking/silver_crown.svg";
+    return "icons/ranking/bronze_crown.svg";
+  };
+
+  host.innerHTML = rankings.map(r => {
+    const m = r.markers;
+    const avg = Number(m?.rating_avg ?? 0);
+    const cnt = Number(m?.rating_count ?? 0);
+    const cls = colorClassForRating(avg, cnt);
+    const score = cnt ? avg.toFixed(1) : "—";
+    const cat = CAT[String(r.category_id)];
+    const href = `marker.html?id=${encodeURIComponent(m?.id)}&cat=${r.category_id}`;
+    return `
+      <a class="home-rank-row" href="${href}">
+        <img class="home-rank-crown" src="${escapeHtml(crownSrc(r.position))}" alt="#${r.position}" />
+        <div class="home-rank-info">
+          <div class="home-rank-name">${escapeHtml(m?.title || "")}</div>
+          <div class="home-rank-cat">${escapeHtml(cat?.name || "")}</div>
+        </div>
+        <span class="home-rank-score ${cls}">${escapeHtml(score)}</span>
       </a>`;
   }).join("");
 }

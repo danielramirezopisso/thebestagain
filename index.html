@@ -3,29 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Best Again — Barcelona's best food, voted by real people</title>
-  <meta name="description" content="Discover and vote on Barcelona's best food spots. Curated Rutas, real rankings, honest ratings — built by people who actually eat there." />
-  <meta property="og:title" content="The Best Again — Barcelona's best food" />
-  <meta property="og:description" content="Curated Rutas, honest rankings, real votes. Discover the best food in Barcelona." />
+  <title>The Best Again — Find the best food in town</title>
+  <meta name="description" content="Discover the best pizza, tortilla, bravas and more. Curated Rutas, honest rankings, real places." />
+  <meta property="og:title" content="The Best Again — Find the best food in town" />
+  <meta property="og:description" content="Curated Rutas, honest rankings. Find the best pizza, tortilla, bravas and more." />
   <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary" />
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-VYVTQPBTPC"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag("js", new Date());
-    gtag("config", "G-VYVTQPBTPC");
-  </script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-VYVTQPBTPC");</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="home.css" />
 </head>
 
 <body onload="initHomePage()">
 
-  <header class="topbar topbar-sticky">
+  <!-- Header: hidden until scroll -->
+  <header class="topbar topbar-sticky home-header" id="siteHeader">
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav" id="mainNav">
       <a class="active" href="index.html">Home</a>
@@ -46,122 +42,91 @@
     <!-- ══ HERO ══ -->
     <section class="home-hero">
       <div class="home-hero-inner">
+
         <div class="home-hero-text">
-          <div class="home-hero-eyebrow">Barcelona · Madrid</div>
-          <h1 class="home-hero-title">The best food,<br><em>voted by real people.</em></h1>
-          <p class="home-hero-sub">Discover curated places, follow food Rutas, and build your personal ranking — one dish at a time.</p>
+          <h1 class="home-hero-brand">The Best Again</h1>
+          <div class="home-hero-tagline">
+            <span class="home-hero-find">Find the best</span>
+            <span class="home-hero-rotating-wrap">
+              <span class="home-hero-rotating" id="heroRotating">Pizza Margherita</span>
+            </span>
+            <span class="home-hero-town">in town.</span>
+          </div>
           <div class="home-hero-actions">
             <a class="tba-btn tba-btn-primary home-cta-map" href="map.html">🗺 Explore the map</a>
             <a class="tba-btn" href="rutas.html">Start a Ruta →</a>
           </div>
           <div class="home-hero-stat" id="heroStat"></div>
         </div>
-        <div class="home-hero-visual">
-          <div class="home-hero-map-preview">
-            <div class="map-preview-pins" id="mapPreviewPins"></div>
-            <div class="map-preview-cta">
-              <a href="map.html" class="map-preview-link">Open full map →</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- ══ HOW IT WORKS ══ -->
-    <section class="home-how">
-      <div class="home-section-inner">
-        <div class="home-how-steps">
-          <div class="how-step">
-            <div class="how-step-icon">🗺</div>
-            <div class="how-step-title">Discover</div>
-            <div class="how-step-desc">Explore the map or follow a curated Ruta to find the best places in the city.</div>
-          </div>
-          <div class="how-step-divider">→</div>
-          <div class="how-step">
-            <div class="how-step-icon">⭐</div>
-            <div class="how-step-title">Vote</div>
-            <div class="how-step-desc">Rate each place from 1 to 10. Your votes build a personal ranking only you can see.</div>
-          </div>
-          <div class="how-step-divider">→</div>
-          <div class="how-step">
-            <div class="how-step-icon">🏆</div>
-            <div class="how-step-title">Discover the best</div>
-            <div class="how-step-desc">The collective wisdom of real visitors creates honest rankings you can actually trust.</div>
-          </div>
+        <div class="home-hero-map">
+          <div id="homeMap" class="home-map-container"></div>
+          <a href="map.html" class="home-map-cta">Open full map →</a>
         </div>
+
       </div>
     </section>
 
     <!-- ══ RUTAS ══ -->
-    <section class="home-section home-rutas-section">
-      <div class="home-section-inner">
-        <div class="home-section-head">
-          <div>
-            <div class="home-section-eyebrow">Curated journeys</div>
-            <h2 class="home-section-title">Rutas</h2>
-          </div>
-          <a href="rutas.html" class="home-section-link">See all →</a>
+    <section class="home-section">
+      <div class="home-section-head">
+        <div>
+          <div class="home-section-eyebrow">Curated journeys</div>
+          <h2 class="home-section-title">Rutas</h2>
         </div>
-        <p class="home-section-desc">12 hand-picked places per category. Try them all, rate each one, and complete the Ruta.</p>
-        <div class="home-rutas-grid" id="homeRutasGrid">
-          <!-- skeleton -->
-          <div class="home-ruta-card home-ruta-skeleton"></div>
-          <div class="home-ruta-card home-ruta-skeleton"></div>
-          <div class="home-ruta-card home-ruta-skeleton"></div>
-        </div>
+        <a href="rutas.html" class="home-section-link">See all →</a>
+      </div>
+      <p class="home-section-desc">12 hand-picked places per category. Complete the Ruta, discover the city.</p>
+      <div class="home-rutas-grid" id="homeRutasGrid">
+        <div class="home-ruta-skel"></div>
+        <div class="home-ruta-skel"></div>
+        <div class="home-ruta-skel"></div>
       </div>
     </section>
 
-    <!-- ══ RANKINGS PREVIEW ══ -->
-    <section class="home-section home-ranking-section">
-      <div class="home-section-inner">
-        <div class="home-section-head">
-          <div>
-            <div class="home-section-eyebrow">The Best Again 2025</div>
-            <h2 class="home-section-title">Rankings</h2>
-          </div>
-          <a href="ranking.html" class="home-section-link">Full rankings →</a>
+    <!-- ══ RANKINGS ══ -->
+    <section class="home-section">
+      <div class="home-section-head">
+        <div>
+          <div class="home-section-eyebrow">The Best Again 2025</div>
+          <h2 class="home-section-title">Rankings</h2>
         </div>
-        <p class="home-section-desc">The definitive annual ranking of Barcelona's finest — curated from real votes.</p>
-        <div class="home-ranking-preview" id="homeRankingPreview">
-          <!-- skeleton -->
-          <div class="home-ranking-skeleton"></div>
-          <div class="home-ranking-skeleton"></div>
-          <div class="home-ranking-skeleton"></div>
-        </div>
+        <a href="ranking.html" class="home-section-link">Full rankings →</a>
+      </div>
+      <p class="home-section-desc">The definitive annual selection — curated, frozen, worth arguing about.</p>
+      <div class="home-ranking-list" id="homeRankingPreview">
+        <div class="home-rank-skel"></div>
+        <div class="home-rank-skel"></div>
+        <div class="home-rank-skel"></div>
       </div>
     </section>
 
-    <!-- ══ DISCOVER / SPOTLIGHT ══ -->
-    <section class="home-section home-discover-section">
-      <div class="home-section-inner">
-        <div class="home-section-head">
-          <div>
-            <div class="home-section-eyebrow">Feeling lucky?</div>
-            <h2 class="home-section-title">Discover</h2>
-          </div>
-          <button class="tba-btn tba-btn-ghost" id="btnSurprise" onclick="surpriseMe()">↻ Shuffle</button>
+    <!-- ══ DISCOVER ══ -->
+    <section class="home-section">
+      <div class="home-section-head">
+        <div>
+          <div class="home-section-eyebrow">Feeling lucky?</div>
+          <h2 class="home-section-title">Discover</h2>
         </div>
-        <div id="spotBody" class="spotlight-body"></div>
-        <div class="spotlight-footer" id="spotStatus"></div>
+        <button class="tba-btn tba-btn-ghost" onclick="surpriseMe()">↻ Shuffle</button>
       </div>
+      <div id="spotBody" class="spot-body"></div>
+      <div id="spotStatus" class="spot-status muted"></div>
     </section>
 
-    <!-- ══ EXPLORE BY CATEGORY ══ -->
-    <section class="home-section home-cats-section">
-      <div class="home-section-inner">
-        <div class="home-section-head">
-          <h2 class="home-section-title">Explore by category</h2>
+    <!-- ══ CATEGORIES ══ -->
+    <section class="home-section">
+      <div class="home-section-head">
+        <h2 class="home-section-title">Explore by category</h2>
+      </div>
+      <div class="home-cats-split">
+        <div>
+          <div class="home-cats-label">Places</div>
+          <div id="chipRowPlaces" class="chip-row"></div>
         </div>
-        <div class="home-cats-split">
-          <div class="home-cats-block">
-            <div class="home-cats-label">Places</div>
-            <div id="chipRowPlaces" class="chip-row"></div>
-          </div>
-          <div class="home-cats-block">
-            <div class="home-cats-label">Products</div>
-            <div id="chipRowProducts" class="chip-row"></div>
-          </div>
+        <div>
+          <div class="home-cats-label">Products</div>
+          <div id="chipRowProducts" class="chip-row"></div>
         </div>
       </div>
     </section>
@@ -169,12 +134,20 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
-  <script src="home.js?v=3"></script>
+  <script src="home.js?v=4"></script>
 
   <script>
+  // Hide header at top, show on scroll
+  window.addEventListener('scroll', () => {
+    const h = document.getElementById('siteHeader');
+    if (!h) return;
+    h.classList.toggle('home-header-visible', window.scrollY > 80);
+  }, { passive: true });
+
   function toggleNav() {
     const nav = document.getElementById('mainNav');
     const btn = document.getElementById('burgerBtn');
@@ -192,7 +165,7 @@
   });
   </script>
 
-  <!-- Quick vote modal (kept from original) -->
+  <!-- Quick vote modal -->
   <div id="voteModal" class="vote-modal-overlay" onclick="if(event.target===this)closeVoteModal()">
     <div class="vote-modal-box">
       <div class="vote-modal-head">
