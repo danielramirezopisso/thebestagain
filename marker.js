@@ -124,9 +124,9 @@ function renderHero(m, user) {
       <button class="tba-btn traction-hero-preorder" onclick="openTraction('preorder', MARKER_ID, '${escapeHtml(cat?.name || "this dish")}')">
         🛒 Pre-order
       </button>
-      <button class="tba-btn traction-hero-claim" onclick="openTraction('claim', MARKER_ID)">
-        🏢 Claim
-      </button>
+      <a class="tba-btn traction-hero-claim" href="claim.html?id=${encodeURIComponent(MARKER_ID)}">
+        🏢 Claim this place
+      </a>
       ${wlBtnHtml(m.id)}
       <button class="tba-btn share-hero-btn" onclick="shareMarker()" title="Share">
         ↗ Share
