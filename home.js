@@ -630,7 +630,17 @@ let HOME_MAP = null;
 
 async function initHomeMap() {
   const container = document.getElementById("homeMap");
-  if (!container || window.innerWidth <= 768) return;
+  if (!container) return;
+
+  // Leaflet requires explicit pixel height — set it from the parent's rendered height
+  const parent = container.closest(".home-hero-map");
+  if (parent) {
+    const h = parent.getBoundingClientRect().height;
+    if (h > 0) container.style.height = h + "px";
+    else container.style.height = window.innerWidth <= 768 ? "220px" : "380px";
+  } else {
+    container.style.height = window.innerWidth <= 768 ? "220px" : "380px";
+  }
 
   // Init map centred on Barcelona
   HOME_MAP = L.map("homeMap", {
@@ -671,7 +681,8 @@ async function initHomeMap() {
   });
 
   // Fix map rendering after it becomes visible
-  setTimeout(() => HOME_MAP.invalidateSize(), 200);
+  setTimeout(() => HOME_MAP.invalidateSize(), 100);
+  setTimeout(() => HOME_MAP.invalidateSize(), 500);
 }
 
 /* ══════════════════════════════
