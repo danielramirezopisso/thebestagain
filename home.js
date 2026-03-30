@@ -243,9 +243,9 @@ function pickRandomMarker() {
 
 async function renderSpotlight(m) {
   const body = document.getElementById("spotBody");
-  const sub = document.getElementById("spotSub");
+  const sub = document.getElementById("spotSub"); // may not exist in new layout
   const status = document.getElementById("spotStatus");
-  if (!body || !sub) return;
+  if (!body) return;
 
   if (!m) {
     sub.textContent = "Nothing to surprise you with yet.";

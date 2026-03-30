@@ -323,6 +323,12 @@
 /* ══ CATEGORIES ══ */
 .home-cats-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .home-cats-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+/* Home page chips always wrap — never scroll off screen */
+.home-cats-section .chip-row {
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+  gap: 8px;
+}
 
 /* chips */
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); text-decoration: none; color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; transition: background .1s, border-color .1s; white-space: nowrap; }
