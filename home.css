@@ -35,7 +35,7 @@
 
 /* ══ HERO ══ */
 .home-hero {
-  min-height: 92vh;
+  min-height: 80vh;
   display: flex;
   align-items: center;
   padding: 40px 0 60px;
@@ -54,12 +54,12 @@
 /* Brand */
 .home-hero-brand {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(48px, 7vw, 88px);
+  font-size: clamp(36px, 4.5vw, 64px);
   font-weight: 900;
   letter-spacing: -0.04em;
   line-height: 1;
   color: var(--text);
-  margin: 0 0 20px;
+  margin: 0 0 16px;
 }
 
 /* Tagline: three lines */
@@ -88,7 +88,7 @@
 
 .home-hero-rotating {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(28px, 4.5vw, 48px);
+  font-size: clamp(22px, 3vw, 38px);
   font-weight: 700;
   font-style: italic;
   color: var(--accent);
@@ -349,41 +349,28 @@
 
 /* ══ MOBILE ══ */
 @media (max-width: 768px) {
-  .home-main {
-    padding: 0 14px 80px;
-    /* DO NOT set max-width here — inherits 1080px from desktop */
-  }
+  .home-main { padding: 0 14px 80px; }
   .home-hero {
-    min-height: 100svh; /* full viewport height on mobile so Rutas section is hidden below fold */
-    padding: 20px 0 28px;
-    margin-bottom: 32px;
-    display: flex;
-    align-items: center;
+    min-height: auto;
+    padding: 12px 0 24px; /* tight top so brand starts high */
+    margin-bottom: 28px;
+    align-items: flex-start; /* align to top not center */
   }
-  .home-hero-inner { grid-template-columns: 1fr; gap: 16px; width: 100%; }
-  .home-hero-brand { font-size: 46px; }
-  .home-hero-find, .home-hero-town { font-size: clamp(18px, 5vw, 24px); }
-  .home-hero-rotating { font-size: clamp(28px, 7vw, 38px); }
-  /* Show compact map on mobile — explicit height for Leaflet to render */
-  .home-hero-map {
-    display: block;
-    height: 220px;
-    border-radius: 12px;
-  }
-  .home-map-container {
-    width: 100%;
-    height: 220px !important;
-  }
+  .home-hero-inner { grid-template-columns: 1fr; gap: 14px; width: 100%; }
+  .home-hero-brand { font-size: 40px; margin-bottom: 10px; }
+  .home-hero-find, .home-hero-town { font-size: 18px; }
+  .home-hero-rotating { font-size: 26px; }
+  .home-hero-rotating-wrap { min-height: 34px; }
+  /* Map on mobile — hidden, too small to be useful and causes issues */
+  .home-hero-map { display: none; }
   .home-rutas-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .home-cats-split { grid-template-columns: 1fr; gap: 14px; }
-  .home-section { margin-bottom: 40px; }
-  /* Fix category chips: wrap on mobile to prevent horizontal scroll */
+  .home-section { margin-bottom: 36px; }
   .chip-row { flex-wrap: wrap !important; overflow-x: visible !important; }
 }
 
 @media (max-width: 480px) {
-  .home-hero-brand { font-size: 38px; }
-  /* Keep 2 cols for rutas even on small phone */
+  .home-hero-brand { font-size: 34px; }
   .home-rutas-grid { grid-template-columns: 1fr 1fr; }
 }
 
