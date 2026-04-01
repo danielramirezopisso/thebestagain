@@ -44,43 +44,52 @@
   </header>
 
   <main class="map-shell">
-    <!-- TOOLBAR (compact, no Apply) -->
-    <section class="map-toolbar map-toolbar-compact" id="mapToolbarWrap">
-      <button class="filter-toggle-btn" id="mapFilterToggle" style="display:none;">
-        Filters <span class="filter-toggle-arrow">▼</span>
-      </button>
-      <div class="filter-collapsible open" id="mapFilterBody">
-      <div class="toolbar-left">
-        <div class="toolbar-block">
-          <div class="toolbar-label">Category</div>
-          <div class="toolbar-inline">
-            <div id="catQuick" class="chip-row"></div>
-            <select id="catMore" class="select-compact" onchange="onCategoryMoreChanged()">
-              <option value="">More…</option>
-            </select>
+    <!-- FLOATING FILTER BUTTON -->
+    <button class="map-filter-pill" id="mapFilterPill" onclick="openFilterDrawer()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      <span id="filterPillLabel">Filters</span>
+      <span class="map-filter-badge" id="filterActiveBadge" style="display:none;"></span>
+    </button>
 
-            <!-- Clear chip appears only when a filter is active -->
-            <button id="btnClearFilters" class="chip chip-clear" style="display:none;" onclick="clearFilters()">✕ Clear</button>
-          </div>
-        </div>
-
-        <div class="toolbar-block">
-          <div class="toolbar-label">Rating</div>
-          <div class="seg-row" id="ratingSeg"></div>
+    <!-- FILTER DRAWER -->
+    <div class="map-filter-overlay" id="mapFilterOverlay" onclick="closeFilterDrawer()"></div>
+    <div class="map-filter-drawer" id="mapFilterDrawer">
+      <div class="map-drawer-head">
+        <span class="map-drawer-title">Filters</span>
+        <div class="map-drawer-actions">
+          <button class="map-drawer-clear" id="drawerClearBtn" onclick="clearFilters()" style="display:none;">Clear all</button>
+          <button class="map-drawer-close" onclick="closeFilterDrawer()">✕</button>
         </div>
       </div>
 
-      <div class="toolbar-right">
-        <span id="mapStatus" class="muted"></span>
-        <label class="chain-toggle-wrap" title="Hide chain restaurants">
+      <div class="map-drawer-section">
+        <div class="map-drawer-label">Category</div>
+        <div id="catQuick" class="chip-row map-drawer-chips"></div>
+        <select id="catMore" class="select-compact map-drawer-more" onchange="onCategoryMoreChanged()">
+          <option value="">More categories…</option>
+        </select>
+      </div>
+
+      <div class="map-drawer-section">
+        <div class="map-drawer-label">Rating</div>
+        <div class="map-rating-row" id="ratingSeg"></div>
+      </div>
+
+      <div class="map-drawer-section map-drawer-section-row">
+        <label class="map-drawer-label">Chains</label>
+        <label class="map-chain-toggle">
           <input type="checkbox" id="chainToggle" checked onchange="onChainToggleChanged()" />
-          <span class="chain-toggle-label">Chains</span>
+          <span class="map-chain-slider"></span>
         </label>
-        <div class="toolbar-suggest">
-          <span class="request-link" onclick="openTraction('requestCategory', null)">💡 Suggest a place category</span>
-        </div>
       </div>
-    </section>
+
+      <div class="map-drawer-footer">
+        <span id="mapStatus" class="muted" style="font-size:12px;"></span>
+        <button class="map-drawer-suggest" onclick="openTraction('requestCategory', null); closeFilterDrawer();">
+          Missing a category? Suggest one →
+        </button>
+      </div>
+    </div>
 
 
     <!-- LOCATION SEARCH -->
@@ -253,19 +262,14 @@
   </script>
 
   <script>
-  window.addEventListener('load', function() {
-    if (window.innerWidth > 768) return;
-    const btn = document.getElementById('mapFilterToggle');
-    const body = document.getElementById('mapFilterBody');
-    if (!btn || !body) return;
-    btn.style.display = 'flex';
-    body.classList.remove('open'); // collapsed by default on mobile
-    btn.addEventListener('click', () => {
-      const open = body.classList.toggle('open');
-      btn.classList.toggle('open', open);
-      btn.querySelector('.filter-toggle-arrow').textContent = open ? '▲' : '▼';
-    });
-  });
+  function openFilterDrawer() {
+    document.getElementById('mapFilterDrawer').classList.add('open');
+    document.getElementById('mapFilterOverlay').classList.add('open');
+  }
+  function closeFilterDrawer() {
+    document.getElementById('mapFilterDrawer').classList.remove('open');
+    document.getElementById('mapFilterOverlay').classList.remove('open');
+  }
   </script>
 </body>
 </html>

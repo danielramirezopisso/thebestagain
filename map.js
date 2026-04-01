@@ -90,7 +90,26 @@ function onChainToggleChanged() {
 
 function showClearIfNeeded() {
   const any = !!FILTER_CATEGORY || !!FILTER_RATING_BUCKET || !FILTER_CHAINS;
-  qs("btnClearFilters").style.display = any ? "inline-flex" : "none";
+  // Update drawer clear button
+  const clearBtn = document.getElementById("drawerClearBtn");
+  if (clearBtn) clearBtn.style.display = any ? "inline-flex" : "none";
+  // Update pill badge
+  const badge = document.getElementById("filterActiveBadge");
+  const pill = document.getElementById("filterPillLabel");
+  if (badge && pill) {
+    let count = 0;
+    if (FILTER_CATEGORY) count++;
+    if (FILTER_RATING_BUCKET) count++;
+    if (!FILTER_CHAINS) count++;
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = "inline-flex";
+      pill.textContent = "Filters";
+    } else {
+      badge.style.display = "none";
+      pill.textContent = "Filters";
+    }
+  }
 }
 
 function clearFilters() {
@@ -100,6 +119,11 @@ function clearFilters() {
   if (chainToggle) chainToggle.checked = true;
   renderCategoryQuickChips(); setActiveRatingBtn("");
   showClearIfNeeded(); reloadMarkers();
+  // Close drawer after clearing
+  const drawer = document.getElementById("mapFilterDrawer");
+  const overlay = document.getElementById("mapFilterOverlay");
+  if (drawer) drawer.classList.remove("open");
+  if (overlay) overlay.classList.remove("open");
 }
 
 function onCategoryMoreChanged() {
@@ -113,12 +137,9 @@ function renderRatingButtons() {
   const host = qs("ratingSeg");
   host.innerHTML = "";
   const buttons = [
-    { key:"", label:"Any", cls:"" },
-    { key:"9-10", label:"9–10", cls:"rating-9-10" },
-    { key:"7-8",  label:"7–8",  cls:"rating-7-8" },
-    { key:"5-6",  label:"5–6",  cls:"rating-5-6" },
-    { key:"3-4",  label:"3–4",  cls:"rating-3-4" },
-    { key:"1-2",  label:"1–2",  cls:"rating-1-2" },
+    { key:"",    label:"All",  cls:"" },
+    { key:"7-10", label:"7+",  cls:"rating-7-8" },
+    { key:"9-10", label:"9+",  cls:"rating-9-10" },
   ];
   buttons.forEach(b => {
     const btn = document.createElement("button");
@@ -189,6 +210,8 @@ function tryFocusMarker() {
 
 function applyRatingBucket(q) {
   if (!FILTER_RATING_BUCKET) return q;
+  if (FILTER_RATING_BUCKET === "7-10") return q.gte("rating_avg", 7);
+  if (FILTER_RATING_BUCKET === "9-10") return q.gte("rating_avg", 9);
   const [a, b] = FILTER_RATING_BUCKET.split("-").map(Number);
   if (!Number.isFinite(a) || !Number.isFinite(b)) return q;
   return q.gte("rating_avg", a).lte("rating_avg", b);
