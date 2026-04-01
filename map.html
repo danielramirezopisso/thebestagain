@@ -44,15 +44,37 @@
   </header>
 
   <main class="map-shell">
-    <!-- FLOATING FILTER BUTTON -->
-    <button class="map-filter-pill" id="mapFilterPill" onclick="openFilterDrawer()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-      <span id="filterPillLabel">Filters</span>
-      <span class="map-filter-badge" id="filterActiveBadge" style="display:none;"></span>
-    </button>
-
-    <!-- FILTER DRAWER -->
+    <!-- FILTER DRAWER OVERLAY (fixed, outside map-area is fine for overlay) -->
     <div class="map-filter-overlay" id="mapFilterOverlay" onclick="closeFilterDrawer()"></div>
+
+    <!-- LOCATION SEARCH -->
+    <div class="map-search-wrap" id="mapSearchWrap">
+      <div class="map-search-box">
+        <span class="map-search-icon">🔍</span>
+        <input
+          id="mapSearchInput"
+          class="map-search-input"
+          type="text"
+          placeholder="Search a place or address… e.g. Dry Milano"
+          autocomplete="off"
+          oninput="onMapSearchInput()"
+          onkeydown="onMapSearchKey(event)"
+        />
+        <button class="map-search-clear" id="mapSearchClear" style="display:none;" onclick="clearMapSearch()">&#10005;</button>
+      </div>
+      <div class="map-search-results" id="mapSearchResults" style="display:none;"></div>
+    </div>
+
+    <!-- MAP AREA -->
+    <section class="map-area">
+      <!-- Floating filter pill — inside the map -->
+      <button class="map-filter-pill" id="mapFilterPill" onclick="openFilterDrawer()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        <span id="filterPillLabel">Filters</span>
+        <span class="map-filter-badge" id="filterActiveBadge" style="display:none;"></span>
+      </button>
+
+      <!-- Filter drawer — inside map-area so absolute positioning works on desktop -->
     <div class="map-filter-drawer" id="mapFilterDrawer">
       <div class="map-drawer-head">
         <span class="map-drawer-title">Filters</span>
@@ -92,26 +114,6 @@
     </div>
 
 
-    <!-- LOCATION SEARCH -->
-    <div class="map-search-wrap" id="mapSearchWrap">
-      <div class="map-search-box">
-        <span class="map-search-icon">🔍</span>
-        <input
-          id="mapSearchInput"
-          class="map-search-input"
-          type="text"
-          placeholder="Search a place or address… e.g. Dry Milano"
-          autocomplete="off"
-          oninput="onMapSearchInput()"
-          onkeydown="onMapSearchKey(event)"
-        />
-        <button class="map-search-clear" id="mapSearchClear" style="display:none;" onclick="clearMapSearch()">&#10005;</button>
-      </div>
-      <div class="map-search-results" id="mapSearchResults" style="display:none;"></div>
-    </div>
-
-    <!-- MAP AREA -->
-    <section class="map-area">
       <!-- Floating journey toggle — shown only when logged in -->
       <div class="journey-float-wrap" id="journeyFloatWrap">
         <div class="journey-float-toggle" id="journeyToggleBtn" onclick="toggleJourneyMode()">

@@ -137,15 +137,20 @@ function renderRatingButtons() {
   const host = qs("ratingSeg");
   host.innerHTML = "";
   const buttons = [
-    { key:"",    label:"All",  cls:"" },
-    { key:"7-10", label:"7+",  cls:"rating-7-8" },
-    { key:"9-10", label:"9+",  cls:"rating-9-10" },
+    { key:"",    label:"All" },
+    { key:"7-10", label:"7+" },
+    { key:"9-10", label:"9+" },
   ];
   buttons.forEach(b => {
     const btn = document.createElement("button");
-    btn.className = `seg-btn ${b.cls}`.trim();
+    btn.className = "seg-btn"; // no rating color class — active state uses accent
     btn.dataset.key = b.key; btn.textContent = b.label;
-    btn.onclick = () => { FILTER_RATING_BUCKET = b.key; setActiveRatingBtn(b.key); showClearIfNeeded(); reloadMarkers(); };
+    btn.onclick = () => {
+      FILTER_RATING_BUCKET = (FILTER_RATING_BUCKET === b.key) ? "" : b.key;
+      setActiveRatingBtn(FILTER_RATING_BUCKET);
+      showClearIfNeeded();
+      reloadMarkers();
+    };
     host.appendChild(btn);
   });
   setActiveRatingBtn("");

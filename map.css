@@ -610,7 +610,7 @@ body.map-page{
   position: absolute;
   top: 14px;
   left: 14px;
-  z-index: 900;
+  z-index: 700; /* inside map-area, above markers (400) but below panels */
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -681,22 +681,26 @@ body.map-page{
 
 /* On desktop: drawer becomes a side panel */
 @media (min-width: 640px) {
+  /* Overlay transparent on desktop — drawer is positioned within map-area */
   .map-filter-overlay { backdrop-filter: none; background: transparent; }
+  /* Drawer: absolutely positioned inside map-area (which is position:relative) */
   .map-filter-drawer {
     position: absolute;
-    top: 60px;
+    top: 58px;   /* just below the pill */
     left: 14px;
     right: auto;
     bottom: auto;
     border-radius: 16px;
     border: 1.5px solid var(--rule);
-    width: 300px;
-    max-height: calc(100vh - 120px);
+    width: 280px;
+    max-height: calc(100% - 80px);
+    overflow-y: auto;
     box-shadow: 0 8px 32px rgba(26,23,20,0.15);
     transform: scale(0.96) translateY(-8px);
     opacity: 0;
     pointer-events: none;
     transition: transform 0.2s ease, opacity 0.2s ease;
+    z-index: 800; /* inside map, above markers but below fixed elements */
   }
   .map-filter-drawer.open {
     transform: scale(1) translateY(0);
