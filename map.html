@@ -45,7 +45,7 @@
 
   <main class="map-shell">
     <!-- FILTER DRAWER OVERLAY (fixed, outside map-area is fine for overlay) -->
-    <div class="map-filter-overlay" id="mapFilterOverlay" onclick="if(event.target===this)closeFilterDrawer()"></div>
+    <div class="map-filter-overlay" id="mapFilterOverlay" onclick="closeFilterDrawer()"></div>
 
     <!-- LOCATION SEARCH -->
     <div class="map-search-wrap" id="mapSearchWrap">
@@ -75,7 +75,7 @@
       </button>
 
       <!-- Filter drawer — inside map-area so absolute positioning works on desktop -->
-    <div class="map-filter-drawer" id="mapFilterDrawer" onclick="event.stopPropagation()">
+    <div class="map-filter-drawer" id="mapFilterDrawer">
       <div class="map-drawer-head">
         <span class="map-drawer-title">Filters</span>
         <div class="map-drawer-actions">
@@ -269,26 +269,13 @@
     const drawer = document.getElementById('mapFilterDrawer');
     const overlay = document.getElementById('mapFilterOverlay');
     const isOpen = drawer.classList.contains('open');
-    if (isOpen) {
-      drawer.classList.remove('open');
-      overlay.classList.remove('open');
-    } else {
-      drawer.classList.add('open');
-      overlay.classList.add('open');
-    }
+    drawer.classList.toggle('open', !isOpen);
+    overlay.classList.toggle('open', !isOpen);
   }
   function closeFilterDrawer() {
     document.getElementById('mapFilterDrawer').classList.remove('open');
     document.getElementById('mapFilterOverlay').classList.remove('open');
   }
-  // Close drawer when clicking outside on desktop
-  document.addEventListener('click', function(e) {
-    const drawer = document.getElementById('mapFilterDrawer');
-    const pill = document.getElementById('mapFilterPill');
-    if (!drawer || !drawer.classList.contains('open')) return;
-    if (drawer.contains(e.target) || pill.contains(e.target)) return;
-    closeFilterDrawer();
-  });
   </script>
 </body>
 </html>

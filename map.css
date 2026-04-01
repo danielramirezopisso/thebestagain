@@ -681,12 +681,14 @@ body.map-page{
 
 /* On desktop: drawer becomes a side panel */
 @media (min-width: 640px) {
-  /* Overlay transparent on desktop — drawer is positioned within map-area */
-  .map-filter-overlay { backdrop-filter: none; background: transparent; }
-  /* Drawer: absolutely positioned inside map-area (which is position:relative) */
+  /* On desktop: no overlay needed — drawer sits inside map */
+  .map-filter-overlay {
+    display: none !important; /* never show overlay on desktop */
+  }
+  /* Drawer: absolutely positioned inside map-area */
   .map-filter-drawer {
     position: absolute;
-    top: 58px;   /* just below the pill */
+    top: 58px;
     left: 14px;
     right: auto;
     bottom: auto;
@@ -700,7 +702,7 @@ body.map-page{
     opacity: 0;
     pointer-events: none;
     transition: transform 0.2s ease, opacity 0.2s ease;
-    z-index: 800; /* inside map, above markers but below fixed elements */
+    z-index: 750; /* above map markers, below Leaflet controls */
   }
   .map-filter-drawer.open {
     transform: scale(1) translateY(0);
