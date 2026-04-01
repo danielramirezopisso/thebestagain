@@ -31,8 +31,8 @@
   grid-template-columns: 1fr 1.1fr;
   gap: 56px;
   align-items: center;
-  min-height: 100vh;
-  padding: 80px 0 60px;
+  min-height: calc(100vh - 52px); /* subtract topbar height */
+  padding: 60px 0 60px;
   border-bottom: 1px solid var(--rule);
 }
 
@@ -328,4 +328,14 @@
   .home-ruta-skel { height: 110px; }
   .home-ruta-card { padding: 16px 14px 14px; }
   .home-ruta-name { font-size: 13px; }
+}
+
+/* ── Home map: monochrome navy markers ── */
+.home-map-marker {
+  background: #1a1714 !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+.home-map-marker .tba-marker-inner img {
+  filter: brightness(0) invert(1) !important;
+  opacity: 0.9;
 }
