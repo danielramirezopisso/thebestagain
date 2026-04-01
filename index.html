@@ -17,10 +17,9 @@
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="home.css" />
 </head>
-
 <body onload="initHomePage()">
 
-  <!-- Header: hidden until scroll -->
+  <!-- Header hidden until scroll -->
   <header class="topbar topbar-sticky home-header" id="siteHeader">
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav" id="mainNav">
@@ -39,44 +38,39 @@
 
   <main class="container home-main">
 
-    <!-- ══ HERO ══ -->
+    <!-- ══ HERO — full viewport ══ -->
     <section class="home-hero">
-      <div class="home-hero-inner">
-
-        <div class="home-hero-text">
-          <h1 class="home-hero-brand">The Best Again</h1>
-          <div class="home-hero-tagline">
-            <span class="home-hero-find">Find the best</span>
-            <span class="home-hero-rotating-wrap">
-              <span class="home-hero-rotating" id="heroRotating">Pizza Margherita</span>
-            </span>
-            <span class="home-hero-town">in town.</span>
-          </div>
-          <div class="home-hero-actions">
-            <a class="tba-btn tba-btn-primary home-cta-map" href="map.html">🗺 Explore the map</a>
-            <a class="tba-btn" href="rutas.html">Start a Ruta →</a>
-          </div>
-          <div class="home-hero-stat" id="heroStat"></div>
+      <div class="home-hero-left">
+        <h1 class="home-hero-brand">The Best Again</h1>
+        <div class="home-hero-tagline">
+          <span class="home-hero-verb">Find the best</span>
+          <span class="home-hero-rotating-wrap">
+            <span class="home-hero-rotating" id="heroRotating"></span>
+          </span>
+          <span class="home-hero-verb">in town.</span>
         </div>
-
-        <div class="home-hero-map">
-          <div id="homeMap" class="home-map-container"></div>
-          <a href="map.html" class="home-map-cta">Open full map →</a>
+        <div class="home-hero-actions">
+          <a class="tba-btn tba-btn-primary" href="map.html">🗺 Explore the map</a>
+          <a class="tba-btn" href="rutas.html">Start a Ruta →</a>
         </div>
-
+        <div class="home-hero-stat" id="heroStat"></div>
+      </div>
+      <div class="home-hero-right">
+        <div class="home-hero-map-wrap">
+          <div id="homeMap"></div>
+          <a href="map.html" class="home-map-pill">Open full map →</a>
+        </div>
       </div>
     </section>
 
-    <!-- ══ RUTAS ══ -->
-    <section class="home-section">
-      <div class="home-section-head">
-        <div>
-          <div class="home-section-eyebrow">Curated journeys</div>
-          <h2 class="home-section-title">Rutas</h2>
-        </div>
-        <a href="rutas.html" class="home-section-link">See all →</a>
+    <!-- ══ RUTAS — full viewport ══ -->
+    <section class="home-section home-rutas">
+      <div class="home-section-label">Curated journeys</div>
+      <div class="home-section-header">
+        <h2 class="home-section-title">Rutas</h2>
+        <a href="rutas.html" class="home-section-more">See all →</a>
       </div>
-      <p class="home-section-desc">12 hand-picked places per category. Complete the Ruta, discover the city.</p>
+      <p class="home-section-sub">12 hand-picked places per category. Complete the Ruta, discover the city.</p>
       <div class="home-rutas-grid" id="homeRutasGrid">
         <div class="home-ruta-skel"></div>
         <div class="home-ruta-skel"></div>
@@ -84,50 +78,18 @@
       </div>
     </section>
 
-    <!-- ══ RANKINGS ══ -->
-    <section class="home-section">
-      <div class="home-section-head">
-        <div>
-          <div class="home-section-eyebrow">The Best Again 2025</div>
-          <h2 class="home-section-title">Rankings</h2>
-        </div>
-        <a href="ranking.html" class="home-section-link">Full rankings →</a>
+    <!-- ══ RANKINGS — full viewport ══ -->
+    <section class="home-section home-rankings">
+      <div class="home-section-label">The Best Again 2025</div>
+      <div class="home-section-header">
+        <h2 class="home-section-title">Rankings</h2>
+        <a href="ranking.html" class="home-section-more">Full rankings →</a>
       </div>
-      <p class="home-section-desc">The definitive annual selection — curated, frozen, worth arguing about.</p>
-      <div class="home-ranking-list" id="homeRankingPreview">
+      <p class="home-section-sub">The definitive annual selection — curated, frozen, worth arguing about.</p>
+      <div class="home-rankings-list" id="homeRankingPreview">
         <div class="home-rank-skel"></div>
         <div class="home-rank-skel"></div>
         <div class="home-rank-skel"></div>
-      </div>
-    </section>
-
-    <!-- ══ DISCOVER ══ -->
-    <section class="home-section">
-      <div class="home-section-head">
-        <div>
-          <div class="home-section-eyebrow">Feeling lucky?</div>
-          <h2 class="home-section-title">Discover something new</h2>
-        </div>
-      </div>
-      <p class="home-section-desc">Not sure what you're looking for? Let us pick something for you. <button class="home-shuffle-inline" onclick="surpriseMe()">↻ Shuffle</button></p>
-      <div id="spotBody" class="spot-body"></div>
-      <div id="spotStatus" class="spot-status muted"></div>
-    </section>
-
-    <!-- ══ CATEGORIES ══ -->
-    <section class="home-section home-cats-section">
-      <div class="home-section-head">
-        <h2 class="home-section-title">Explore by category</h2>
-      </div>
-      <div class="home-cats-split">
-        <div>
-          <div class="home-cats-label">Places</div>
-          <div id="chipRowPlaces" class="chip-row"></div>
-        </div>
-        <div>
-          <div class="home-cats-label">Products</div>
-          <div id="chipRowProducts" class="chip-row"></div>
-        </div>
       </div>
     </section>
 
@@ -138,14 +100,11 @@
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
-  <script src="home.js?v=4"></script>
-
+  <script src="home.js?v=5"></script>
   <script>
-  // Hide header at top, show on scroll
   window.addEventListener('scroll', () => {
-    const h = document.getElementById('siteHeader');
-    if (!h) return;
-    h.classList.toggle('home-header-visible', window.scrollY > 80);
+    document.getElementById('siteHeader')
+      .classList.toggle('home-header-visible', window.scrollY > 60);
   }, { passive: true });
 
   function toggleNav() {
@@ -164,20 +123,6 @@
     }));
   });
   </script>
-
-  <!-- Quick vote modal -->
-  <div id="voteModal" class="vote-modal-overlay" onclick="if(event.target===this)closeVoteModal()">
-    <div class="vote-modal-box">
-      <div class="vote-modal-head">
-        <span class="vote-modal-title" id="voteModalTitle"></span>
-        <button class="vote-modal-close" onclick="closeVoteModal()">&#10005;</button>
-      </div>
-      <p class="vote-modal-hint">How good is it?</p>
-      <div class="vote-modal-btns" id="voteModalBtns"></div>
-      <p class="vote-modal-status" id="voteModalStatus"></p>
-      <button class="tba-btn tba-btn-primary vote-modal-submit" id="voteModalSubmit" onclick="submitVoteModal()">Save vote</button>
-    </div>
-  </div>
 
 </body>
 </html>
