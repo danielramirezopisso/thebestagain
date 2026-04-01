@@ -104,21 +104,18 @@ function renderRatingButtons() {
   const host = document.getElementById("ratingSeg");
   host.innerHTML = "";
   const buttons = [
-    { key: "", label: "Any", cls: "" },
-    { key: "9-10", label: "9–10", cls: "rating-9-10" },
-    { key: "7-8",  label: "7–8",  cls: "rating-7-8" },
-    { key: "5-6",  label: "5–6",  cls: "rating-5-6" },
-    { key: "3-4",  label: "3–4",  cls: "rating-3-4" },
-    { key: "1-2",  label: "1–2",  cls: "rating-1-2" },
+    { key: "",     label: "All" },
+    { key: "7-8",  label: "7+" },
+    { key: "9-10", label: "9+" },
   ];
   buttons.forEach(b => {
     const btn = document.createElement("button");
-    btn.className = `seg-btn ${b.cls}`.trim();
+    btn.className = "seg-btn";
     btn.dataset.key = b.key;
     btn.textContent = b.label;
     btn.onclick = () => {
-      FILTER_BUCKET = b.key;
-      setActiveRatingBtn(b.key);
+      FILTER_BUCKET = (FILTER_BUCKET === b.key) ? "" : b.key;
+      setActiveRatingBtn(FILTER_BUCKET);
       showClearIfNeeded();
       renderTable();
     };

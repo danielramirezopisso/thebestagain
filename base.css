@@ -483,24 +483,26 @@ input:focus, select:focus, textarea:focus {
 .chip-row::-webkit-scrollbar { display: none; }
 
 /* Segmented rating buttons */
-.seg-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg-row { display: flex; gap: 6px; flex-wrap: nowrap; }
 .seg-btn {
-  padding: 4px 11px;
+  padding: 5px 14px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--rule);
   background: var(--card);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--text);
   cursor: pointer;
-  transition: background .1s, border-color .1s;
+  transition: background .1s, border-color .12s, color .1s;
   box-shadow: none;
   white-space: nowrap;
+  font-family: inherit;
 }
-.seg-btn:hover { background: var(--faint); border-color: rgba(26,23,20,0.30); transform: none; box-shadow: none; }
+.seg-btn:hover { background: var(--faint); border-color: var(--accent); transform: none; box-shadow: none; }
 .seg-btn.active {
-  background: var(--text);
+  background: var(--accent);
   color: #fff;
-  border-color: var(--text);
+  border-color: var(--accent2);
   outline: none;
 }
 

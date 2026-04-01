@@ -344,7 +344,8 @@ async function initMap() {
   if (user) await refreshMyVotes(user.id);
   initRatingDropdown("m_rating", 7);
   renderRatingButtons();
-  MAP = L.map("map").setView([41.3889, 2.1618], 15);
+  MAP = L.map("map", { zoomControl: false }).setView([41.3889, 2.1618], 15);
+  L.control.zoom({ position: "bottomright" }).addTo(MAP);
   L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(MAP);
   LAYER_GROUP = L.layerGroup().addTo(MAP);
   setMapStatus("Loading categories…");

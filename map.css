@@ -800,28 +800,19 @@ body.map-page{
   width: 100%;
 }
 
-/* Rating pills — simplified 3 options */
+/* Rating row in drawer */
 .map-rating-row {
   display: flex;
   gap: 8px;
 }
-
-.seg-btn {
+/* seg-btn base styles in base.css; just make them flex:1 in drawer */
+.map-rating-row .seg-btn {
   flex: 1;
   padding: 8px 0;
   border-radius: 10px;
-  border: 1.5px solid var(--rule);
-  background: var(--card);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
-  font-family: inherit;
-  color: var(--text);
-  box-shadow: none;
+  text-align: center;
+  justify-content: center;
 }
-.seg-btn:hover { border-color: var(--accent); background: var(--faint); transform: none; box-shadow: none; }
-.seg-btn.active { background: var(--accent); border-color: var(--accent2); color: #fff; }
 
 /* Chain toggle — iOS style switch */
 .map-chain-toggle {

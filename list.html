@@ -62,9 +62,12 @@
           <button class="type-btn" data-type="product" onclick="setTypeFilter(this, 'product')">🛒 Products</button>
         </div>
         <div class="list-filter-spacer"></div>
-        <label class="chain-toggle-wrap" title="Hide chain restaurants">
-          <input type="checkbox" id="chainToggleList" checked onchange="onListChainToggleChanged()" />
-          <span class="chain-toggle-label">Chains</span>
+        <label class="map-chain-toggle" title="Show/hide chain restaurants" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+          <span style="font-size:12px;font-weight:600;color:var(--muted);">Chains</span>
+          <span style="position:relative;display:inline-block;width:38px;height:22px;">
+            <input type="checkbox" id="chainToggleList" checked onchange="onListChainToggleChanged()" style="opacity:0;width:0;height:0;position:absolute;" />
+            <span class="map-chain-slider"></span>
+          </span>
         </label>
         <div class="journey-inline-toggle" id="listJourneyWrap">
           <div class="journey-float-toggle" onclick="toggleJourneyModeList()">
