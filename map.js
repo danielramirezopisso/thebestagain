@@ -340,7 +340,7 @@ async function initMap() {
   initRatingDropdown("m_rating", 7);
   renderRatingButtons();
   MAP = L.map("map").setView([41.3889, 2.1618], 15);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(MAP);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(MAP);
   LAYER_GROUP = L.layerGroup().addTo(MAP);
   setMapStatus("Loading categories…");
 

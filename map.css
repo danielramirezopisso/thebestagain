@@ -655,7 +655,7 @@ body.map-page{
   position: fixed;
   inset: 0;
   background: rgba(26,23,20,0.25);
-  z-index: 1100;
+  z-index: 1400; /* above topbar (900) */
   backdrop-filter: blur(1px);
 }
 .map-filter-overlay.open { display: block; }
@@ -666,7 +666,7 @@ body.map-page{
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1200;
+  z-index: 1500; /* above overlay */
   background: var(--card);
   border-radius: 20px 20px 0 0;
   border-top: 1.5px solid var(--rule);
@@ -874,4 +874,21 @@ body.map-page{
 .map-drawer-suggest:hover { color: var(--accent); transform: none; box-shadow: none; }
 
 /* Journey toggle — keep as is, adjust position slightly */
-.journey-float-wrap { top: 14px; right: 14px; }
+/* Journey toggle — bottom center, prominent */
+.journey-float-wrap {
+  bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  top: auto !important;
+  right: auto !important;
+}
+.journey-float-toggle {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 8px 8px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18) !important;
+  border: 1.5px solid var(--rule) !important;
+}
+.journey-opt {
+  padding: 6px 16px !important;
+}

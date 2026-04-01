@@ -8,9 +8,18 @@ let rotatingIdx = 0;
 const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
 
 const ROTATING_FALLBACK = [
-  "Pizza Margherita","Tortilla de Patatas","Patatas Bravas",
-  "Cheesecake","Croqueta de Pollo","Tiramisu",
-  "Ensaladilla Rusa","Cocktail Margarita","Vermouth","Flan",
+  "Pizza Margherita",
+  "Tortilla de Patatas",
+  "Croqueta de Pollo",
+  "Patatas Bravas",
+  "Ensaladilla Rusa",
+  "Cheesecake",
+  "Tiramisu",
+  "Bloody Mary",
+  "Flan",
+  "Lemon Pie",
+  "Pasta Carbonara",
+  "Bikini",
 ];
 
 function escapeHtml(s) {
@@ -83,8 +92,8 @@ async function loadMarkers() {
 function startHeroRotation() {
   const el = document.getElementById("heroRotating");
   if (!el) return;
-  const dbCats = Object.values(CAT).filter(c => c.for_places).map(c => c.name);
-  const cats = dbCats.length >= 4 ? dbCats : ROTATING_FALLBACK;
+  // Use curated fallback list always — DB cats may include non-photogenic names
+  const cats = ROTATING_FALLBACK;
   el.textContent = cats[0];
   el.classList.add("fade-in");
   setInterval(() => {
@@ -134,8 +143,8 @@ async function initHomeMap() {
     touchZoom: false, attributionControl: false,
   }).setView([41.3888, 2.1589], 13);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO"
   }).addTo(HOME_MAP);
 
   // Render markers only after tiles start loading
@@ -145,10 +154,10 @@ async function initHomeMap() {
     .slice(0, 80);
 
   places.forEach(m => {
-    const cls = colorClassForRating(m.rating_avg, m.rating_count);
     const icon = iconForCategory(m.category_id);
+    // Monochrome on home — elegant, not a dashboard
     const leafIcon = L.divIcon({
-      className: `tba-marker ${cls}`,
+      className: "tba-marker home-map-marker",
       html: `<div class="tba-marker-inner"><img src="${escapeHtml(icon)}" alt="" onerror="this.style.display='none'" /></div>`,
       iconSize: [28, 28], iconAnchor: [14, 14],
     });
