@@ -45,7 +45,7 @@
 
   <main class="map-shell">
     <!-- FILTER DRAWER OVERLAY (fixed, outside map-area is fine for overlay) -->
-    <div class="map-filter-overlay" id="mapFilterOverlay" onclick="closeFilterDrawer()"></div>
+    <div class="map-filter-overlay" id="mapFilterOverlay" onclick="if(event.target===this)closeFilterDrawer()"></div>
 
     <!-- LOCATION SEARCH -->
     <div class="map-search-wrap" id="mapSearchWrap">
@@ -68,14 +68,14 @@
     <!-- MAP AREA -->
     <section class="map-area">
       <!-- Floating filter pill — inside the map -->
-      <button class="map-filter-pill" id="mapFilterPill" onclick="openFilterDrawer()">
+      <button class="map-filter-pill" id="mapFilterPill" onclick="openFilterDrawer(event)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
         <span id="filterPillLabel">Filters</span>
         <span class="map-filter-badge" id="filterActiveBadge" style="display:none;"></span>
       </button>
 
       <!-- Filter drawer — inside map-area so absolute positioning works on desktop -->
-    <div class="map-filter-drawer" id="mapFilterDrawer">
+    <div class="map-filter-drawer" id="mapFilterDrawer" onclick="event.stopPropagation()">
       <div class="map-drawer-head">
         <span class="map-drawer-title">Filters</span>
         <div class="map-drawer-actions">
@@ -264,14 +264,31 @@
   </script>
 
   <script>
-  function openFilterDrawer() {
-    document.getElementById('mapFilterDrawer').classList.add('open');
-    document.getElementById('mapFilterOverlay').classList.add('open');
+  function openFilterDrawer(e) {
+    if (e) e.stopPropagation();
+    const drawer = document.getElementById('mapFilterDrawer');
+    const overlay = document.getElementById('mapFilterOverlay');
+    const isOpen = drawer.classList.contains('open');
+    if (isOpen) {
+      drawer.classList.remove('open');
+      overlay.classList.remove('open');
+    } else {
+      drawer.classList.add('open');
+      overlay.classList.add('open');
+    }
   }
   function closeFilterDrawer() {
     document.getElementById('mapFilterDrawer').classList.remove('open');
     document.getElementById('mapFilterOverlay').classList.remove('open');
   }
+  // Close drawer when clicking outside on desktop
+  document.addEventListener('click', function(e) {
+    const drawer = document.getElementById('mapFilterDrawer');
+    const pill = document.getElementById('mapFilterPill');
+    if (!drawer || !drawer.classList.contains('open')) return;
+    if (drawer.contains(e.target) || pill.contains(e.target)) return;
+    closeFilterDrawer();
+  });
   </script>
 </body>
 </html>
