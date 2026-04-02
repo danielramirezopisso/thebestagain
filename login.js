@@ -36,6 +36,11 @@ async function doLogin() {
 
   statusEl.className = "auth-status success";
   statusEl.textContent = "Signed in ✅ Redirecting…";
+
+  // Claim any anonymous battle votes made before login
+  const { data } = await sb.auth.getSession();
+  if (data?.session?.user) await migrateVisitorVotes(data.session.user.id);
+
   const redirect = new URLSearchParams(window.location.search).get("redirect") || "index.html";
   window.location.href = redirect;
 }

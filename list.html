@@ -70,13 +70,7 @@
             <span class="map-chain-slider"></span>
           </span>
         </label>
-        <div class="journey-inline-toggle" id="listJourneyWrap">
-          <div class="journey-float-toggle" onclick="toggleJourneyModeList()">
-            <span class="journey-opt journey-opt-active" id="listJOptDiscover">🌍 Discover</span>
-            <span class="journey-divider">|</span>
-            <span class="journey-opt" id="listJOptJourney">🧭 My Journey</span>
-          </div>
-        </div>
+
       </div>
       <!-- Row 2: category chips + more + rating + clear -->
       <div class="list-filter-row list-filter-row--bottom">
@@ -86,6 +80,15 @@
         </select>
         <div id="ratingSeg" class="seg-row"></div>
         <button id="btnClearFilters" class="chip chip-clear" style="display:none;" onclick="clearListFilters()">✕ Clear</button>
+      </div>
+    </div>
+
+    <!-- JOURNEY TOGGLE -->
+    <div class="journey-bar-centered" id="listJourneyWrap">
+      <div class="journey-float-toggle" onclick="toggleJourneyModeList()">
+        <span class="journey-opt journey-opt-active" id="listJOptDiscover">🌍 Discover</span>
+        <span class="journey-divider">|</span>
+        <span class="journey-opt" id="listJOptJourney">🧭 My Journey</span>
       </div>
     </div>
 

@@ -839,3 +839,14 @@ input:focus, select:focus, textarea:focus {
     animation: fadeIn .2s ease;
   }
 }
+
+/* ══════════════════════════════════════
+   JOURNEY BAR — centered below filters
+══════════════════════════════════════ */
+.journey-bar-centered {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 4px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 8px;
+}

@@ -70,19 +70,20 @@
 
       <div class="toolbar-right">
         <span id="pageStatus" class="muted"></span>
-        <div class="journey-inline-toggle" id="prodJourneyWrap">
-          <div class="journey-float-toggle" onclick="toggleJourneyModeProd()">
-            <span class="journey-opt journey-opt-active" id="prodJOptDiscover">🌍 Discover</span>
-            <span class="journey-divider">|</span>
-            <span class="journey-opt" id="prodJOptJourney">🧭 My Journey</span>
-          </div>
-        </div>
+
         <div class="toolbar-suggest">
           <span class="request-link" onclick="openTraction('requestCategory', null)">💡 Suggest category</span>
           <span class="request-link" onclick="openTraction('requestBrand', null)">🏷️ Suggest brand</span>
         </div>
       </div>
     </section>
+    <div class="journey-bar-centered" id="prodJourneyWrap">
+      <div class="journey-float-toggle" onclick="toggleJourneyModeProd()">
+        <span class="journey-opt journey-opt-active" id="prodJOptDiscover">🌍 Discover</span>
+        <span class="journey-divider">|</span>
+        <span class="journey-opt" id="prodJOptJourney">🧭 My Journey</span>
+      </div>
+    </div>
 
     <!-- CONTENT -->
     <section class="products-area">

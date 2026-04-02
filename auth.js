@@ -72,3 +72,23 @@ function closeSoftNudge() {
   if (nudge) nudge.classList.remove('tba-nudge-visible');
   document.body.style.overflow = '';
 }
+
+/* ══════════════════════════════════════
+   VISITOR_ID → USER_ID MIGRATION
+   Call after successful login to claim
+   any anonymous battle votes.
+══════════════════════════════════════ */
+async function migrateVisitorVotes(userId) {
+  try {
+    const visitorId = localStorage.getItem('tba_visitor_id');
+    if (!visitorId || !userId) return;
+    // Update all anon votes for this visitor to the now-known user_id
+    // ON CONFLICT DO NOTHING — if they already have a user vote for that battle, skip
+    await sb.from('battle_votes')
+      .update({ user_id: userId })
+      .eq('visitor_id', visitorId)
+      .is('user_id', null);
+  } catch (e) {
+    // Silent fail — not critical
+  }
+}

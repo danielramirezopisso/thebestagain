@@ -559,7 +559,7 @@ async function initQuickVote(markerId, catId) {
 
   const user = await maybeUser();
   if (!user) {
-    el.innerHTML = `<button class="sel-vote-chip" onclick="window.location.href='login.html'">🔑 Log in to vote</button>`;
+    el.innerHTML = `<button class="sel-vote-chip" onclick="softLoginNudge('Sign in to vote and track your scores.')">⭐ Vote</button>`;
     return;
   }
 
@@ -601,8 +601,9 @@ function toggleQuickVote(markerId, catId) {
 }
 
 async function selectQuickVote(value, markerId, catId) {
+  const allowed = await softLoginNudge("Sign in to vote and track your scores across all your favourite spots.");
+  if (!allowed) return;
   const user = await maybeUser();
-  if (!user) { window.location.href = "login.html?redirect=" + encodeURIComponent(window.location.href); return; }
 
   QUICK_VOTE_VALUE = value;
   QUICK_VOTE_OPEN = false;
