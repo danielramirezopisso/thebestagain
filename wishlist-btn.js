@@ -23,7 +23,7 @@ async function wlLoad() {
 async function wlToggle(markerId, btn) {
   const user = await maybeUser();
   if (!user) {
-    window.location.href = "login.html?redirect=" + encodeURIComponent(window.location.href);
+    await softLoginNudge("Sign in to save places to your wishlist.");
     return;
   }
 

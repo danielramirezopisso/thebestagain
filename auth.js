@@ -22,3 +22,53 @@ async function logout() {
   await sb.auth.signOut();
   window.location.href = "login.html";
 }
+
+/* ══════════════════════════════════════
+   SOFT LOGIN NUDGE
+   Call softLoginNudge(message) instead of
+   requireAuth() to show a modal instead
+   of hard-redirecting.
+   Returns true if user is logged in,
+   false if nudge was shown.
+══════════════════════════════════════ */
+async function softLoginNudge(message) {
+  const user = await maybeUser();
+  if (user) return true;
+
+  // Inject modal if not already present
+  if (!document.getElementById('tba-login-nudge')) {
+    const el = document.createElement('div');
+    el.id = 'tba-login-nudge';
+    el.innerHTML = `
+      <div class="tba-nudge-backdrop" onclick="closeSoftNudge()"></div>
+      <div class="tba-nudge-sheet">
+        <button class="tba-nudge-close" onclick="closeSoftNudge()">✕</button>
+        <div class="tba-nudge-icon">⭐</div>
+        <p class="tba-nudge-msg" id="tba-nudge-msg"></p>
+        <a class="tba-btn tba-btn-primary tba-nudge-cta" id="tba-nudge-login">Sign in</a>
+        <a class="tba-nudge-secondary" id="tba-nudge-register">Create a free account</a>
+        <p class="tba-nudge-skip" onclick="closeSoftNudge()">Maybe later</p>
+      </div>
+    `;
+    document.body.appendChild(el);
+  }
+
+  // Set message and redirect targets
+  const redirect = encodeURIComponent(window.location.href);
+  document.getElementById('tba-nudge-msg').textContent      = message || 'Sign in to save your progress and vote on your favourites.';
+  document.getElementById('tba-nudge-login').href           = `login.html?redirect=${redirect}`;
+  document.getElementById('tba-nudge-register').href        = `login.html?redirect=${redirect}&mode=register`;
+
+  // Show
+  const nudge = document.getElementById('tba-login-nudge');
+  nudge.classList.add('tba-nudge-visible');
+  document.body.style.overflow = 'hidden';
+
+  return false;
+}
+
+function closeSoftNudge() {
+  const nudge = document.getElementById('tba-login-nudge');
+  if (nudge) nudge.classList.remove('tba-nudge-visible');
+  document.body.style.overflow = '';
+}

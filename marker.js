@@ -734,8 +734,9 @@ async function saveMyVote() {
   if (CURRENT_VOTE === null) { setVoteStatus("Select a score first."); return; }
 
   setVoteStatus("Saving…");
-  const user = await requireAuth();
-  if (!user) return;
+  const allowed = await softLoginNudge("Sign in to vote and track your scores across all your favourite spots.");
+  if (!allowed) { setVoteStatus(""); return; }
+  const user = await maybeUser();
 
   const catId = ACTIVE_CATEGORY_ID || CURRENT_MARKER?.category_id;
 
@@ -1273,8 +1274,9 @@ async function postComment() {
   const body = ta?.value.trim();
   if (!body) return;
 
-  const user = await requireAuth();
-  if (!user) return;
+  const allowed = await softLoginNudge("Sign in to post a comment.");
+  if (!allowed) return;
+  const user = await maybeUser();
 
   const btn = document.querySelector(".comment-post-btn");
   if (btn) { btn.disabled = true; btn.textContent = "Posting…"; }
@@ -1346,8 +1348,9 @@ async function toggleReactionB64(commentId, emojiB64) {
 }
 
 async function toggleReaction(commentId, emoji) {
-  const user = await requireAuth();
-  if (!user) return;
+  const allowed = await softLoginNudge("Sign in to react to comments.");
+  if (!allowed) return;
+  const user = await maybeUser();
 
   // Check if already reacted
   const { data: existing } = await sb

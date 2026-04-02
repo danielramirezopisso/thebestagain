@@ -331,7 +331,10 @@ function toggleRutaVote(e, markerId, catId) {
 
 async function castRutaVote(e, value, markerId, catId) {
   e.preventDefault(); e.stopPropagation();
-  if (!CURRENT_USER) { window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href); return; }
+  if (!CURRENT_USER) {
+    await softLoginNudge("Sign in to vote and track your ruta progress.");
+    return;
+  }
 
   const btns = document.getElementById(`rvb-${markerId}`);
   if (btns) btns.style.display = 'none';
