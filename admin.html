@@ -26,6 +26,7 @@
       <a href="products.html">Products</a>
       <a href="rutas.html">Rutas</a>
       <a href="ranking.html">Rankings</a>
+      <a href="battles.html">Battles</a>
     </nav>
     <div class="nav-right">
       <span id="authStatus" class="auth-pill"></span>
@@ -172,6 +173,23 @@
         </div>
       </section>
 
+      <!-- ══ BATTLES ══ -->
+      <section class="admin-section collapsed" id="sec-battles">
+        <div class="section-head" onclick="toggleSection('sec-battles')">
+          <div>
+            <div class="section-title">Battles</div>
+            <div class="section-sub" id="battlesAdminSub">Loading…</div>
+          </div>
+          <div class="section-head-right">
+            <button class="tba-btn tba-btn-primary" onclick="event.stopPropagation(); openBattleModal()">+ New Battle</button>
+            <span class="section-chevron">▾</span>
+          </div>
+        </div>
+        <div class="section-body">
+          <div id="battlesAdminList"></div>
+        </div>
+      </section>
+
     </div><!-- /adminContent -->
   </main>
 
@@ -276,6 +294,30 @@
       <div style="display:flex;gap:10px;margin-top:12px;">
         <button class="tba-btn tba-btn-primary" onclick="saveChain()">Save</button>
         <button onclick="closeModal('chainModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Battle Modal -->
+  <div id="battleModal" class="modal-overlay" style="display:none;" onclick="closeModalOnBg(event,'battleModal')">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span id="battleModalTitle">New Battle</span>
+        <button class="modal-close" onclick="closeModal('battleModal')">✕</button>
+      </div>
+      <input type="hidden" id="battle_id" />
+      <label>Question</label>
+      <input id="battle_question" placeholder="e.g. ¿Tortilla con o sin cebolla?" />
+      <label>Option A</label>
+      <input id="battle_option_a" placeholder="e.g. Con cebolla" />
+      <label>Option B</label>
+      <input id="battle_option_b" placeholder="e.g. Sin cebolla" />
+      <label>Position (order)</label>
+      <input id="battle_position" type="number" placeholder="1" />
+      <span id="battleModalStatus" class="muted"></span>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button class="tba-btn tba-btn-primary" onclick="saveBattle()">Save</button>
+        <button onclick="closeModal('battleModal')">Cancel</button>
       </div>
     </div>
   </div>

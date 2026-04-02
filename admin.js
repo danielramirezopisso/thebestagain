@@ -35,7 +35,7 @@ async function initAdminPage() {
   }
 
   document.getElementById("adminContent").style.display = "block";
-  await Promise.all([loadCategories(), loadBrands(), loadChains()]);
+  await Promise.all([loadCategories(), loadBrands(), loadChains(), loadBattlesAdmin()]);
   populateLinkCatSelect();
 }
 
@@ -738,4 +738,119 @@ async function saveMarkerChain() {
   setChainsStatus(msg);
   CHAIN_MARKER_ID = null;
   CHAIN_MARKER_TITLE = "";
+}
+
+/* ══════════════════════════════════════
+   BATTLES ADMIN
+══════════════════════════════════════ */
+
+async function loadBattlesAdmin() {
+  const { data: battles, error } = await sb
+    .from('battles')
+    .select('*')
+    .order('position', { ascending: true });
+
+  const sub  = document.getElementById('battlesAdminSub');
+  const list = document.getElementById('battlesAdminList');
+  if (!list) return;
+
+  if (error || !battles) {
+    sub.textContent = 'Error loading';
+    list.innerHTML = '<p class="muted">Could not load battles.</p>';
+    return;
+  }
+
+  sub.textContent = `${battles.length} battle${battles.length !== 1 ? 's' : ''}`;
+
+  if (!battles.length) {
+    list.innerHTML = '<p class="muted" style="padding:12px 0;">No battles yet. Create the first one!</p>';
+    return;
+  }
+
+  list.innerHTML = `
+    <table class="table" style="margin-top:8px;">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Question</th>
+          <th>Option A</th>
+          <th>Option B</th>
+          <th>Active</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${battles.map(b => `
+          <tr>
+            <td style="color:var(--muted);font-size:12px;">${b.position ?? '—'}</td>
+            <td style="font-weight:600;">${escapeHtml(b.question)}</td>
+            <td>${escapeHtml(b.option_a)}</td>
+            <td>${escapeHtml(b.option_b)}</td>
+            <td>${b.is_active ? '✅' : '❌'}</td>
+            <td>
+              <div style="display:flex;gap:6px;">
+                <button class="tba-btn" onclick="openBattleModal('${b.id}')">Edit</button>
+                <button class="tba-btn tba-btn-danger" onclick="toggleBattleActive('${b.id}', ${b.is_active})">
+                  ${b.is_active ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function openBattleModal(battleId) {
+  document.getElementById('battleModalTitle').textContent = battleId ? 'Edit Battle' : 'New Battle';
+  document.getElementById('battle_id').value       = battleId || '';
+  document.getElementById('battle_question').value = '';
+  document.getElementById('battle_option_a').value = '';
+  document.getElementById('battle_option_b').value = '';
+  document.getElementById('battle_position').value = '';
+  document.getElementById('battleModalStatus').textContent = '';
+
+  if (battleId) {
+    const { data } = await sb.from('battles').select('*').eq('id', battleId).single();
+    if (data) {
+      document.getElementById('battle_question').value = data.question || '';
+      document.getElementById('battle_option_a').value = data.option_a || '';
+      document.getElementById('battle_option_b').value = data.option_b || '';
+      document.getElementById('battle_position').value = data.position ?? '';
+    }
+  }
+
+  document.getElementById('battleModal').style.display = 'flex';
+}
+
+async function saveBattle() {
+  const id       = document.getElementById('battle_id').value.trim();
+  const question = document.getElementById('battle_question').value.trim();
+  const option_a = document.getElementById('battle_option_a').value.trim();
+  const option_b = document.getElementById('battle_option_b').value.trim();
+  const position = parseInt(document.getElementById('battle_position').value) || null;
+  const status   = document.getElementById('battleModalStatus');
+
+  if (!question || !option_a || !option_b) {
+    status.textContent = 'Question and both options are required.';
+    return;
+  }
+
+  const payload = { question, option_a, option_b, position };
+  let error;
+
+  if (id) {
+    ({ error } = await sb.from('battles').update(payload).eq('id', id));
+  } else {
+    ({ error } = await sb.from('battles').insert({ ...payload, is_active: true }));
+  }
+
+  if (error) { status.textContent = 'Error: ' + error.message; return; }
+
+  closeModal('battleModal');
+  loadBattlesAdmin();
+}
+
+async function toggleBattleActive(battleId, currentActive) {
+  await sb.from('battles').update({ is_active: !currentActive }).eq('id', battleId);
+  loadBattlesAdmin();
 }
