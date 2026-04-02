@@ -179,6 +179,13 @@ async function castVote(battleId, choice, btnEl) {
     console.warn('Vote insert error (possibly duplicate):', error.message);
   }
 
+  if (typeof gtag !== "undefined") {
+    gtag("event", "battle_voted", {
+      battle_id: battleId,
+      choice:    choice
+    });
+  }
+
   // Save locally regardless
   saveLocalVote(battleId, choice);
 
@@ -242,6 +249,13 @@ async function shareBattle(e, battleId) {
     .single();
 
   if (!battle) return;
+
+  if (typeof gtag !== "undefined") {
+    gtag("event", "share_clicked", {
+      content_type: "battle",
+      battle_id:    battleId
+    });
+  }
 
   const localVotes = getLocalVotes();
   const myChoice   = localVotes[battleId];

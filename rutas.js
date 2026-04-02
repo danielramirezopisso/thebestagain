@@ -369,6 +369,14 @@ async function castRutaVote(e, value, markerId, catId) {
   const activeItems = RUTA_ITEMS.filter(ri => ri.markers?.is_active);
   const voted = countVoted(ACTIVE_RUTA);
   if (voted === activeItems.length && activeItems.length > 0) {
+    const cat = CATEGORIES_MAP[ACTIVE_RUTA?.category_id];
+    if (typeof gtag !== "undefined") {
+      gtag("event", "ruta_completed", {
+        ruta_id:       ACTIVE_RUTA?.id,
+        category_name: cat?.name || "",
+        city:          SELECTED_CITY
+      });
+    }
     setTimeout(() => showCompletion(ACTIVE_RUTA), 600);
   }
 }
@@ -480,8 +488,15 @@ function closeCompletion() {
 }
 
 function shareRutaCompletion() {
-  const cat = CATEGORIES_MAP[ACTIVE_RUTA?.category_id];
+  const cat  = CATEGORIES_MAP[ACTIVE_RUTA?.category_id];
   const city = SELECTED_CITY === 'BCN' ? 'Barcelona' : 'Madrid';
+  if (typeof gtag !== "undefined") {
+    gtag("event", "share_clicked", {
+      content_type:  "ruta_completion",
+      category_name: cat?.name || "",
+      city:          SELECTED_CITY
+    });
+  }
   const text = `✅ I completed La Selección de ${cat?.name || ''} en ${city} — 12/12 on @thebestagain!\nthebestagain.com/rutas`;
   if (navigator.share) {
     navigator.share({ text, url: 'https://thebestagain.com/rutas' }).catch(() => {});

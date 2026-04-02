@@ -748,6 +748,15 @@ async function saveMyVote() {
 
   if (error) { setVoteStatus("Error: " + error.message); return; }
 
+  if (typeof gtag !== "undefined") {
+    gtag("event", "vote_cast", {
+      marker_id:    MARKER_ID,
+      marker_title: CURRENT_MARKER?.title || "",
+      category_id:  catId,
+      vote_value:   CURRENT_VOTE
+    });
+  }
+
   setVoteStatus("Saved ✅");
   await refreshMarker();
   renderVoteButtons();

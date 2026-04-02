@@ -117,6 +117,12 @@ async function submitClaim() {
   }
 
   // Show thanks regardless (we always want them to feel heard)
+  if (typeof gtag !== "undefined") {
+    gtag("event", "claim_started", {
+      marker_id:   markerId || "",
+      marker_name: markerName || ""
+    });
+  }
   document.getElementById('claimFormSection').querySelector('.claim-form').style.display = 'none';
   document.getElementById('claimFormSection').querySelector('.claim-form-sub').style.display = 'none';
   document.getElementById('claimFormSection').querySelector('.claim-form-title').style.display = 'none';
