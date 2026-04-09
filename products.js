@@ -554,7 +554,7 @@ async function initProductsMasonryPage(){
 
   const { data: markers, error: mErr } = await sb
     .from("markers")
-    .select("id,title,group_type,category_id,brand_id,rating_avg,rating_count,is_active,created_at")
+    .select("id,title,group_type,category_id,brand_id,product_name,rating_avg,rating_count,is_active,created_at")
     .eq("is_active", true)
     .eq("group_type", "product");
 
