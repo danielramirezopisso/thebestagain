@@ -48,6 +48,14 @@
       <span id="statsTotalVotes">—</span> votes cast &nbsp;·&nbsp; <span id="statsMyPending">—</span> left to vote
     </div>
 
+    <!-- PROGRESS BAR -->
+    <div class="battles-progress" id="battlesProgress" style="display:none;">
+      <div class="battles-progress-track">
+        <div class="battles-progress-fill" id="progressBar" style="width:0%"></div>
+      </div>
+      <div class="battles-progress-label" id="progressLabel">0% voted</div>
+    </div>
+
     <!-- SKELETON -->
     <div class="battles-skeleton-wrap" id="battlesSkeletonWrap">
       <div class="battle-skeleton"></div>
@@ -55,13 +63,11 @@
 
     <!-- CARD STACK (unvoted) -->
     <section class="stack-section" id="stackSection" style="display:none;">
-      <div class="stack-wrap" id="stackWrap">
-        <!-- cards rendered here -->
-      </div>
-      <div class="stack-hint" id="stackHint">
-        <span class="hint-a">← <strong>A</strong></span>
-        <span class="hint-swipe">swipe to vote</span>
-        <span class="hint-b"><strong>B</strong> →</span>
+      <div class="stack-wrap" id="stackWrap"></div>
+      <div class="stack-hint">
+        <span class="hint-a">← A</span>
+        <span class="hint-mid">swipe or tap to vote</span>
+        <span class="hint-b">B →</span>
       </div>
       <button class="no-opinion-btn" id="noOpinionBtn" onclick="castNoOpinion()">
         No opinion
@@ -113,6 +119,10 @@
       const btn = document.getElementById('burgerBtn');
       if (btn) { btn.innerHTML = '&#9776;'; btn.setAttribute('aria-expanded', false); }
     }));
+    // Show progress bar once stats load
+    document.getElementById('battlesStats')?.addEventListener('DOMSubtreeModified', () => {
+      document.getElementById('battlesProgress').style.display = 'block';
+    });
   });
   </script>
 </body>
