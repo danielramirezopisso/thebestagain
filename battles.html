@@ -8,11 +8,9 @@
   <meta property="og:title" content="Battles — The Best Again" />
   <meta property="og:description" content="Vote on the great food debates. Make your voice heard." />
   <meta property="og:type" content="website" />
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VYVTQPBTPC"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VYVTQPBTPC"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-VYVTQPBTPC");</script>
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="battles.css" />
@@ -45,23 +43,47 @@
       <p class="battles-hero-sub">The questions that divide tables. Vote, see where everyone stands.</p>
     </section>
 
-    <!-- STATS BAR -->
+    <!-- STATS -->
     <div class="battles-stats" id="battlesStats" style="display:none;">
-      <span id="statsTotalVotes">—</span> votes cast across <span id="statsTotalBattles">—</span> battles
+      <span id="statsTotalVotes">—</span> votes cast &nbsp;·&nbsp; <span id="statsMyPending">—</span> left to vote
     </div>
 
-    <!-- GRID -->
-    <div class="battles-grid" id="battlesGrid">
-      <!-- Skeleton -->
-      <div class="battle-skeleton"></div>
-      <div class="battle-skeleton"></div>
-      <div class="battle-skeleton"></div>
-      <div class="battle-skeleton"></div>
-      <div class="battle-skeleton"></div>
+    <!-- SKELETON -->
+    <div class="battles-skeleton-wrap" id="battlesSkeletonWrap">
       <div class="battle-skeleton"></div>
     </div>
 
-    <!-- Empty state -->
+    <!-- CARD STACK (unvoted) -->
+    <section class="stack-section" id="stackSection" style="display:none;">
+      <div class="stack-wrap" id="stackWrap">
+        <!-- cards rendered here -->
+      </div>
+      <div class="stack-hint" id="stackHint">
+        <span class="hint-a">← <strong>A</strong></span>
+        <span class="hint-swipe">swipe to vote</span>
+        <span class="hint-b"><strong>B</strong> →</span>
+      </div>
+      <button class="no-opinion-btn" id="noOpinionBtn" onclick="castNoOpinion()">
+        No opinion
+      </button>
+    </section>
+
+    <!-- ALL DONE -->
+    <div class="battles-all-done" id="battlesAllDone" style="display:none;">
+      <div class="battles-all-done-icon">🏆</div>
+      <h3>You've voted on everything!</h3>
+      <p class="muted">Check back soon for new battles.</p>
+    </div>
+
+    <!-- DIVIDER -->
+    <div class="battles-section-divider" id="battlesDivider" style="display:none;">
+      <span>Your votes</span>
+    </div>
+
+    <!-- VOTED GRID -->
+    <div class="battles-voted-grid" id="battlesVotedGrid"></div>
+
+    <!-- EMPTY -->
     <div class="battles-empty" id="battlesEmpty" style="display:none;">
       <div class="battles-empty-icon">⚔️</div>
       <h3>No battles yet</h3>
