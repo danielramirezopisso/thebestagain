@@ -132,16 +132,16 @@ function buildStackCard(battle) {
     <div class="vote-indicator vote-indicator-b">B</div>
     <div class="stack-card-question">${escapeHtml(battle.question)}</div>
     <div class="stack-card-options">
-      <div class="stack-card-option tap-a" onclick="handleTapVote(event,'${battle.id}','a')">
-        <div class="stack-option-emoji">${emojiA}</div>
-        <div class="stack-option-label">${escapeHtml(battle.option_a)}</div>
-        <div class="stack-option-sublabel">tap to vote</div>
+      <div class="stack-card-opt tap-a" onclick="handleTapVote(event,'${battle.id}','a')">
+        <div class="stack-opt-emoji">${emojiA}</div>
+        <div class="stack-opt-label">${escapeHtml(battle.option_a)}</div>
+        <div class="stack-opt-hint">tap to vote</div>
       </div>
-      <div class="stack-vs-divider">VS</div>
-      <div class="stack-card-option tap-b" onclick="handleTapVote(event,'${battle.id}','b')">
-        <div class="stack-option-emoji">${emojiB}</div>
-        <div class="stack-option-label">${escapeHtml(battle.option_b)}</div>
-        <div class="stack-option-sublabel">tap to vote</div>
+      <div class="stack-vs">VS</div>
+      <div class="stack-card-opt tap-b" onclick="handleTapVote(event,'${battle.id}','b')">
+        <div class="stack-opt-emoji">${emojiB}</div>
+        <div class="stack-opt-label">${escapeHtml(battle.option_b)}</div>
+        <div class="stack-opt-hint">tap to vote</div>
       </div>
     </div>
   `;
@@ -262,7 +262,7 @@ function renderVotedResult(battle, counts, myChoice) {
     const pctA  = total ? Math.round((counts.a / total) * 100) : 50;
     const pctB  = 100 - pctA;
     return `
-      <div class="voted-card-result no-opinion-result">
+      <div class="voted-result no-opinion">
         <div class="voted-result-side no-opinion-side my-choice">
           <div class="voted-result-pct">No opinion</div>
           <div class="voted-result-label" style="font-size:11px;color:var(--muted);margin-top:4px;">
@@ -284,7 +284,7 @@ function renderVotedResult(battle, counts, myChoice) {
   ].filter(Boolean).join(' ');
 
   return `
-    <div class="voted-card-result">
+    <div class="voted-result">
       <div class="${cls('a')}"
            onclick="changeVote('${battle.id}','a')"
            title="${myChoice !== 'a' ? 'Change to ' + escapeHtml(battle.option_a) : ''}">
