@@ -255,10 +255,15 @@
   background: none; transform: none; box-shadow: none;
 }
 
-/* All done */
-.battles-all-done { text-align: center; padding: 44px 20px 28px; }
-.battles-all-done-icon { font-size: 48px; margin-bottom: 14px; }
-.battles-all-done h3   { margin: 0 0 8px; font-size: 20px; }
+/* All done — compact banner */
+.battles-all-done {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--faint); border: 1.5px solid var(--rule);
+  border-radius: 12px; padding: 14px 18px; margin-bottom: 4px;
+}
+.battles-all-done-icon { font-size: 22px; flex-shrink: 0; }
+.battles-all-done h3   { margin: 0; font-size: 14px; font-weight: 700; }
+.battles-all-done p    { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 
 /* ══════════════════════════════════════
    SECTION DIVIDER
@@ -383,6 +388,42 @@
   border-color: var(--accent);
   color: var(--accent);
   transform: none; box-shadow: none;
+}
+
+/* Full-width split bar — grows FROM CENTER outward (tug of war) */
+.voted-split-bar {
+  height: 5px;
+  display: flex;
+  overflow: hidden;
+  border-top: 1px solid var(--rule);
+  /* Two halves: left half = A (fills rightward from left edge of its half)
+                 right half = B (fills leftward from right edge of its half) */
+}
+/* Left half container — A bar grows from RIGHT side of this half (toward center) */
+.voted-split-bar-a-wrap {
+  width: 50%;
+  display: flex;
+  justify-content: flex-end; /* bar anchored to right = center */
+  overflow: hidden;
+}
+.voted-split-bar-a {
+  background: var(--accent);
+  opacity: 0.6;
+  height: 100%;
+  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+/* Right half container — B bar grows from LEFT side of this half (toward center) */
+.voted-split-bar-b-wrap {
+  width: 50%;
+  display: flex;
+  justify-content: flex-start; /* bar anchored to left = center */
+  overflow: hidden;
+}
+.voted-split-bar-b {
+  background: var(--text);
+  opacity: 0.22;
+  height: 100%;
+  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
 }
 
 /* Footer */
