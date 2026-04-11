@@ -312,6 +312,10 @@ function renderVotedResult(battle, counts, myChoice) {
         <div class="voted-result-pct">${pctB}%</div>
         <div class="voted-result-label">${escapeHtml(battle.option_b)}</div>
       </div>
+    </div>
+    <div class="voted-split-bar">
+      <div class="voted-split-bar-a-wrap"><div class="voted-split-bar-a" style="width:${pctA*2}%"></div></div>
+      <div class="voted-split-bar-b-wrap"><div class="voted-split-bar-b" style="width:${pctB*2}%"></div></div>
     </div>`;
 }
 
