@@ -133,22 +133,73 @@ function buildStackCard(battle) {
   card.dataset.battleId = battle.id;
   const eA = pickEmoji(battle.option_a);
   const eB = pickEmoji(battle.option_b);
+  // Image modes:
+  // hasBothImages → two half images side by side
+  // hasSingleImage → one image spanning full card background
+  // no images     → emoji mode
+  const hasBothImages   = !!(battle.image_a_url && battle.image_b_url);
+  const hasSingleImage  = !!(battle.image_a_url && !battle.image_b_url);
+  const hasAnyImage     = hasBothImages || hasSingleImage;
+
+  if (hasSingleImage) {
+    // Single shared image — full bleed background, options overlaid at bottom
+    card.innerHTML = `
+      <div class="vote-indicator vote-indicator-a">A</div>
+      <div class="vote-indicator vote-indicator-b">B</div>
+      <div class="stack-card-single-img" style="background-image:url('${escapeHtml(battle.image_a_url)}')">
+        <div class="stack-single-gradient"></div>
+        <div class="stack-single-question">${escapeHtml(battle.question)}</div>
+        <div class="stack-single-options">
+          <div class="stack-single-opt" onclick="handleTapVote(event,'${battle.id}','a')">
+            <div class="stack-single-opt-label">${escapeHtml(battle.option_a)}</div>
+            <div class="stack-single-opt-hint">← tap</div>
+          </div>
+          <div class="stack-single-vs">VS</div>
+          <div class="stack-single-opt" onclick="handleTapVote(event,'${battle.id}','b')">
+            <div class="stack-single-opt-label">${escapeHtml(battle.option_b)}</div>
+            <div class="stack-single-opt-hint">tap →</div>
+          </div>
+        </div>
+      </div>`;
+    return card;
+  }
+
+  const optA = hasBothImages
+    ? `<div class="stack-card-opt stack-card-opt-img" onclick="handleTapVote(event,'${battle.id}','a')"
+           style="background-image:url('${escapeHtml(battle.image_a_url)}')">
+         <div class="stack-opt-img-overlay"></div>
+         <div class="stack-opt-label stack-opt-label-img">${escapeHtml(battle.option_a)}</div>
+         <div class="stack-opt-hint stack-opt-hint-img">← tap</div>
+       </div>`
+    : `<div class="stack-card-opt" onclick="handleTapVote(event,'${battle.id}','a')">
+         <div class="stack-opt-emoji">${eA}</div>
+         <div class="stack-opt-label">${escapeHtml(battle.option_a)}</div>
+         <div class="stack-opt-hint">← tap</div>
+       </div>`;
+
+  const optB = hasBothImages
+    ? `<div class="stack-card-opt stack-card-opt-img" onclick="handleTapVote(event,'${battle.id}','b')"
+           style="background-image:url('${escapeHtml(battle.image_b_url)}')">
+         <div class="stack-opt-img-overlay"></div>
+         <div class="stack-opt-label stack-opt-label-img">${escapeHtml(battle.option_b)}</div>
+         <div class="stack-opt-hint stack-opt-hint-img">tap →</div>
+       </div>`
+    : `<div class="stack-card-opt" onclick="handleTapVote(event,'${battle.id}','b')">
+         <div class="stack-opt-emoji">${eB}</div>
+         <div class="stack-opt-label">${escapeHtml(battle.option_b)}</div>
+         <div class="stack-opt-hint">tap →</div>
+       </div>`;
+
   card.innerHTML = `
     <div class="vote-indicator vote-indicator-a">A</div>
     <div class="vote-indicator vote-indicator-b">B</div>
-    <div class="stack-card-question">${escapeHtml(battle.question)}</div>
-    <div class="stack-card-options">
-      <div class="stack-card-opt" onclick="handleTapVote(event,'${battle.id}','a')">
-        <div class="stack-opt-emoji">${eA}</div>
-        <div class="stack-opt-label">${escapeHtml(battle.option_a)}</div>
-        <div class="stack-opt-hint">← tap</div>
+    ${hasBothImages ? '' : `<div class="stack-card-question">${escapeHtml(battle.question)}</div>`}
+    <div class="stack-card-options${hasBothImages ? ' stack-card-options-img' : ''}">
+      ${optA}
+      <div class="stack-vs-overlay${hasBothImages ? ' stack-vs-overlay-img' : ''}">
+        ${hasBothImages ? `<div class="stack-vs-question">${escapeHtml(battle.question)}</div><span>VS</span>` : 'VS'}
       </div>
-      <div class="stack-vs-overlay">VS</div>
-      <div class="stack-card-opt" onclick="handleTapVote(event,'${battle.id}','b')">
-        <div class="stack-opt-emoji">${eB}</div>
-        <div class="stack-opt-label">${escapeHtml(battle.option_b)}</div>
-        <div class="stack-opt-hint">tap →</div>
-      </div>
+      ${optB}
     </div>`;
   return card;
 }
