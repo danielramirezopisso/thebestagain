@@ -306,7 +306,7 @@ function renderLane(catId, markersForCat){
   const itemsHtml = visible.map(m=>{
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
     const displayName = m.product_name || brand;
-    const unvisited = !MY_VOTED_IDS_PROD.has(m.id); // grey unvoted in both modes
+    const unvisited = JOURNEY_MODE_PROD && !MY_VOTED_IDS_PROD.has(m.id); // grey only in journey mode
     return `
       <div class="item-row${unvisited ? " journey-unvisited-item" : ""}">
         <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}">
