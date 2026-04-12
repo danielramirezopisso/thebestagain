@@ -26,6 +26,19 @@ const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/ico
 
 function qs(id){ return document.getElementById(id); }
 
+function toggleAddPanel() {
+  const panel = qs('addPanel');
+  if (!panel) return;
+  const isOpen = panel.classList.contains('add-panel-open');
+  if (isOpen) {
+    panel.classList.remove('add-panel-open');
+    panel.classList.add('add-panel-collapsed');
+  } else {
+    panel.classList.add('add-panel-open');
+    panel.classList.remove('add-panel-collapsed');
+  }
+}
+
 function escapeHtml(s){
   return String(s ?? "")
     .replaceAll("&","&amp;")
@@ -279,8 +292,9 @@ function renderLane(catId, markersForCat){
 
   let sorted = sortMarkers(markersForCat.slice(), dir);
 
-  // Journey mode: voted items first, then unvoted
-  if (JOURNEY_MODE_PROD && MY_VOTED_IDS_PROD.size > 0) {
+  // Always sort: voted items first (by rating), then unvoted (by rating)
+  // In Discover mode show both; in Journey mode only voted show colored
+  if (MY_VOTED_IDS_PROD.size > 0) {
     const voted   = sorted.filter(m =>  MY_VOTED_IDS_PROD.has(m.id));
     const unvoted = sorted.filter(m => !MY_VOTED_IDS_PROD.has(m.id));
     sorted = [...voted, ...unvoted];
@@ -292,7 +306,7 @@ function renderLane(catId, markersForCat){
   const itemsHtml = visible.map(m=>{
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
     const displayName = m.product_name || brand;
-    const unvisited = JOURNEY_MODE_PROD && !MY_VOTED_IDS_PROD.has(m.id);
+    const unvisited = !MY_VOTED_IDS_PROD.has(m.id); // grey unvoted in both modes
     return `
       <div class="item-row${unvisited ? " journey-unvisited-item" : ""}">
         <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}">
