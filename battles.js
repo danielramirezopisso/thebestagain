@@ -47,6 +47,7 @@ async function initBattles() {
 
   if (!ALL_BATTLES.length) {
     qsStyle('battlesSkeletonWrap','display','none');
+  if (!qs('stackWrap') && !qs('battlesGrid')) return; // incompatible HTML version
     qsStyle('battlesEmpty','display','block');
     return;
   }
@@ -70,6 +71,7 @@ async function initBattles() {
   const votedBattles = ALL_BATTLES.filter(b => !!MY_VOTES[b.id]);
 
   qsStyle('battlesSkeletonWrap','display','none');
+  if (!qs('stackWrap') && !qs('battlesGrid')) return; // incompatible HTML version
   updateStats();
   renderStack();
 
@@ -115,6 +117,7 @@ function updateStats() {
 ═══════════════════════════════════════ */
 function renderStack() {
   const wrap = qs('stackWrap');
+  if (!wrap) return; // old HTML deployed - skip stack rendering
   wrap.innerHTML = '';
   if (ACTIVE_SWIPE_CLEANUP) { ACTIVE_SWIPE_CLEANUP(); ACTIVE_SWIPE_CLEANUP = null; }
 
@@ -316,6 +319,7 @@ async function persistVote(battleId, choice) {
 ═══════════════════════════════════════ */
 function renderVotedGrid(battles) {
   const grid = qs('battlesVotedGrid');
+  if (!grid) return;
   grid.innerHTML = '';
   // Group by category_order then category name
   const groups = {};
