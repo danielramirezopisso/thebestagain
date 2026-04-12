@@ -8,9 +8,11 @@
   <meta property="og:title" content="Battles — The Best Again" />
   <meta property="og:description" content="Vote on the great food debates. Make your voice heard." />
   <meta property="og:type" content="website" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VYVTQPBTPC"></script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VYVTQPBTPC"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-VYVTQPBTPC");</script>
   <link rel="stylesheet" href="base.css" />
   <link rel="stylesheet" href="battles.css" />
@@ -21,7 +23,6 @@
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav" id="mainNav">
       <a href="index.html">Home</a>
-      <a href="list.html">List</a>
       <a href="map.html">Map</a>
       <a href="products.html">Products</a>
       <a href="rutas.html">Rutas</a>
@@ -43,53 +44,23 @@
       <p class="battles-hero-sub">The questions that divide tables. Vote, see where everyone stands.</p>
     </section>
 
-    <!-- STATS -->
-    <div class="battles-stats" id="battlesStats" style="display:none;">0 of 0 battles voted</div>
-
-    <!-- PROGRESS BAR -->
-    <div class="battles-progress" id="battlesProgress" style="display:none;">
-      <div class="battles-progress-track">
-        <div class="battles-progress-fill" id="progressBar" style="width:0%"></div>
-      </div>
-      <div class="battles-progress-label" id="progressLabel">0% voted</div>
+    <!-- STATS BAR -->
+    <div class="battles-stats" id="battlesStats" style="display:none;">
+      <span id="statsTotalVotes">—</span> votes cast across <span id="statsTotalBattles">—</span> battles
     </div>
 
-    <!-- SKELETON -->
-    <div class="battles-skeleton-wrap" id="battlesSkeletonWrap">
+    <!-- GRID -->
+    <div class="battles-grid" id="battlesGrid">
+      <!-- Skeleton -->
+      <div class="battle-skeleton"></div>
+      <div class="battle-skeleton"></div>
+      <div class="battle-skeleton"></div>
+      <div class="battle-skeleton"></div>
+      <div class="battle-skeleton"></div>
       <div class="battle-skeleton"></div>
     </div>
 
-    <!-- CARD STACK (unvoted) -->
-    <section class="stack-section" id="stackSection" style="display:none;">
-      <div class="stack-wrap" id="stackWrap"></div>
-      <div class="stack-hint">
-        <span class="hint-a">← A</span>
-        <span class="hint-mid">swipe or tap to vote</span>
-        <span class="hint-b">B →</span>
-      </div>
-      <button class="no-opinion-btn" id="noOpinionBtn" onclick="castNoOpinion()">
-        No opinion
-      </button>
-    </section>
-
-    <!-- ALL DONE — compact banner -->
-    <div class="battles-all-done" id="battlesAllDone" style="display:none;">
-      <div class="battles-all-done-icon">🏆</div>
-      <div>
-        <h3>All caught up!</h3>
-        <p>Check back soon for new battles.</p>
-      </div>
-    </div>
-
-    <!-- DIVIDER -->
-    <div class="battles-section-divider" id="battlesDivider" style="display:none;">
-      <span>Your votes</span>
-    </div>
-
-    <!-- VOTED GRID -->
-    <div class="battles-voted-grid" id="battlesVotedGrid"></div>
-
-    <!-- EMPTY -->
+    <!-- Empty state -->
     <div class="battles-empty" id="battlesEmpty" style="display:none;">
       <div class="battles-empty-icon">⚔️</div>
       <h3>No battles yet</h3>
@@ -119,10 +90,6 @@
       const btn = document.getElementById('burgerBtn');
       if (btn) { btn.innerHTML = '&#9776;'; btn.setAttribute('aria-expanded', false); }
     }));
-    // Show progress bar once stats load
-    document.getElementById('battlesStats')?.addEventListener('DOMSubtreeModified', () => {
-      document.getElementById('battlesProgress').style.display = 'block';
-    });
   });
   </script>
 </body>

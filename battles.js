@@ -80,22 +80,35 @@ async function initBattles() {
 }
 
 function updateStats() {
-  const total   = Object.values(TALLY).reduce((s, t) => s + (t.a || 0) + (t.b || 0), 0);
   const pending = STACK_IDS.length;
   const done    = ALL_BATTLES.length - pending;
   const pct     = ALL_BATTLES.length ? Math.round((done / ALL_BATTLES.length) * 100) : 0;
 
-  qs('statsTotalVotes').textContent = total.toLocaleString();
-  qs('statsMyPending').textContent  = pending;
-  qs('battlesStats').style.display  = 'block';
-  qs('battlesProgress').style.display = 'block';
+  // Single stats element (new HTML) or legacy dual elements (old HTML)
+  const statsEl = qs('battlesStats');
+  if (statsEl) {
+    const legacyTotal = qs('statsTotalVotes');
+    if (legacyTotal) {
+      // Old HTML still deployed — use legacy format
+      const total = Object.values(TALLY).reduce((s, t) => s + (t.a||0) + (t.b||0), 0);
+      legacyTotal.textContent = total.toLocaleString();
+      const pendingEl = qs('statsMyPending');
+      if (pendingEl) pendingEl.textContent = pending;
+    } else {
+      // New HTML
+      statsEl.textContent = `${done} of ${ALL_BATTLES.length} battles voted`;
+    }
+    statsEl.style.display = 'block';
+  }
 
-  // Progress bar
+  const progressEl = qs('battlesProgress');
+  if (progressEl) progressEl.style.display = 'block';
   const bar = qs('progressBar');
   const lbl = qs('progressLabel');
   if (bar) bar.style.width = pct + '%';
   if (lbl) lbl.textContent = pct === 100 ? 'All voted! 🏆' : `${pct}% voted (${done}/${ALL_BATTLES.length})`;
 }
+
 
 /* ═══════════════════════════════════════
    CARD STACK
