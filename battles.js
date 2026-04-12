@@ -38,7 +38,7 @@ let ACTIVE_SWIPE_CLEANUP = null; // cleanup fn for current swipe listeners
 ═══════════════════════════════════════ */
 async function initBattles() {
   const [battlesRes, votesRes] = await Promise.all([
-    sb.from('battles').select('*').eq('is_active', true).order('position', { ascending: true }),
+    sb.from('battles').select('*').eq('is_active', true).order('category_order', { ascending: true }).order('position', { ascending: true }),
     sb.from('battle_votes').select('battle_id, choice')
   ]);
 
@@ -75,10 +75,7 @@ async function initBattles() {
 
   if (votedBattles.length) {
     qs('battlesDivider').style.display = 'flex';
-    const grid = qs('battlesVotedGrid');
-    votedBattles.forEach(b => {
-      grid.appendChild(buildVotedCard(b, TALLY[b.id] || { a: 0, b: 0 }, MY_VOTES[b.id]));
-    });
+    renderVotedGrid(votedBattles);
   }
 }
 
@@ -172,7 +169,6 @@ function buildStackCard(battle) {
          <div class="stack-opt-hint stack-opt-hint-img">← tap</div>
        </div>`
     : `<div class="stack-card-opt" onclick="handleTapVote(event,'${battle.id}','a')">
-         <div class="stack-opt-emoji">${eA}</div>
          <div class="stack-opt-label">${escapeHtml(battle.option_a)}</div>
          <div class="stack-opt-hint">← tap</div>
        </div>`;
@@ -185,7 +181,6 @@ function buildStackCard(battle) {
          <div class="stack-opt-hint stack-opt-hint-img">tap →</div>
        </div>`
     : `<div class="stack-card-opt" onclick="handleTapVote(event,'${battle.id}','b')">
-         <div class="stack-opt-emoji">${eB}</div>
          <div class="stack-opt-label">${escapeHtml(battle.option_b)}</div>
          <div class="stack-opt-hint">tap →</div>
        </div>`;
@@ -306,6 +301,37 @@ async function persistVote(battleId, choice) {
 /* ═══════════════════════════════════════
    VOTED CARDS
 ═══════════════════════════════════════ */
+function renderVotedGrid(battles) {
+  const grid = qs('battlesVotedGrid');
+  grid.innerHTML = '';
+  // Group by category_order then category name
+  const groups = {};
+  const groupOrder = [];
+  battles.forEach(b => {
+    const cat = b.category || 'Otros';
+    const ord = b.category_order || 99;
+    const key = `${String(ord).padStart(3,'0')}_${cat}`;
+    if (!groups[key]) { groups[key] = { label: cat, battles: [] }; groupOrder.push(key); }
+    groups[key].battles.push(b);
+  });
+  groupOrder.sort();
+  groupOrder.forEach(key => {
+    const { label, battles: gBattles } = groups[key];
+    // Section divider
+    const div = document.createElement('div');
+    div.className = 'battles-category-divider';
+    div.innerHTML = `<span>${escapeHtml(label)}</span>`;
+    grid.appendChild(div);
+    // Cards for this group
+    const wrap = document.createElement('div');
+    wrap.className = 'battles-category-group';
+    gBattles.forEach(b => {
+      wrap.appendChild(buildVotedCard(b, TALLY[b.id] || { a: 0, b: 0 }, MY_VOTES[b.id]));
+    });
+    grid.appendChild(wrap);
+  });
+}
+
 function buildVotedCard(battle, counts, myChoice) {
   const card = document.createElement('div');
   card.className = 'voted-card';
@@ -321,19 +347,26 @@ function buildVotedCard(battle, counts, myChoice) {
 }
 
 function renderVotedResult(battle, counts, myChoice) {
-  // No opinion → show real options so they can vote
+  const hasBoth   = !!(battle.image_a_url && battle.image_b_url);
+  const hasSingle = !!(battle.image_a_url && !battle.image_b_url);
+
+  // No opinion → show vote buttons (with images if available)
   if (myChoice === 'no_opinion') {
-    const eA = pickEmoji(battle.option_a);
-    const eB = pickEmoji(battle.option_b);
     return `
       <div class="voted-result no-opinion-vote">
-        <div class="no-opinion-label">You had no opinion — vote now?</div>
+        <div class="no-opinion-label">Sin opinión — ¿votas ahora?</div>
         <div class="voted-result-opts">
-          <button class="voted-nop-btn" onclick="changeVote('${battle.id}','a')">
-            <span>${eA}</span> ${escapeHtml(battle.option_a)}
+          <button class="voted-nop-btn${hasSingle||hasBoth ? ' has-img' : ''}"
+                  style="${hasBoth ? `background-image:url('${escapeHtml(battle.image_a_url)}')` : hasSingle ? `background-image:url('${escapeHtml(battle.image_a_url)}')` : ''}"
+                  onclick="changeVote('${battle.id}','a')">
+            ${hasBoth||hasSingle ? '<div class="voted-nop-img-overlay"></div>' : ''}
+            <span class="voted-nop-btn-label">${escapeHtml(battle.option_a)}</span>
           </button>
-          <button class="voted-nop-btn" onclick="changeVote('${battle.id}','b')">
-            <span>${eB}</span> ${escapeHtml(battle.option_b)}
+          <button class="voted-nop-btn${hasBoth ? ' has-img' : ''}"
+                  style="${hasBoth ? `background-image:url('${escapeHtml(battle.image_b_url)}')` : ''}"
+                  onclick="changeVote('${battle.id}','b')">
+            ${hasBoth ? '<div class="voted-nop-img-overlay"></div>' : ''}
+            <span class="voted-nop-btn-label">${escapeHtml(battle.option_b)}</span>
           </button>
         </div>
       </div>`;
@@ -344,22 +377,33 @@ function renderVotedResult(battle, counts, myChoice) {
   const pctB   = 100 - pctA;
   const leader = pctA > pctB ? 'a' : pctB > pctA ? 'b' : null;
 
+  // cls: my-choice = chosen, leader = winning, dimmed = not chosen
   const cls = side => ['voted-result-side',
-    myChoice === side ? 'my-choice' : '',
+    myChoice === side ? 'my-choice' : 'dimmed',
     leader === side   ? 'leader'    : ''
   ].filter(Boolean).join(' ');
 
+  // Image styles for voted card sides
+  const imgStyleA = hasBoth   ? `style="background-image:url('${escapeHtml(battle.image_a_url)}')"` :
+                    hasSingle ? `style="background-image:url('${escapeHtml(battle.image_a_url)}')"` : '';
+  const imgStyleB = hasBoth   ? `style="background-image:url('${escapeHtml(battle.image_b_url)}')"` :
+                    hasSingle ? `style="background-image:url('${escapeHtml(battle.image_a_url)}')"` : '';
+  const imgClass  = (hasBoth || hasSingle) ? ' has-img' : '';
+  const imgOverlay = (hasBoth || hasSingle) ? '<div class="voted-result-img-overlay"></div>' : '';
+
   return `
     <div class="voted-result">
-      <div class="${cls('a')}" onclick="changeVote('${battle.id}','a')">
+      <div class="${cls('a')}${imgClass}" ${imgStyleA}
+           onclick="handleVotedSideClick('${battle.id}','a')">
+        ${imgOverlay}
         <div class="voted-result-bar" style="width:${pctA}%"></div>
-        <div class="voted-result-emoji">${pickEmoji(battle.option_a)}</div>
         <div class="voted-result-pct">${pctA}%</div>
         <div class="voted-result-label">${escapeHtml(battle.option_a)}</div>
       </div>
-      <div class="${cls('b')}" onclick="changeVote('${battle.id}','b')">
+      <div class="${cls('b')}${imgClass}" ${imgStyleB}
+           onclick="handleVotedSideClick('${battle.id}','b')">
+        ${imgOverlay}
         <div class="voted-result-bar" style="width:${pctB}%"></div>
-        <div class="voted-result-emoji">${pickEmoji(battle.option_b)}</div>
         <div class="voted-result-pct">${pctB}%</div>
         <div class="voted-result-label">${escapeHtml(battle.option_b)}</div>
       </div>
@@ -368,6 +412,68 @@ function renderVotedResult(battle, counts, myChoice) {
       <div class="voted-split-bar-a-wrap"><div class="voted-split-bar-a" style="width:${pctA*2}%"></div></div>
       <div class="voted-split-bar-b-wrap"><div class="voted-split-bar-b" style="width:${pctB*2}%"></div></div>
     </div>`;
+}
+
+// Click chosen side = unvote (back to no_opinion). Click other side = change vote.
+async function handleVotedSideClick(battleId, side) {
+  const current = MY_VOTES[battleId];
+  if (current === side) {
+    // Unvote — move back to stack
+    await unvote(battleId);
+  } else {
+    await changeVote(battleId, side);
+  }
+}
+
+async function unvote(battleId) {
+  const oldChoice = MY_VOTES[battleId];
+  if (!oldChoice || oldChoice === 'no_opinion') return;
+
+  // Remove from tally
+  if (TALLY[battleId] && (oldChoice === 'a' || oldChoice === 'b')) {
+    TALLY[battleId][oldChoice] = Math.max(0, (TALLY[battleId][oldChoice] || 0) - 1);
+  }
+
+  // Update state — put back in stack
+  MY_VOTES[battleId] = undefined;
+  saveLocalVote(battleId, null);
+
+  // Remove from voted grid
+  const card = qs('voted-' + battleId);
+  if (card) {
+    // Animate out
+    card.style.transition = 'opacity 0.2s, transform 0.2s';
+    card.style.opacity = '0';
+    card.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      card.remove();
+      // Re-render dividers in case group is now empty
+      const votedBattles = ALL_BATTLES.filter(b => !!MY_VOTES[b.id]);
+      const grid = qs('battlesVotedGrid');
+      grid.innerHTML = '';
+      if (votedBattles.length) renderVotedGrid(votedBattles);
+      else qs('battlesDivider').style.display = 'none';
+    }, 220);
+  }
+
+  // Add back to front of stack
+  STACK_IDS.unshift(battleId);
+  const battle = ALL_BATTLES.find(b => b.id === battleId);
+  if (battle) {
+    const wrap = qs('stackWrap');
+    qs('stackSection').style.display = 'flex';
+    qs('battlesAllDone').style.display = 'none';
+    // Add to front (last child = front)
+    const newCard = buildStackCard(battle);
+    wrap.appendChild(newCard);
+    rebuildStackClasses(wrap);
+    // Re-attach swipe to new front
+    if (ACTIVE_SWIPE_CLEANUP) { ACTIVE_SWIPE_CLEANUP(); ACTIVE_SWIPE_CLEANUP = null; }
+    attachSwipe(wrap.lastElementChild);
+  }
+
+  updateStats();
+  persistVote(battleId, 'no_opinion');
 }
 
 async function changeVote(battleId, newChoice) {
@@ -387,7 +493,8 @@ async function changeVote(battleId, newChoice) {
   const battle = ALL_BATTLES.find(b => b.id === battleId);
   const card   = qs('voted-' + battleId);
   if (battle && card) {
-    card.replaceWith(buildVotedCard(battle, TALLY[battleId], newChoice));
+    const newCard = buildVotedCard(battle, TALLY[battleId], newChoice);
+    card.replaceWith(newCard);
   }
 
   updateStats();

@@ -2,7 +2,7 @@
 
 async function renderAuthHeader() {
   const user = await maybeUser();
-  const el   = document.getElementById("authStatus");
+  const el = document.getElementById("authStatus") || document.getElementById("authHeaderSlot");
   if (!el) return;
 
   if (!user) {

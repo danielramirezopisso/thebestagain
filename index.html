@@ -24,7 +24,6 @@
     <a class="brand" href="index.html">The Best Again</a>
     <nav class="nav" id="mainNav">
       <a class="active" href="index.html">Home</a>
-      <a href="list.html">List</a>
       <a href="map.html">Map</a>
       <a href="products.html">Products</a>
       <a href="rutas.html">Rutas</a>
@@ -105,7 +104,7 @@
   <script>
   window.addEventListener('scroll', () => {
     document.getElementById('siteHeader')
-      .classList.toggle('home-header-visible', window.scrollY > 60);
+      if (window.scrollY > 60) document.getElementById('siteHeader').classList.add('home-header-visible');
   }, { passive: true });
 
   function toggleNav() {
