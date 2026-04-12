@@ -46,8 +46,8 @@ async function initBattles() {
   const allVotes = votesRes.data || [];
 
   if (!ALL_BATTLES.length) {
-    qs('battlesSkeletonWrap').style.display = 'none';
-    qs('battlesEmpty').style.display = 'block';
+    qsStyle('battlesSkeletonWrap','display','none');
+    qsStyle('battlesEmpty','display','block');
     return;
   }
 
@@ -69,12 +69,12 @@ async function initBattles() {
   STACK_IDS = ALL_BATTLES.filter(b => !MY_VOTES[b.id]).map(b => b.id);
   const votedBattles = ALL_BATTLES.filter(b => !!MY_VOTES[b.id]);
 
-  qs('battlesSkeletonWrap').style.display = 'none';
+  qsStyle('battlesSkeletonWrap','display','none');
   updateStats();
   renderStack();
 
   if (votedBattles.length) {
-    qs('battlesDivider').style.display = 'flex';
+    qsStyle('battlesDivider','display','flex');
     renderVotedGrid(votedBattles);
   }
 }
@@ -119,13 +119,13 @@ function renderStack() {
   if (ACTIVE_SWIPE_CLEANUP) { ACTIVE_SWIPE_CLEANUP(); ACTIVE_SWIPE_CLEANUP = null; }
 
   if (!STACK_IDS.length) {
-    qs('stackSection').style.display = 'none';
-    qs('battlesAllDone').style.display = 'block';
+    qsStyle('stackSection','display','none');
+    qsStyle('battlesAllDone','display','block');
     return;
   }
 
-  qs('stackSection').style.display = 'flex';
-  qs('battlesAllDone').style.display = 'none';
+  qsStyle('stackSection','display','flex');
+  qsStyle('battlesAllDone','display','none');
 
   // Render ALL remaining cards — CSS shows only top 3 visually
   // Cards are ordered: first in DOM = furthest back, last = front
@@ -264,8 +264,8 @@ async function voteAndAdvance(battleId, choice, flyClass) {
       rebuildStackClasses(wrap);
       attachSwipe(newFront);
     } else {
-      qs('stackSection').style.display = 'none';
-      qs('battlesAllDone').style.display = 'block';
+      qsStyle('stackSection','display','none');
+      qsStyle('battlesAllDone','display','block');
     }
 
     // Prepend voted card
@@ -274,7 +274,7 @@ async function voteAndAdvance(battleId, choice, flyClass) {
       const votedCard = buildVotedCard(battle, TALLY[battleId] || { a: 0, b: 0 }, choice);
       const grid = qs('battlesVotedGrid');
       grid.insertBefore(votedCard, grid.firstChild);
-      qs('battlesDivider').style.display = 'flex';
+      qsStyle('battlesDivider','display','flex');
     }
 
     IS_ANIMATING = false;
@@ -465,7 +465,7 @@ async function unvote(battleId) {
       const grid = qs('battlesVotedGrid');
       grid.innerHTML = '';
       if (votedBattles.length) renderVotedGrid(votedBattles);
-      else qs('battlesDivider').style.display = 'none';
+      else qsStyle('battlesDivider','display','none');
     }, 220);
   }
 
@@ -474,8 +474,8 @@ async function unvote(battleId) {
   const battle = ALL_BATTLES.find(b => b.id === battleId);
   if (battle) {
     const wrap = qs('stackWrap');
-    qs('stackSection').style.display = 'flex';
-    qs('battlesAllDone').style.display = 'none';
+    qsStyle('stackSection','display','flex');
+    qsStyle('battlesAllDone','display','none');
     // Add to front (last child = front)
     const newCard = buildStackCard(battle);
     wrap.appendChild(newCard);
@@ -637,6 +637,8 @@ function voteTotalLabel(counts, myChoice) {
 }
 
 function qs(id) { return document.getElementById(id); }
+function qsSet(id, prop, val) { const el = document.getElementById(id); if (el) el[prop] = val; }
+function qsStyle(id, prop, val) { const el = document.getElementById(id); if (el) el.style[prop] = val; }
 
 function escapeHtml(s) {
   return String(s ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
