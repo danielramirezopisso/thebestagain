@@ -651,12 +651,33 @@
 
 /* Dimmed = not chosen side */
 .voted-result-side.dimmed {
-  opacity: 0.45;
-  filter: grayscale(0.3);
+  opacity: 0.42;
+  filter: grayscale(0.5) brightness(0.85);
 }
 .voted-result-side.dimmed:hover {
-  opacity: 0.85;
-  filter: none;
+  opacity: 0.82;
+  filter: grayscale(0.1) brightness(1);
+  transform: none;
+}
+/* Extra dimming for image sides — add dark tint overlay */
+.voted-result-side.dimmed.has-img::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 1;
+  pointer-events: none;
+  transition: background 0.2s;
+}
+.voted-result-side.dimmed.has-img:hover::before {
+  background: rgba(0,0,0,0.1);
+}
+/* Ensure chosen side text stays above the bar and overlay */
+.voted-result-side .voted-result-pct,
+.voted-result-side .voted-result-label,
+.voted-result-side .voted-result-emoji {
+  position: relative;
+  z-index: 3;
 }
 
 /* Image overlay for voted cards */
