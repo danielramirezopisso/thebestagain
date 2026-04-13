@@ -123,7 +123,7 @@ function renderStack() {
 
   if (!STACK_IDS.length) {
     qsStyle('stackSection','display','none');
-    qsStyle('battlesAllDone','display','block');
+    // battles-all-done hidden via CSS - progress bar is enough
     return;
   }
 
@@ -268,7 +268,7 @@ async function voteAndAdvance(battleId, choice, flyClass) {
       attachSwipe(newFront);
     } else {
       qsStyle('stackSection','display','none');
-      qsStyle('battlesAllDone','display','block');
+      // battles-all-done hidden via CSS - progress bar is enough
     }
 
     // Prepend voted card
@@ -426,8 +426,8 @@ function renderVotedResult(battle, counts, myChoice) {
       </div>
     </div>
     <div class="voted-split-bar">
-      <div class="voted-split-bar-a-wrap"><div class="voted-split-bar-a" style="width:${pctA*2}%"></div></div>
-      <div class="voted-split-bar-b-wrap"><div class="voted-split-bar-b" style="width:${pctB*2}%"></div></div>
+      <div class="voted-split-bar-a-wrap" style="width:${pctA}%"></div>
+      <div class="voted-split-bar-b-wrap"></div>
     </div>`;
 }
 

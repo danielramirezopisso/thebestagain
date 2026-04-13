@@ -255,22 +255,8 @@
   background: none; transform: none; box-shadow: none;
 }
 
-/* All done — tiny inline pill, left-aligned, minimal */
-.battles-all-done {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  padding: 0 0 8px 0;
-  margin-bottom: 0;
-}
-.battles-all-done-icon { font-size: 14px; flex-shrink: 0; }
-.battles-all-done h3   {
-  margin: 0; font-size: 12px; font-weight: 600;
-  color: var(--muted); letter-spacing: 0.03em;
-}
-.battles-all-done p    { display: none; }
+/* All done — hidden entirely, progress bar above is enough */
+.battles-all-done { display: none !important; }
 
 /* ══════════════════════════════════════
    SECTION DIVIDER
@@ -328,7 +314,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 .voted-result-side:first-child { border-right: 1px solid var(--rule); }
-.voted-result-side:not(.my-choice):hover { background: var(--faint); transform: none; }
+.voted-result-side:not(.my-choice):hover { background: var(--faint); transform: none !important; }
 .voted-result-side:not(.my-choice):hover::after {
   content: 'Change';
   position: absolute; bottom: 5px;
@@ -336,7 +322,7 @@
   letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--muted);
 }
-.voted-result-side.my-choice { background: rgba(45,74,138,0.04); cursor: default; }
+.voted-result-side.my-choice { background: none; cursor: default; }
 
 .voted-result-bar {
   position: absolute; bottom: 0; left: 0;
@@ -345,6 +331,8 @@
   transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
 }
 .voted-result-side.my-choice .voted-result-bar { opacity: 0.55; }
+/* Hide bottom bar on image sides - split bar handles it */
+.voted-result-side.has-img .voted-result-bar { display: none; }
 
 .voted-result-emoji { font-size: 20px; margin-bottom: 2px; }
 
@@ -396,41 +384,28 @@
   transform: none; box-shadow: none;
 }
 
-/* Full-width split bar — grows FROM CENTER outward (tug of war) */
+/* Split bar — simple left-to-right fill, A accent left, B muted right */
 .voted-split-bar {
-  height: 5px;
+  height: 6px;
   display: flex;
   overflow: hidden;
   border-top: 1px solid var(--rule);
-  /* Two halves: left half = A (fills rightward from left edge of its half)
-                 right half = B (fills leftward from right edge of its half) */
+  background: var(--faint);
 }
-/* Left half container — A bar grows from RIGHT side of this half (toward center) */
 .voted-split-bar-a-wrap {
-  width: 50%;
-  display: flex;
-  justify-content: flex-end; /* bar anchored to right = center */
-  overflow: hidden;
-}
-.voted-split-bar-a {
+  height: 100%;
+  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
   background: var(--accent);
-  opacity: 0.6;
-  height: 100%;
-  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
+  opacity: 0.7;
 }
-/* Right half container — B bar grows from LEFT side of this half (toward center) */
 .voted-split-bar-b-wrap {
-  width: 50%;
-  display: flex;
-  justify-content: flex-start; /* bar anchored to left = center */
-  overflow: hidden;
-}
-.voted-split-bar-b {
-  background: var(--text);
-  opacity: 0.22;
+  flex: 1;
   height: 100%;
-  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
+  background: var(--muted);
+  opacity: 0.25;
 }
+/* hide old inner divs */
+.voted-split-bar-a, .voted-split-bar-b { display: none; }
 
 /* Footer */
 .voted-card-footer {
@@ -651,13 +626,13 @@
 
 /* Dimmed = not chosen side */
 .voted-result-side.dimmed {
-  opacity: 0.42;
-  filter: grayscale(0.5) brightness(0.85);
+  opacity: 0.38;
+  filter: grayscale(0.6) brightness(0.8);
 }
 .voted-result-side.dimmed:hover {
-  opacity: 0.82;
-  filter: grayscale(0.1) brightness(1);
-  transform: none;
+  opacity: 0.75;
+  filter: grayscale(0.15) brightness(1);
+  transform: none !important;
 }
 /* Extra dimming for image sides — add dark tint overlay */
 .voted-result-side.dimmed.has-img::before {
@@ -700,14 +675,12 @@
   color: #fff;
   text-shadow: 0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.6);
 }
-/* Chosen side: accent pill background on % for extra legibility */
+/* Chosen side: just white text with heavy shadow - no background pill */
 .voted-result-side.has-img.my-choice .voted-result-pct {
-  background: rgba(45,74,138,0.75);
-  border-radius: 6px;
-  padding: 2px 8px;
-  backdrop-filter: blur(4px);
+  color: #fff;
+  text-shadow: 0 0 16px rgba(0,0,0,1), 0 2px 8px rgba(0,0,0,0.9);
 }
-/* Add tick mark pill on chosen label */
+/* Tick mark on chosen label */
 .voted-result-side.has-img.my-choice .voted-result-label::before {
   content: '✓ ';
   color: #fff;
