@@ -309,8 +309,10 @@
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: 16px 12px 20px; gap: 3px;
-  cursor: pointer; transition: background 0.12s;
+  cursor: pointer;
+  transition: background 0.12s;
   overflow: hidden;
+  transform: none !important;
   -webkit-tap-highlight-color: transparent;
 }
 .voted-result-side:first-child { border-right: 1px solid var(--rule); }
@@ -324,15 +326,8 @@
 }
 .voted-result-side.my-choice { background: none; cursor: default; }
 
-.voted-result-bar {
-  position: absolute; bottom: 0; left: 0;
-  height: 3px; background: var(--accent);
-  opacity: 0.22;
-  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
-}
-.voted-result-side.my-choice .voted-result-bar { opacity: 0.55; }
-/* Hide bottom bar on image sides - split bar handles it */
-.voted-result-side.has-img .voted-result-bar { display: none; }
+/* voted-result-bar removed entirely — split bar below handles % visualization */
+.voted-result-bar { display: none !important; }
 
 .voted-result-emoji { font-size: 20px; margin-bottom: 2px; }
 
@@ -384,45 +379,31 @@
   transform: none; box-shadow: none;
 }
 
-/* Split bar chart — sits BELOW the card images, outside */
+/* Split bar — simple proportional fill, A left accent, B right muted */
 .voted-split-bar {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   height: 6px;
   border-top: 1px solid var(--rule);
   overflow: hidden;
   background: var(--faint);
 }
-/* A side: bar grows from LEFT edge toward center */
+/* A-wrap width is set inline via JS as pctA% */
 .voted-split-bar-a-wrap {
   height: 100%;
-  display: flex;
-  justify-content: flex-start;
-  overflow: hidden;
-  background: var(--faint);
-}
-.voted-split-bar-a {
-  display: block;
-  height: 100%;
+  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
   background: var(--accent);
-  opacity: 0.7;
-  transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+  opacity: 0.65;
+  flex-shrink: 0;
 }
-/* B side: bar grows from RIGHT edge toward center */
+/* B-wrap takes the rest */
 .voted-split-bar-b-wrap {
+  flex: 1;
   height: 100%;
-  display: flex;
-  justify-content: flex-end;
-  overflow: hidden;
-  background: var(--faint);
-}
-.voted-split-bar-b {
-  display: block;
-  height: 100%;
-  background: var(--text);
+  background: var(--muted);
   opacity: 0.18;
-  transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
 }
+/* inner divs not needed */
+.voted-split-bar-a, .voted-split-bar-b { display: none; }
 
 /* Footer */
 .voted-card-footer {
@@ -656,13 +637,14 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0,0,0,0.38);
   z-index: 1;
   pointer-events: none;
-  transition: background 0.2s;
+  /* no transition - prevents zoom feeling */
 }
+/* Keep same darkness on hover - no change */
 .voted-result-side.dimmed.has-img:hover::before {
-  background: rgba(0,0,0,0.1);
+  background: rgba(0,0,0,0.38);
 }
 /* Ensure chosen side text stays above the bar and overlay */
 .voted-result-side .voted-result-pct,
@@ -679,10 +661,14 @@
 
 /* Voted card with image */
 .voted-result-side.has-img {
-  background-size: cover;
-  background-position: center;
+  background-size: cover !important;
+  background-position: center center !important;
   min-height: 120px;
   padding-bottom: 16px;
+}
+.voted-result-side.has-img:hover {
+  background-size: cover !important;
+  background-position: center center !important;
 }
 .voted-result-side.has-img .voted-result-pct,
 .voted-result-side.has-img .voted-result-label {
@@ -700,12 +686,7 @@
   content: '✓ ';
   color: #fff;
 }
-.voted-result-side.has-img .voted-result-bar {
-  background: rgba(255,255,255,0.5);
-}
-.voted-result-side.has-img.my-choice .voted-result-bar {
-  background: rgba(255,255,255,0.8);
-}
+/* removed duplicate bar rules */
 
 /* No-opinion vote buttons with images */
 .voted-nop-btn.has-img {

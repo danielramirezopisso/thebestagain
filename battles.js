@@ -426,8 +426,8 @@ function renderVotedResult(battle, counts, myChoice) {
       </div>
     </div>
     <div class="voted-split-bar">
-      <div class="voted-split-bar-a-wrap"><div class="voted-split-bar-a" style="width:${Math.min(pctA*2,100)}%"></div></div>
-      <div class="voted-split-bar-b-wrap"><div class="voted-split-bar-b" style="width:${Math.min(pctB*2,100)}%"></div></div>
+      <div class="voted-split-bar-a-wrap"><div class="voted-split-bar-a" style="width:${Math.min((pctA/50)*100,100)}%"></div></div>
+      <div class="voted-split-bar-b-wrap"><div class="voted-split-bar-b" style="width:${Math.min((pctB/50)*100,100)}%"></div></div>
     </div>`;
 }
 
@@ -450,6 +450,24 @@ async function unvote(battleId) {
   if (TALLY[battleId] && (oldChoice === 'a' || oldChoice === 'b')) {
     TALLY[battleId][oldChoice] = Math.max(0, (TALLY[battleId][oldChoice] || 0) - 1);
   }
+
+  // Set to no_opinion — stays in voted grid, does NOT go back to stack
+  // Stack will only show it again on next page refresh
+  MY_VOTES[battleId] = 'no_opinion';
+  saveLocalVote(battleId, 'no_opinion');
+
+  // Re-render card in-place as no_opinion state (shows vote buttons)
+  const card = qs('voted-' + battleId);
+  const battle = ALL_BATTLES.find(b => b.id === battleId);
+  if (card && battle) {
+    const newCard = buildVotedCard(battle, TALLY[battleId] || { a: 0, b: 0 }, 'no_opinion');
+    card.replaceWith(newCard);
+  }
+
+  updateStats();
+  persistVote(battleId, 'no_opinion');
+}
+
 
   // Update state — put back in stack
   MY_VOTES[battleId] = undefined;
