@@ -77,7 +77,52 @@ body.map-page{
   padding:14px;
   z-index:500;
 }
-.map-panel-add{ right:12px; left:auto; }
+.map-panel-add{
+  right: 12px; left: auto;
+  bottom: 88px; top: auto;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.map-panel-collapsed {
+  opacity: 0; pointer-events: none;
+  transform: translateY(10px) scale(0.97);
+}
+.map-panel-open {
+  opacity: 1; pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+.map-panel-header {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 4px;
+}
+.map-panel-close {
+  background: none; border: none; box-shadow: none;
+  font-size: 15px; color: var(--muted); cursor: pointer;
+  padding: 2px 6px; border-radius: 4px;
+}
+.map-panel-close:hover { background: var(--faint); transform: none; box-shadow: none; }
+
+/* FAB button */
+.map-add-fab {
+  position: absolute;
+  bottom: 28px; right: 12px;
+  width: 44px; height: 44px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 22px;
+  border: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  cursor: pointer;
+  z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+  line-height: 1;
+}
+.map-add-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  background: var(--accent);
+}
 .map-panel-selected{
   right:12px; left:auto;
   top:auto; bottom:12px;

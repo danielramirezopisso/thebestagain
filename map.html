@@ -122,14 +122,15 @@
           <span class="journey-opt" id="jOptJourney">🧭 My Journey</span>
         </div>
       </div>
-      <!-- Add panel (moved to RIGHT) -->
-      <!-- Mobile: add place hint (desktop-only feature) -->
-      <div class="mobile-add-hint" id="mobileAddHint" onclick="showDesktopHint()">
-        ＋ Add a place
-      </div>
+      <!-- FAB: Add a place -->
+      <button class="map-add-fab" id="mapAddFab" onclick="toggleAddPanel()" title="Add a place">＋</button>
 
-      <div class="map-panel map-panel-add" id="addPanel">
-        <div class="panel-title">Add a place</div>
+      <!-- Add panel (popup overlay) -->
+      <div class="map-panel map-panel-add map-panel-collapsed" id="addPanel">
+        <div class="map-panel-header">
+          <div class="panel-title">Add a place</div>
+          <button class="map-panel-close" onclick="toggleAddPanel()">✕</button>
+        </div>
         <div class="panel-sub muted">Enable adding mode, then click anywhere on the map to drop a pin.</div>
 
         <button id="toggleAdd" class="tba-btn add-toggle-btn" onclick="toggleAddMode()" style="margin-top:12px; width:100%;">

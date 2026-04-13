@@ -277,7 +277,7 @@ function ratingBadgeHtml(m){
   const tip = cnt ? `${avg.toFixed(2)}/10 (${cnt} votes)` : "No votes yet";
   const myVote = MY_VOTED_IDS_PROD.has(m.id) ? ' voted' : '';
   return `<div class="rate-badge ${cls}${myVote}" title="${escapeHtml(tip)}"
-    onclick="event.preventDefault(); event.stopPropagation(); openProductVote('${m.id}', '${m.category_id}', this)"
+    onclick="event.preventDefault(); event.stopPropagation(); openProductVote('${m.id}', '${m.category_id}', this); return false;"
     >${escapeHtml(n)}</div>`;
 }
 
@@ -297,14 +297,18 @@ function openProductVote(markerId, categoryId, badgeEl) {
   pop.innerHTML = `
     <div class="prod-vote-pop-title">Your vote</div>
     <div class="prod-vote-pop-scores">
-      ${scores.map(s => `<button class="prod-vote-score" data-score="${s}" onclick="submitProductVote('${markerId}','${categoryId}',${s},this)">${s}</button>`).join('')}
+      ${scores.map(s => `<button class="prod-vote-score" data-score="${s}" onclick="event.stopPropagation();event.preventDefault();submitProductVote('${markerId}','${categoryId}',${s},this)">${s}</button>`).join('')}
     </div>
-    <button class="prod-vote-pop-remove" onclick="removeProductVote('${markerId}','${categoryId}',this)">Remove vote</button>
+    <button class="prod-vote-pop-remove" onclick="event.stopPropagation();event.preventDefault();removeProductVote('${markerId}','${categoryId}',this)">Remove vote</button>
   `;
 
-  // Position near the badge
-  badgeEl.parentNode.style.position = 'relative';
-  badgeEl.parentNode.appendChild(pop);
+  // Position near the badge - append to body to avoid <a> tag navigation
+  const badgeRect = badgeEl.getBoundingClientRect();
+  pop.style.position = 'fixed';
+  pop.style.top = (badgeRect.bottom + 6) + 'px';
+  pop.style.right = (window.innerWidth - badgeRect.right) + 'px';
+  pop.style.left = 'auto';
+  document.body.appendChild(pop);
   VOTE_POPOVER_OPEN = pop;
 
   // Highlight current vote
@@ -329,11 +333,20 @@ async function submitProductVote(markerId, categoryId, score, btnEl) {
   if (!user) { window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href); return; }
   window._prodUser = user;
 
-  // Upsert vote
-  await sb.from('votes').upsert({
-    marker_id: markerId, category_id: Number(categoryId),
-    user_id: user.id, vote: score, is_active: true
-  }, { onConflict: 'marker_id,category_id,user_id', ignoreDuplicates: false });
+  // Try update first, then insert if no row exists
+  const { data: existing } = await sb.from('votes')
+    .select('id').eq('marker_id', markerId).eq('user_id', user.id)
+    .eq('category_id', Number(categoryId)).maybeSingle();
+  
+  if (existing) {
+    await sb.from('votes').update({ vote: score, is_active: true })
+      .eq('id', existing.id);
+  } else {
+    await sb.from('votes').insert({
+      marker_id: markerId, category_id: Number(categoryId),
+      user_id: user.id, vote: score, is_active: true
+    });
+  }
 
   // Update MY_VOTED_IDS_PROD
   MY_VOTED_IDS_PROD.add(markerId);

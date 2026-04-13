@@ -324,6 +324,22 @@ function attachMarkerHoverAndClick(mk, id) {
   mk.on("click", () => selectMarkerById(id, false));
 }
 
+function toggleAddPanel() {
+  const panel = document.getElementById('addPanel');
+  const fab   = document.getElementById('mapAddFab');
+  if (!panel) return;
+  const isOpen = panel.classList.contains('map-panel-open');
+  if (isOpen) {
+    panel.classList.remove('map-panel-open');
+    panel.classList.add('map-panel-collapsed');
+    if (fab) fab.textContent = '＋';
+  } else {
+    panel.classList.add('map-panel-open');
+    panel.classList.remove('map-panel-collapsed');
+    if (fab) fab.textContent = '✕';
+  }
+}
+
 async function initMap() {
   const user = await maybeUser();
   // On desktop: show add panel always, but redirect to login if not logged in
@@ -345,7 +361,7 @@ async function initMap() {
   initRatingDropdown("m_rating", 7);
   renderRatingButtons();
   MAP = L.map("map", { zoomControl: false }).setView([41.3889, 2.1618], 15);
-  L.control.zoom({ position: "bottomright" }).addTo(MAP);
+  L.control.zoom({ position: "topright" }).addTo(MAP);
   L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(MAP);
   LAYER_GROUP = L.layerGroup().addTo(MAP);
   setMapStatus("Loading categories…");
