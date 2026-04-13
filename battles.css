@@ -255,15 +255,22 @@
   background: none; transform: none; box-shadow: none;
 }
 
-/* All done — compact banner */
+/* All done — tiny inline pill, left-aligned, minimal */
 .battles-all-done {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--faint); border: 1.5px solid var(--rule);
-  border-radius: 12px; padding: 14px 18px; margin-bottom: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0 0 8px 0;
+  margin-bottom: 0;
 }
-.battles-all-done-icon { font-size: 22px; flex-shrink: 0; }
-.battles-all-done h3   { margin: 0; font-size: 14px; font-weight: 700; }
-.battles-all-done p    { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.battles-all-done-icon { font-size: 14px; flex-shrink: 0; }
+.battles-all-done h3   {
+  margin: 0; font-size: 12px; font-weight: 600;
+  color: var(--muted); letter-spacing: 0.03em;
+}
+.battles-all-done p    { display: none; }
 
 /* ══════════════════════════════════════
    SECTION DIVIDER
@@ -321,7 +328,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 .voted-result-side:first-child { border-right: 1px solid var(--rule); }
-.voted-result-side:not(.my-choice):hover { background: var(--faint); }
+.voted-result-side:not(.my-choice):hover { background: var(--faint); transform: none; }
 .voted-result-side:not(.my-choice):hover::after {
   content: 'Change';
   position: absolute; bottom: 5px;
@@ -655,7 +662,7 @@
 /* Image overlay for voted cards */
 .voted-result-img-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(to bottom, transparent 25%, rgba(0,0,0,0.55) 100%);
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%);
   pointer-events: none;
 }
 
@@ -670,7 +677,19 @@
 .voted-result-side.has-img .voted-result-label {
   position: relative; z-index: 2;
   color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.6);
+}
+/* Chosen side: accent pill background on % for extra legibility */
+.voted-result-side.has-img.my-choice .voted-result-pct {
+  background: rgba(45,74,138,0.75);
+  border-radius: 6px;
+  padding: 2px 8px;
+  backdrop-filter: blur(4px);
+}
+/* Add tick mark pill on chosen label */
+.voted-result-side.has-img.my-choice .voted-result-label::before {
+  content: '✓ ';
+  color: #fff;
 }
 .voted-result-side.has-img .voted-result-bar {
   background: rgba(255,255,255,0.5);
