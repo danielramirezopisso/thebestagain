@@ -488,16 +488,11 @@ body.products-page{
   padding: 0 1px;
 }
 
+/* In My Journey: unvoted rows look normal — only badge signals unvoted status */
 .journey-unvisited-item,
 .journey-unvisited-item a.item {
-  opacity: 0.38;
-  filter: grayscale(0.7) brightness(1.1);
-  transition: opacity 0.2s, filter 0.2s;
-}
-.journey-unvisited-item:hover,
-.journey-unvisited-item a.item:hover {
-  opacity: 0.75;
-  filter: grayscale(0.2);
+  opacity: 1;
+  filter: none;
 }
 
 /* ── Inline vote popover on score badge ── */
@@ -574,4 +569,23 @@ body.products-page{
 .prod-vote-pop-remove:hover {
   color: #e05252; border-color: #e05252;
   background: none; transform: none; box-shadow: none;
+}
+
+/* Empty badge for unvoted items in My Journey mode */
+.rate-badge.journey-empty-badge {
+  background: transparent;
+  border: 2px solid var(--border);
+  color: transparent;
+  min-width: 32px;
+  box-shadow: none;
+}
+.rate-badge.journey-empty-badge:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.rate-badge.journey-empty-badge::after {
+  content: '+';
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 400;
 }

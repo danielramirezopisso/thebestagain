@@ -21,6 +21,7 @@ let DRAWER_SORT = "desc";
 // journey mode
 let JOURNEY_MODE_PROD = false;
 let MY_VOTED_IDS_PROD = new Set();
+let MY_VOTE_SCORES_PROD = {}; // marker_id -> personal vote score
 
 const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
 
@@ -272,10 +273,28 @@ function sortMarkers(arr, dir){
 function ratingBadgeHtml(m){
   const avg = Number(m.rating_avg ?? 0);
   const cnt = Number(m.rating_count ?? 0);
-  const cls = colorClassForRating(avg, cnt);
-  const n = cnt ? String(Math.round(avg)) : "—";
-  const tip = cnt ? `${avg.toFixed(2)}/10 (${cnt} votes)` : "No votes yet";
-  const myVote = MY_VOTED_IDS_PROD.has(m.id) ? ' voted' : '';
+  const hasVoted = MY_VOTED_IDS_PROD.has(m.id);
+
+  // In My Journey: show MY score if voted, empty outline if not
+  // In Discover: always show global average
+  let cls, n, tip;
+  if (JOURNEY_MODE_PROD && hasVoted) {
+    const myScore = MY_VOTE_SCORES_PROD[m.id];
+    cls = colorClassForRating(myScore, 1);
+    n   = String(Math.round(myScore));
+    tip = `Your vote: ${myScore}/10`;
+  } else if (JOURNEY_MODE_PROD && !hasVoted) {
+    cls = 'rating-none journey-empty-badge';
+    n   = '';
+    tip = 'Not voted yet — click to vote';
+  } else {
+    // Discover mode: global average
+    cls = colorClassForRating(avg, cnt);
+    n   = cnt ? String(Math.round(avg)) : '—';
+    tip = cnt ? `${avg.toFixed(2)}/10 (${cnt} votes)` : 'No votes yet';
+  }
+
+  const myVote = hasVoted ? ' voted' : '';
   return `<div class="rate-badge ${cls}${myVote}" title="${escapeHtml(tip)}"
     onclick="event.preventDefault(); event.stopPropagation(); openProductVote('${m.id}', '${m.category_id}', this); return false;"
     >${escapeHtml(n)}</div>`;
@@ -348,8 +367,9 @@ async function submitProductVote(markerId, categoryId, score, btnEl) {
     });
   }
 
-  // Update MY_VOTED_IDS_PROD
+  // Update MY_VOTED_IDS_PROD and score map
   MY_VOTED_IDS_PROD.add(markerId);
+  MY_VOTE_SCORES_PROD[markerId] = score;
 
   // Close popover
   if (VOTE_POPOVER_OPEN) { VOTE_POPOVER_OPEN.remove(); VOTE_POPOVER_OPEN = null; }
@@ -366,6 +386,7 @@ async function removeProductVote(markerId, categoryId, btnEl) {
     .eq('marker_id', markerId).eq('user_id', user.id).eq('is_active', true);
 
   MY_VOTED_IDS_PROD.delete(markerId);
+  delete MY_VOTE_SCORES_PROD[markerId];
   if (VOTE_POPOVER_OPEN) { VOTE_POPOVER_OPEN.remove(); VOTE_POPOVER_OPEN = null; }
   renderAll();
 }
@@ -673,10 +694,13 @@ async function initProductsMasonryPage(){
   if (user) {
     const { data: voteData } = await sb
       .from("votes")
-      .select("marker_id")
+      .select("marker_id, vote, category_id")
       .eq("user_id", user.id)
       .eq("is_active", true);
     MY_VOTED_IDS_PROD = new Set((voteData || []).map(v => v.marker_id));
+    // Build map of personal scores: marker_id -> vote score
+    MY_VOTE_SCORES_PROD = {};
+    (voteData || []).forEach(v => { MY_VOTE_SCORES_PROD[v.marker_id] = v.vote; });
     window._prodUser = user;
   }
 
