@@ -469,48 +469,6 @@ async function unvote(battleId) {
 }
 
 
-  // Update state — put back in stack
-  MY_VOTES[battleId] = undefined;
-  saveLocalVote(battleId, null);
-
-  // Remove from voted grid
-  const card = qs('voted-' + battleId);
-  if (card) {
-    // Animate out
-    card.style.transition = 'opacity 0.2s, transform 0.2s';
-    card.style.opacity = '0';
-    card.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-      card.remove();
-      // Re-render dividers in case group is now empty
-      const votedBattles = ALL_BATTLES.filter(b => !!MY_VOTES[b.id]);
-      const grid = qs('battlesVotedGrid');
-      grid.innerHTML = '';
-      if (votedBattles.length) renderVotedGrid(votedBattles);
-      else qsStyle('battlesDivider','display','none');
-    }, 220);
-  }
-
-  // Add back to front of stack
-  STACK_IDS.unshift(battleId);
-  const battle = ALL_BATTLES.find(b => b.id === battleId);
-  if (battle) {
-    const wrap = qs('stackWrap');
-    qsStyle('stackSection','display','flex');
-    qsStyle('battlesAllDone','display','none');
-    // Add to front (last child = front)
-    const newCard = buildStackCard(battle);
-    wrap.appendChild(newCard);
-    rebuildStackClasses(wrap);
-    // Re-attach swipe to new front
-    if (ACTIVE_SWIPE_CLEANUP) { ACTIVE_SWIPE_CLEANUP(); ACTIVE_SWIPE_CLEANUP = null; }
-    attachSwipe(wrap.lastElementChild);
-  }
-
-  updateStats();
-  persistVote(battleId, 'no_opinion');
-}
-
 async function changeVote(battleId, newChoice) {
   const oldChoice = MY_VOTES[battleId];
   if (oldChoice === newChoice) return;
