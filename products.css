@@ -499,3 +499,80 @@ body.products-page{
   opacity: 0.75;
   filter: grayscale(0.2);
 }
+
+/* ── Inline vote popover on score badge ── */
+.rate-badge {
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.rate-badge:hover {
+  transform: scale(1.12);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.rate-badge.voted::after {
+  content: '';
+  position: absolute;
+  bottom: -3px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.prod-vote-pop {
+  position: absolute;
+  right: 0; top: calc(100% + 4px);
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+  z-index: 200;
+  min-width: 200px;
+}
+.prod-vote-pop-title {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 10px;
+}
+.prod-vote-pop-scores {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.prod-vote-score {
+  width: 30px; height: 30px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--faint);
+  font-size: 12px; font-weight: 700;
+  color: var(--text); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s, border-color 0.1s;
+  padding: 0; box-shadow: none;
+}
+.prod-vote-score:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  transform: none; box-shadow: none;
+}
+.prod-vote-score.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.prod-vote-pop-remove {
+  width: 100%;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 5px;
+  font-size: 11px; font-weight: 600;
+  color: var(--muted); cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+  box-shadow: none;
+}
+.prod-vote-pop-remove:hover {
+  color: #e05252; border-color: #e05252;
+  background: none; transform: none; box-shadow: none;
+}
