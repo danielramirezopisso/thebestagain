@@ -275,7 +275,86 @@ function ratingBadgeHtml(m){
   const cls = colorClassForRating(avg, cnt);
   const n = cnt ? String(Math.round(avg)) : "—";
   const tip = cnt ? `${avg.toFixed(2)}/10 (${cnt} votes)` : "No votes yet";
-  return `<div class="rate-badge ${cls}" title="${escapeHtml(tip)}">${escapeHtml(n)}</div>`;
+  const myVote = MY_VOTED_IDS_PROD.has(m.id) ? ' voted' : '';
+  return `<div class="rate-badge ${cls}${myVote}" title="${escapeHtml(tip)}"
+    onclick="event.preventDefault(); event.stopPropagation(); openProductVote('${m.id}', '${m.category_id}', this)"
+    >${escapeHtml(n)}</div>`;
+}
+
+// ── Inline vote popover ──
+let VOTE_POPOVER_OPEN = null; // current open popover element
+
+function openProductVote(markerId, categoryId, badgeEl) {
+  // Close any existing popover
+  if (VOTE_POPOVER_OPEN) { VOTE_POPOVER_OPEN.remove(); VOTE_POPOVER_OPEN = null; }
+
+  const pop = document.createElement('div');
+  pop.className = 'prod-vote-pop';
+  pop.dataset.markerId = markerId;
+
+  // Get current user vote if any
+  const scores = [1,2,3,4,5,6,7,8,9,10];
+  pop.innerHTML = `
+    <div class="prod-vote-pop-title">Your vote</div>
+    <div class="prod-vote-pop-scores">
+      ${scores.map(s => `<button class="prod-vote-score" data-score="${s}" onclick="submitProductVote('${markerId}','${categoryId}',${s},this)">${s}</button>`).join('')}
+    </div>
+    <button class="prod-vote-pop-remove" onclick="removeProductVote('${markerId}','${categoryId}',this)">Remove vote</button>
+  `;
+
+  // Position near the badge
+  badgeEl.parentNode.style.position = 'relative';
+  badgeEl.parentNode.appendChild(pop);
+  VOTE_POPOVER_OPEN = pop;
+
+  // Highlight current vote
+  sb.from('votes').select('vote').eq('marker_id', markerId).eq('user_id', (window._prodUser?.id || '')).eq('is_active', true).maybeSingle()
+    .then(({data}) => {
+      if (data?.vote) {
+        const btn = pop.querySelector(`[data-score="${Math.round(data.vote)}"]`);
+        if (btn) btn.classList.add('active');
+      }
+    });
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function closePopover(e) {
+      if (!pop.contains(e.target)) { pop.remove(); VOTE_POPOVER_OPEN = null; document.removeEventListener('click', closePopover); }
+    });
+  }, 10);
+}
+
+async function submitProductVote(markerId, categoryId, score, btnEl) {
+  const user = await maybeUser();
+  if (!user) { window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href); return; }
+  window._prodUser = user;
+
+  // Upsert vote
+  await sb.from('votes').upsert({
+    marker_id: markerId, category_id: Number(categoryId),
+    user_id: user.id, vote: score, is_active: true
+  }, { onConflict: 'marker_id,category_id,user_id', ignoreDuplicates: false });
+
+  // Update MY_VOTED_IDS_PROD
+  MY_VOTED_IDS_PROD.add(markerId);
+
+  // Close popover
+  if (VOTE_POPOVER_OPEN) { VOTE_POPOVER_OPEN.remove(); VOTE_POPOVER_OPEN = null; }
+
+  // Re-render to reflect new vote
+  renderAll();
+}
+
+async function removeProductVote(markerId, categoryId, btnEl) {
+  const user = await maybeUser();
+  if (!user) return;
+
+  await sb.from('votes').update({ is_active: false })
+    .eq('marker_id', markerId).eq('user_id', user.id).eq('is_active', true);
+
+  MY_VOTED_IDS_PROD.delete(markerId);
+  if (VOTE_POPOVER_OPEN) { VOTE_POPOVER_OPEN.remove(); VOTE_POPOVER_OPEN = null; }
+  renderAll();
 }
 
 function brandIconSlotHtml(brandId){
@@ -292,9 +371,8 @@ function renderLane(catId, markersForCat){
 
   let sorted = sortMarkers(markersForCat.slice(), dir);
 
-  // Always sort: voted items first (by rating), then unvoted (by rating)
-  // In Discover mode show both; in Journey mode only voted show colored
-  if (MY_VOTED_IDS_PROD.size > 0) {
+  // Always sort: voted items first (by rating desc), then unvoted (by rating desc)
+  {
     const voted   = sorted.filter(m =>  MY_VOTED_IDS_PROD.has(m.id));
     const unvoted = sorted.filter(m => !MY_VOTED_IDS_PROD.has(m.id));
     sorted = [...voted, ...unvoted];
@@ -586,6 +664,7 @@ async function initProductsMasonryPage(){
       .eq("user_id", user.id)
       .eq("is_active", true);
     MY_VOTED_IDS_PROD = new Set((voteData || []).map(v => v.marker_id));
+    window._prodUser = user;
   }
 
   renderAll();
