@@ -1,16 +1,15 @@
 /* Products page: compact toolbar + 3-column lanes grid + right sidebar add + overlay drawer */
 
 body.products-page{
-  height: 100vh;
-  overflow: hidden;
+  height: auto;
+  overflow: auto;
 }
 
 .products-shell{
-  height: calc(100vh - 54px);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px 20px 12px;
+  padding: 8px 20px 40px;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -55,8 +54,7 @@ body.products-page{
 
 /* lanes grid scrolls */
 .lanes-grid{
-  min-height:0;
-  overflow:auto;
+  overflow: visible;
   padding-right: 6px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -379,7 +377,7 @@ body.products-page{
    MOBILE — products.css
 ══════════════════════════════ */
 @media (max-width: 768px) {
-  body.products-page { height: auto; overflow: auto; }
+  body.products-page { height: auto; overflow: auto; } /* already set */
 
   .products-shell {
     height: auto;

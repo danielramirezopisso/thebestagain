@@ -426,8 +426,8 @@ function renderVotedResult(battle, counts, myChoice) {
       </div>
     </div>
     <div class="voted-split-bar">
-      <div class="voted-split-bar-a-wrap" style="width:${pctA}%"></div>
-      <div class="voted-split-bar-b-wrap"></div>
+      <div class="voted-split-bar-a-wrap"><div class="voted-split-bar-a" style="width:${Math.min(pctA*2,100)}%"></div></div>
+      <div class="voted-split-bar-b-wrap"><div class="voted-split-bar-b" style="width:${Math.min(pctB*2,100)}%"></div></div>
     </div>`;
 }
 
