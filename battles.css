@@ -454,43 +454,60 @@
 .vcard-result-a { justify-content: flex-start; }
 .vcard-result-b { justify-content: flex-end;   }
 
-/* Bar spans full middle column — grows from center */
+/* Bar: grows from center pin outward
+   Left half:  [grey░░░░|blue━━] right edge = center pin
+   Right half: [blue━━|grey░░░░] left edge = center pin
+   For 67/33: left = 33% grey + 67% blue | right = 33% blue + 67% grey */
 .vcard-result-bar {
   display: flex;
   height: 5px;
   border-radius: 999px;
   overflow: hidden;
   width: 100%;
-  background: var(--faint);
-  /* Left half = A (fills right-to-left from center)
-     Right half = B (fills left-to-right from center) */
+  position: relative;
 }
-/* Left half container: A bar anchored to RIGHT (center) */
+/* Center pin */
+.vcard-result-bar::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 0;
+  transform: translateX(-50%);
+  width: 2px; height: 100%;
+  background: var(--text);
+  opacity: 0.3;
+  z-index: 2;
+}
+/* Left half: grey bg, blue fills from RIGHT (center) */
 .vcard-bar-a-wrap {
-  width: 50%;
-  height: 100%;
+  width: 50%; height: 100%;
+  background: var(--muted);
+  opacity: 0.2;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-end; /* blue anchored to right=center */
   overflow: hidden;
+  position: relative;
 }
 .vcard-bar-a {
   height: 100%;
   background: var(--accent);
-  opacity: 0.75;
+  opacity: 1; /* opacity handled by wrapper */
+  flex-shrink: 0;
   transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
 }
-/* Right half container: B bar anchored to LEFT (center) */
+/* Right half: grey bg, blue fills from LEFT (center) */
 .vcard-bar-b-wrap {
-  width: 50%;
-  height: 100%;
+  width: 50%; height: 100%;
+  background: var(--muted);
+  opacity: 0.2;
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-start; /* blue anchored to left=center */
   overflow: hidden;
 }
 .vcard-bar-b {
   height: 100%;
-  background: var(--muted);
-  opacity: 0.3;
+  background: var(--accent);
+  opacity: 1;
+  flex-shrink: 0;
   transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
 }
 
