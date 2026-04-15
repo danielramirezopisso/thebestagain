@@ -416,8 +416,8 @@ function buildResultCard(battle, pctA, pctB, leader, myChoice, imgA, imgB) {
         <span class="vcard-result-name">${escapeHtml(battle.option_a)}</span>
       </div>
       <div class="vcard-result-bar">
-        <div class="vcard-bar-a" style="width:${pctA}%"></div>
-        <div class="vcard-bar-b" style="width:${pctB}%"></div>
+        <div class="vcard-bar-a-wrap"><div class="vcard-bar-a" style="width:${pctA*2}%"></div></div>
+        <div class="vcard-bar-b-wrap"><div class="vcard-bar-b" style="width:${pctB*2}%"></div></div>
       </div>
       <div class="vcard-result-side vcard-result-b${bLeader ? ' vcard-result-winner' : ''}">
         <span class="vcard-result-pct">${pctB}%</span>

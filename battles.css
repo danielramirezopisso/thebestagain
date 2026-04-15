@@ -411,11 +411,6 @@
 }
 
 /* ── Result row (below images) ── */
-.vcard-result {
-  padding: 12px 14px 6px;
-  border-top: 1px solid var(--rule);
-}
-
 /* Two columns: A left, B right */
 .vcard-result-side {
   display: flex;
@@ -447,33 +442,56 @@
   color: var(--text);
 }
 
-/* Result bar between the two sides */
+/* Result row: A% | bar-from-center | B% */
 .vcard-result {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  padding: 12px 14px 6px;
+  border-top: 1px solid var(--rule);
 }
+.vcard-result-a { justify-content: flex-start; }
+.vcard-result-b { justify-content: flex-end;   }
+
+/* Bar spans full middle column — grows from center */
 .vcard-result-bar {
   display: flex;
   height: 5px;
   border-radius: 999px;
   overflow: hidden;
-  width: 80px;
+  width: 100%;
   background: var(--faint);
+  /* Left half = A (fills right-to-left from center)
+     Right half = B (fills left-to-right from center) */
+}
+/* Left half container: A bar anchored to RIGHT (center) */
+.vcard-bar-a-wrap {
+  width: 50%;
+  height: 100%;
+  display: flex;
+  justify-content: flex-end;
+  overflow: hidden;
 }
 .vcard-bar-a {
   height: 100%;
   background: var(--accent);
-  opacity: 0.7;
-  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
-  flex-shrink: 0;
+  opacity: 0.75;
+  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+/* Right half container: B bar anchored to LEFT (center) */
+.vcard-bar-b-wrap {
+  width: 50%;
+  height: 100%;
+  display: flex;
+  justify-content: flex-start;
+  overflow: hidden;
 }
 .vcard-bar-b {
   height: 100%;
   background: var(--muted);
-  opacity: 0.25;
-  flex: 1;
+  opacity: 0.3;
+  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
 }
 
 /* Footer: votes + share */
