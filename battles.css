@@ -282,458 +282,235 @@
 }
 
 /* Voted card */
-.voted-card {
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: 16px; overflow: hidden;
-  transition: box-shadow 0.18s;
-}
-.voted-card:hover { box-shadow: 0 6px 22px rgba(26,23,20,0.08); }
 
-.voted-card-question {
-  padding: 13px 16px 11px;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 14px; font-weight: 700;
-  color: var(--text); border-bottom: 1px solid var(--rule);
-  line-height: 1.35;
-}
+/* ══════════════════════════════════════
+   VOTED CARDS — clean rebuild
+══════════════════════════════════════ */
 
-/* Result sides */
-.voted-result {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.voted-result-side {
-  position: relative;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 16px 12px 20px; gap: 3px;
-  cursor: pointer;
-  transition: background 0.12s;
-  overflow: hidden;
-  transform: none !important;
-  -webkit-tap-highlight-color: transparent;
-}
-.voted-result-side:first-child { border-right: 1px solid var(--rule); }
-.voted-result-side:not(.my-choice):hover { background: var(--faint); transform: none !important; }
-.voted-result-side:not(.my-choice):hover::after {
-  content: 'Change';
-  position: absolute; bottom: 5px;
-  font-size: 9px; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--muted);
-}
-.voted-result-side.my-choice { background: none; cursor: default; }
-
-/* voted-result-bar removed entirely — split bar below handles % visualization */
-.voted-result-bar { display: none !important; }
-
-.voted-result-emoji { font-size: 20px; margin-bottom: 2px; }
-
-.voted-result-pct {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 32px; font-weight: 900; line-height: 1;
-  color: var(--muted);
-}
-.voted-result-side.my-choice .voted-result-pct   { color: var(--accent); }
-.voted-result-side.leader    .voted-result-pct   { color: var(--text);   }
-.voted-result-side.my-choice.leader .voted-result-pct { color: var(--accent); }
-
-.voted-result-label {
-  font-size: 12px; font-weight: 700;
-  color: var(--text); text-align: center; line-height: 1.3;
-}
-.voted-result-side.my-choice .voted-result-label::before {
-  content: '✓ '; color: var(--accent);
-}
-
-/* No opinion → show vote buttons */
-.voted-result.no-opinion-vote {
-  display: flex; flex-direction: column;
-  padding: 14px 14px 16px; gap: 10px;
-  grid-template-columns: unset;
-}
-.no-opinion-label {
-  font-size: 12px; color: var(--muted);
-  font-style: italic; text-align: center;
-}
-.voted-result-opts {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-}
-.voted-nop-btn {
-  display: flex; align-items: center; justify-content: center;
-  gap: 6px; padding: 8px 10px;
-  background: var(--faint);
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  font-size: 12px; font-weight: 600;
-  color: var(--text); cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
-  box-shadow: none; line-height: 1.3; text-align: center;
-}
-.voted-nop-btn:hover {
-  background: var(--card);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: none; box-shadow: none;
-}
-
-/* Split bar — simple proportional fill, A left accent, B right muted */
-.voted-split-bar {
-  display: flex;
-  height: 6px;
-  border-top: 1px solid var(--rule);
-  overflow: hidden;
-  background: var(--faint);
-}
-/* A-wrap width is set inline via JS as pctA% */
-.voted-split-bar-a-wrap {
-  height: 100%;
-  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
-  background: var(--accent);
-  opacity: 0.65;
-  flex-shrink: 0;
-}
-/* B-wrap takes the rest */
-.voted-split-bar-b-wrap {
-  flex: 1;
-  height: 100%;
-  background: var(--muted);
-  opacity: 0.18;
-}
-/* inner divs not needed */
-.voted-split-bar-a, .voted-split-bar-b { display: none; }
-
-/* Footer */
-.voted-card-footer {
-  display: flex; align-items: center;
-  justify-content: space-between;
-  padding: 9px 14px;
-  font-size: 11px; color: var(--muted);
-  border-top: 1px solid var(--rule);
-}
-.voted-card-count { font-weight: 600; }
-
-.battle-share-btn {
-  background: none; border: none; box-shadow: none;
-  font-size: 11px; font-weight: 700;
-  color: var(--muted); cursor: pointer; padding: 0;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  transition: color 0.1s;
-}
-.battle-share-btn:hover {
-  color: var(--text); background: none; transform: none; box-shadow: none;
-}
-
-/* Empty */
-.battles-empty { text-align: center; padding: 80px 20px; }
-.battles-empty-icon { font-size: 48px; margin-bottom: 16px; }
-.battles-empty h3 { margin: 0 0 8px; }
-
-
-
-/* ── Single image mode — full bleed background ── */
-.stack-card-single-img {
-  flex: 1;
+/* Grid layout */
+.battles-voted-grid {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  background-size: cover;
-  background-position: center;
-  position: relative;
-  border-radius: 18px;
-  overflow: hidden;
+  gap: 0;
+  padding-bottom: 40px;
 }
 
-/* Dark gradient from bottom ~60% */
-.stack-single-gradient {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    transparent 20%,
-    rgba(0,0,0,0.3) 50%,
-    rgba(0,0,0,0.75) 100%
-  );
-  pointer-events: none;
-}
-
-.stack-single-question {
-  position: relative;
-  z-index: 2;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 16px; font-weight: 700;
-  color: #fff;
-  text-align: center;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  padding: 0 18px 12px;
-  line-height: 1.35;
-}
-
-.stack-single-options {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  border-top: 1px solid rgba(255,255,255,0.15);
-}
-
-.stack-single-opt {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 14px 12px;
-  cursor: pointer;
-  transition: background 0.12s;
-  -webkit-tap-highlight-color: transparent;
-}
-.stack-single-opt:hover { background: rgba(255,255,255,0.08); }
-.stack-single-opt:active { background: rgba(255,255,255,0.15); }
-
-.stack-single-opt-label {
-  font-size: 14px; font-weight: 700;
-  color: #fff;
-  text-align: center; line-height: 1.3;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-}
-
-.stack-single-opt-hint {
-  font-size: 10px; font-weight: 600;
-  color: rgba(255,255,255,0.6);
-  text-transform: uppercase; letter-spacing: 0.1em;
-}
-
-.stack-single-vs {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  font-size: 9px; font-weight: 900;
-  letter-spacing: 0.14em;
-  color: rgba(255,255,255,0.5);
-  border-left: 1px solid rgba(255,255,255,0.12);
-  border-right: 1px solid rgba(255,255,255,0.12);
-}
-
-/* ── Two-image mode (dual backgrounds) ── */
-.stack-card-options-img {
-  grid-template-columns: 1fr 1fr;
-}
-
-.stack-card-opt-img {
-  position: relative;
-  background-size: cover;
-  background-position: center;
-  padding: 0;
-  min-height: 180px;
-  align-items: flex-end;
-  justify-content: flex-end;
-}
-
-/* Dark gradient at bottom so text is always readable */
-.stack-opt-img-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    transparent 30%,
-    rgba(0,0,0,0.55) 100%
-  );
-  pointer-events: none;
-}
-
-.stack-opt-label-img {
-  position: relative;
-  z-index: 2;
-  color: #fff !important;
-  font-size: 14px;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-  padding: 0 12px 4px;
-  width: 100%;
-  text-align: center;
-}
-
-.stack-opt-hint-img {
-  position: relative;
-  z-index: 2;
-  color: rgba(255,255,255,0.7) !important;
-  padding: 0 12px 12px;
-}
-
-/* When images present, question goes inside VS overlay */
-.stack-vs-overlay-img {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(8px);
-  border: 1.5px solid rgba(255,255,255,0.6);
-  border-radius: 12px;
-  padding: 8px 12px;
-  max-width: 140px;
-  text-align: center;
-  z-index: 10;
-}
-
-.stack-vs-question {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.3;
-}
-
-.stack-vs-overlay-img span {
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  color: var(--muted);
-}
-
-
-/* ── Category section dividers ── */
+/* Category dividers */
 .battles-category-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: flex; align-items: center; gap: 12px;
   margin: 28px 0 14px;
   font-size: 11px; font-weight: 700;
   letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--muted);
 }
-.battles-category-divider:first-child { margin-top: 0; }
+.battles-category-divider:first-child { margin-top: 8px; }
 .battles-category-divider::before,
 .battles-category-divider::after {
   content: ''; flex: 1; height: 1px; background: var(--rule);
 }
 
-/* ── Category group — 2 column grid ── */
+/* Category group: 2 columns on desktop */
 .battles-category-group {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 16px;
 }
 
+/* ── The voted card ── */
+.voted-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+.voted-card:hover { box-shadow: 0 4px 20px rgba(26,23,20,0.07); }
 
-/* Dimmed = not chosen side */
-.voted-result-side.dimmed {
-  opacity: 0.38;
-  filter: grayscale(0.6) brightness(0.8);
+/* Question title */
+.vcard-question {
+  padding: 14px 16px 12px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 15px; font-weight: 700;
+  line-height: 1.3; color: var(--text);
+  border-bottom: 1px solid var(--rule);
 }
-.voted-result-side.dimmed:hover {
-  opacity: 0.75;
-  filter: grayscale(0.15) brightness(1);
-  transform: none !important;
+
+/* Images row */
+.vcard-images {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 160px;
 }
-/* Extra dimming for image sides — add dark tint overlay */
-.voted-result-side.dimmed.has-img::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.38);
-  z-index: 1;
-  pointer-events: none;
-  /* no transition - prevents zoom feeling */
-}
-/* Keep same darkness on hover - no change */
-.voted-result-side.dimmed.has-img:hover::before {
-  background: rgba(0,0,0,0.38);
-}
-/* Ensure chosen side text stays above the bar and overlay */
-.voted-result-side .voted-result-pct,
-.voted-result-side .voted-result-label,
-.voted-result-side .voted-result-emoji {
+
+/* Each image side */
+.vcard-side {
   position: relative;
-  z-index: 3;
-}
-
-/* Image overlay for voted cards */
-.voted-result-img-overlay {
-  display: none; /* removed - no shadow/gradient on voted images */
-}
-
-/* Voted card with image */
-.voted-result-side.has-img {
-  background-size: cover !important;
-  background-position: center center !important;
-  min-height: 120px;
-  padding-bottom: 16px;
-}
-.voted-result-side.has-img:hover {
-  background-size: cover !important;
-  background-position: center center !important;
-}
-.voted-result-side.has-img .voted-result-pct,
-.voted-result-side.has-img .voted-result-label {
-  position: relative; z-index: 2;
-  color: #fff;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.6);
-}
-/* Chosen side: just white text with heavy shadow - no background pill */
-.voted-result-side.has-img.my-choice .voted-result-pct {
-  color: #fff;
-  text-shadow: 0 0 16px rgba(0,0,0,1), 0 2px 8px rgba(0,0,0,0.9);
-}
-/* Tick mark on chosen label */
-.voted-result-side.has-img.my-choice .voted-result-label::before {
-  content: '✓ ';
-  color: #fff;
-}
-/* removed duplicate bar rules */
-
-/* No-opinion vote buttons with images */
-.voted-nop-btn.has-img {
   background-size: cover;
   background-position: center;
-  min-height: 70px;
-  position: relative;
+  background-repeat: no-repeat;
+  cursor: pointer;
   overflow: hidden;
+  /* NO transform, NO transition on background */
 }
-.voted-nop-img-overlay {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,0.35);
-  pointer-events: none;
-}
-.voted-nop-btn-label {
-  position: relative; z-index: 2;
-  color: inherit;
-}
-.voted-nop-btn.has-img .voted-nop-btn-label { color: #fff; }
+.vcard-side:first-child { border-right: 1px solid var(--border); }
 
-
-/* ── NO TRANSFORM EVER on voted sides ── */
-.voted-result-side,
-.voted-result-side:hover,
-.voted-result-side.dimmed,
-.voted-result-side.dimmed:hover,
-.voted-result-side.has-img,
-.voted-result-side.has-img:hover {
+/* Absolutely no zoom ever */
+.vcard-side,
+.vcard-side:hover,
+.vcard-side:active {
   transform: none !important;
-  transition: opacity 0.2s, filter 0.2s, background 0.12s !important;
+  background-size: cover !important;
 }
+
+/* Label at bottom of each side */
+.vcard-label {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 8px 10px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 12px; font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* No-image fallback */
+.vcard-no-img {
+  background: var(--faint);
+  display: flex; align-items: center; justify-content: center;
+}
+.vcard-no-img .vcard-label {
+  position: static;
+  background: none;
+  color: var(--text);
+  font-size: 14px;
+  padding: 0 12px;
+}
+
+/* Chosen side: normal */
+.vcard-chosen {
+  opacity: 1;
+  filter: none;
+}
+/* Chosen indicator on label */
+.vcard-chosen .vcard-label::before {
+  content: '✓ ';
+}
+
+/* Dimmed side: greyed out, no zoom on hover */
+.vcard-dimmed {
+  opacity: 0.4;
+  filter: grayscale(0.6) brightness(0.85);
+  transition: opacity 0.2s, filter 0.2s;
+}
+.vcard-dimmed:hover {
+  opacity: 0.65;
+  filter: grayscale(0.3) brightness(0.95);
+  transform: none !important;
+  background-size: cover !important;
+}
+
+/* ── Result row (below images) ── */
+.vcard-result {
+  padding: 12px 14px 6px;
+  border-top: 1px solid var(--rule);
+}
+
+/* Two columns: A left, B right */
+.vcard-result-side {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.vcard-result-a { justify-content: flex-start; }
+.vcard-result-b { justify-content: flex-end; }
+
+.vcard-result-pct {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.vcard-result-name {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Winner: bold and bigger */
+.vcard-result-winner .vcard-result-pct {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+.vcard-result-winner .vcard-result-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Result bar between the two sides */
+.vcard-result {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.vcard-result-bar {
+  display: flex;
+  height: 5px;
+  border-radius: 999px;
+  overflow: hidden;
+  width: 80px;
+  background: var(--faint);
+}
+.vcard-bar-a {
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.7;
+  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+  flex-shrink: 0;
+}
+.vcard-bar-b {
+  height: 100%;
+  background: var(--muted);
+  opacity: 0.25;
+  flex: 1;
+}
+
+/* Footer: votes + share */
+.vcard-footer {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px 10px;
+  font-size: 11px; color: var(--muted);
+  border-top: 1px solid var(--rule);
+}
+.vcard-count { font-weight: 600; }
+
+/* ── No-opinion state ── */
+.vcard-nop-hint {
+  padding: 8px 14px;
+  font-size: 11px; color: var(--muted);
+  text-align: center;
+  border-top: 1px solid var(--rule);
+}
+
+/* ── Stats line ── */
+.battles-stats {
+  text-align: center;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
 /* ══════════════════════════════════════
    MOBILE
 ══════════════════════════════════════ */
-@media (max-width: 680px) {
-  .battles-main      { padding: 0 14px 100px; }
-  .battles-hero      { padding: 28px 0 16px; }
-  .stack-wrap        { height: 290px; }
-  .stack-card-question { font-size: 15px; padding: 16px 16px 0; }
-  .stack-opt-emoji   { font-size: 28px; }
-  .stack-opt-label   { font-size: 13px; }
-  .voted-result-pct  { font-size: 26px; }
-  .voted-result-label { font-size: 11px; }
-  .voted-card-question { font-size: 13px; }
-
-  /* Single column on mobile */
+@media (max-width: 640px) {
   .battles-category-group {
     grid-template-columns: 1fr;
   }
+  .vcard-images { height: 130px; }
+  .vcard-question { font-size: 13px; }
+  .vcard-result-winner .vcard-result-pct { font-size: 16px; }
 }

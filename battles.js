@@ -84,31 +84,11 @@ async function initBattles() {
 function updateStats() {
   const pending = STACK_IDS.length;
   const done    = ALL_BATTLES.length - pending;
-  const pct     = ALL_BATTLES.length ? Math.round((done / ALL_BATTLES.length) * 100) : 0;
-
-  // Single stats element (new HTML) or legacy dual elements (old HTML)
   const statsEl = qs('battlesStats');
   if (statsEl) {
-    const legacyTotal = qs('statsTotalVotes');
-    if (legacyTotal) {
-      // Old HTML still deployed — use legacy format
-      const total = Object.values(TALLY).reduce((s, t) => s + (t.a||0) + (t.b||0), 0);
-      legacyTotal.textContent = total.toLocaleString();
-      const pendingEl = qs('statsMyPending');
-      if (pendingEl) pendingEl.textContent = pending;
-    } else {
-      // New HTML
-      statsEl.textContent = `${done} of ${ALL_BATTLES.length} battles voted`;
-    }
-    statsEl.style.display = 'block';
+    statsEl.textContent = `${done} of ${ALL_BATTLES.length} battles voted`;
+    statsEl.style.display = done > 0 ? 'block' : 'none';
   }
-
-  const progressEl = qs('battlesProgress');
-  if (progressEl) progressEl.style.display = 'block';
-  const bar = qs('progressBar');
-  const lbl = qs('progressLabel');
-  if (bar) bar.style.width = pct + '%';
-  if (lbl) lbl.textContent = pct === 100 ? 'All voted! 🏆' : `${pct}% voted (${done}/${ALL_BATTLES.length})`;
 }
 
 
@@ -353,83 +333,104 @@ function buildVotedCard(battle, counts, myChoice) {
   const card = document.createElement('div');
   card.className = 'voted-card';
   card.id = 'voted-' + battle.id;
-  card.innerHTML = `
-    <div class="voted-card-question">${escapeHtml(battle.question)}</div>
-    ${renderVotedResult(battle, counts, myChoice)}
-    <div class="voted-card-footer">
-      <span class="voted-card-count">${voteTotalLabel(counts, myChoice)}</span>
-      <button class="battle-share-btn" onclick="shareBattle(event,'${battle.id}')">Share ↗</button>
-    </div>`;
-  return card;
-}
-
-function renderVotedResult(battle, counts, myChoice) {
-  const hasBoth   = !!(battle.image_a_url && battle.image_b_url);
-  const hasSingle = !!(battle.image_a_url && !battle.image_b_url);
-
-  // No opinion → show vote buttons (with images if available)
-  if (myChoice === 'no_opinion') {
-    return `
-      <div class="voted-result no-opinion-vote">
-        <div class="no-opinion-label">Sin opinión — ¿votas ahora?</div>
-        <div class="voted-result-opts">
-          <button class="voted-nop-btn${hasSingle||hasBoth ? ' has-img' : ''}"
-                  style="${hasBoth ? `background-image:url('${escapeHtml(battle.image_a_url)}')` : hasSingle ? `background-image:url('${escapeHtml(battle.image_a_url)}')` : ''}"
-                  onclick="changeVote('${battle.id}','a')">
-            ${hasBoth||hasSingle ? '<div class="voted-nop-img-overlay"></div>' : ''}
-            <span class="voted-nop-btn-label">${escapeHtml(battle.option_a)}</span>
-          </button>
-          <button class="voted-nop-btn${hasBoth ? ' has-img' : ''}"
-                  style="${hasBoth ? `background-image:url('${escapeHtml(battle.image_b_url)}')` : ''}"
-                  onclick="changeVote('${battle.id}','b')">
-            ${hasBoth ? '<div class="voted-nop-img-overlay"></div>' : ''}
-            <span class="voted-nop-btn-label">${escapeHtml(battle.option_b)}</span>
-          </button>
-        </div>
-      </div>`;
-  }
 
   const total  = (counts.a || 0) + (counts.b || 0);
   const pctA   = total ? Math.round((counts.a / total) * 100) : 50;
   const pctB   = 100 - pctA;
   const leader = pctA > pctB ? 'a' : pctB > pctA ? 'b' : null;
 
-  // cls: my-choice = chosen, leader = winning, dimmed = not chosen
-  const cls = side => ['voted-result-side',
-    myChoice === side ? 'my-choice' : 'dimmed',
-    leader === side   ? 'leader'    : ''
-  ].filter(Boolean).join(' ');
+  const hasBoth   = !!(battle.image_a_url && battle.image_b_url);
+  const hasSingle = !!(battle.image_a_url && !battle.image_b_url);
+  const imgA = hasBoth ? battle.image_a_url : hasSingle ? battle.image_a_url : null;
+  const imgB = hasBoth ? battle.image_b_url : hasSingle ? battle.image_a_url : null;
 
-  // Image styles for voted card sides
-  const imgStyleA = hasBoth   ? `style="background-image:url('${escapeHtml(battle.image_a_url)}')"` :
-                    hasSingle ? `style="background-image:url('${escapeHtml(battle.image_a_url)}')"` : '';
-  const imgStyleB = hasBoth   ? `style="background-image:url('${escapeHtml(battle.image_b_url)}')"` :
-                    hasSingle ? `style="background-image:url('${escapeHtml(battle.image_a_url)}')"` : '';
-  const imgClass  = (hasBoth || hasSingle) ? ' has-img' : '';
-  const imgOverlay = (hasBoth || hasSingle) ? '<div class="voted-result-img-overlay"></div>' : '';
+  // Build voted card or no-opinion card
+  if (myChoice === 'no_opinion') {
+    card.innerHTML = buildNoOpinionCard(battle, imgA, imgB);
+  } else {
+    card.innerHTML = buildResultCard(battle, pctA, pctB, leader, myChoice, imgA, imgB);
+  }
+  return card;
+}
 
+function buildNoOpinionCard(battle, imgA, imgB) {
+  const sideA = imgA
+    ? `<div class="vcard-side vcard-side-a" style="background-image:url('${escapeHtml(imgA)}')" onclick="changeVote('${battle.id}','a')">
+         <div class="vcard-label">${escapeHtml(battle.option_a)}</div>
+       </div>`
+    : `<div class="vcard-side vcard-side-a vcard-no-img" onclick="changeVote('${battle.id}','a')">
+         <div class="vcard-label">${escapeHtml(battle.option_a)}</div>
+       </div>`;
+  const sideB = imgB
+    ? `<div class="vcard-side vcard-side-b" style="background-image:url('${escapeHtml(imgB)}')" onclick="changeVote('${battle.id}','b')">
+         <div class="vcard-label">${escapeHtml(battle.option_b)}</div>
+       </div>`
+    : `<div class="vcard-side vcard-side-b vcard-no-img" onclick="changeVote('${battle.id}','b')">
+         <div class="vcard-label">${escapeHtml(battle.option_b)}</div>
+       </div>`;
   return `
-    <div class="voted-result">
-      <div class="${cls('a')}${imgClass}" ${imgStyleA}
-           onclick="handleVotedSideClick('${battle.id}','a')">
-        ${imgOverlay}
-        <div class="voted-result-bar" style="width:${pctA}%"></div>
-        <div class="voted-result-pct">${pctA}%</div>
-        <div class="voted-result-label">${escapeHtml(battle.option_a)}</div>
-      </div>
-      <div class="${cls('b')}${imgClass}" ${imgStyleB}
-           onclick="handleVotedSideClick('${battle.id}','b')">
-        ${imgOverlay}
-        <div class="voted-result-bar" style="width:${pctB}%"></div>
-        <div class="voted-result-pct">${pctB}%</div>
-        <div class="voted-result-label">${escapeHtml(battle.option_b)}</div>
-      </div>
-    </div>
-    <div class="voted-split-bar">
-      <div class="voted-split-bar-a-wrap"><div class="voted-split-bar-a" style="width:${Math.min((pctA/50)*100,100)}%"></div></div>
-      <div class="voted-split-bar-b-wrap"><div class="voted-split-bar-b" style="width:${Math.min((pctB/50)*100,100)}%"></div></div>
+    <div class="vcard-question">${escapeHtml(battle.question)}</div>
+    <div class="vcard-images">${sideA}${sideB}</div>
+    <div class="vcard-nop-hint">Sin opinión — tap to vote</div>
+    <div class="vcard-footer">
+      <span class="vcard-count">${voteTotalLabel(counts={a:0,b:0}, 'no_opinion')}</span>
+      <button class="battle-share-btn" onclick="shareBattle(event,'${battle.id}')">Share ↗</button>
     </div>`;
 }
+
+function buildResultCard(battle, pctA, pctB, leader, myChoice, imgA, imgB) {
+  const chosenSide = myChoice === 'a' ? 'a' : 'b';
+  const dimmedSide = myChoice === 'a' ? 'b' : 'a';
+
+  const sideHtml = (side, img, label, pct) => {
+    const isChosen  = side === chosenSide;
+    const isLeader  = side === leader;
+    const cls = ['vcard-side', `vcard-side-${side}`, isChosen ? 'vcard-chosen' : 'vcard-dimmed'].join(' ');
+    const imgHtml = img
+      ? `<div class="${cls}" style="background-image:url('${escapeHtml(img)}')" onclick="handleVotedSideClick('${battle.id}','${side}')">
+           <div class="vcard-label">${escapeHtml(label)}</div>
+         </div>`
+      : `<div class="${cls} vcard-no-img" onclick="handleVotedSideClick('${battle.id}','${side}')">
+           <div class="vcard-label">${escapeHtml(label)}</div>
+         </div>`;
+    return imgHtml;
+  };
+
+  const htmlA = sideHtml('a', imgA, battle.option_a, pctA);
+  const htmlB = sideHtml('b', imgB, battle.option_b, pctB);
+
+  // Result bar: grows from center outward
+  // A bar: in left half, width = pctA% of total bar (a-wrap = 50%, bar inside = pctA*2% clamped)
+  // But simpler: just use flex where a-wrap width = pctA%, b-wrap = pctB%
+  const aLeader = leader === 'a';
+  const bLeader = leader === 'b';
+  const counts = {a: 0, b: 0}; // dummy for label
+  const total = 0;
+
+  return `
+    <div class="vcard-question">${escapeHtml(battle.question)}</div>
+    <div class="vcard-images">${htmlA}${htmlB}</div>
+    <div class="vcard-result">
+      <div class="vcard-result-side vcard-result-a${aLeader ? ' vcard-result-winner' : ''}">
+        <span class="vcard-result-pct">${pctA}%</span>
+        <span class="vcard-result-name">${escapeHtml(battle.option_a)}</span>
+      </div>
+      <div class="vcard-result-bar">
+        <div class="vcard-bar-a" style="width:${pctA}%"></div>
+        <div class="vcard-bar-b" style="width:${pctB}%"></div>
+      </div>
+      <div class="vcard-result-side vcard-result-b${bLeader ? ' vcard-result-winner' : ''}">
+        <span class="vcard-result-pct">${pctB}%</span>
+        <span class="vcard-result-name">${escapeHtml(battle.option_b)}</span>
+      </div>
+    </div>
+    <div class="vcard-footer">
+      <span class="vcard-count">${voteTotalLabel({a: Math.round(pctA), b: Math.round(pctB)}, myChoice)}</span>
+      <button class="battle-share-btn" onclick="shareBattle(event,'${battle.id}')">Share ↗</button>
+    </div>`;
+}
+
+function renderVotedResult() {} // kept for compatibility - unused
 
 // Click chosen side = unvote (back to no_opinion). Click other side = change vote.
 async function handleVotedSideClick(battleId, side) {
@@ -611,8 +612,9 @@ async function shareBattle(e, battleId) {
    HELPERS
 ═══════════════════════════════════════ */
 function voteTotalLabel(counts, myChoice) {
+  // counts.a and counts.b are real vote counts from TALLY
   const total = (counts.a || 0) + (counts.b || 0);
-  if (!total && myChoice === 'no_opinion') return 'No votes yet';
+  if (!total || myChoice === 'no_opinion') return 'No votes yet';
   return `${total.toLocaleString()} vote${total !== 1 ? 's' : ''}`;
 }
 
