@@ -410,113 +410,65 @@
   background-size: cover !important;
 }
 
-/* ── Result row (below images) ── */
-/* Two columns: A left, B right */
-.vcard-result-side {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
+/* ── Two bars directly below images ── */
+/* Grid mirrors the images: left = A, right = B */
+.vcard-bars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 6px;
+  background: rgba(26,23,20,0.08);
 }
-.vcard-result-a { justify-content: flex-start; }
-.vcard-result-b { justify-content: flex-end; }
-
-.vcard-result-pct {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.vcard-result-name {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* Winner: bold and bigger */
-.vcard-result-winner .vcard-result-pct {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--text);
-}
-.vcard-result-winner .vcard-result-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-/* Result section: pcts on top, bar in middle, names on bottom */
-.vcard-result {
-  padding: 10px 14px 8px;
-  border-top: 1px solid var(--rule);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-/* Row 1: percentages left and right */
-.vcard-result-pcts {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-/* Row 3: names left and right */
-.vcard-result-names {
-  display: flex;
-  justify-content: space-between;
-}
-.vcard-result-a { align-items: flex-start; }
-.vcard-result-b { align-items: flex-end; }
-
-/* Bar: grows from center pin outward
-   Left half:  [grey░░░░|blue━━] right edge = center pin
-   Right half: [blue━━|grey░░░░] left edge = center pin
-   For 67/33: left = 33% grey + 67% blue | right = 33% blue + 67% grey */
-.vcard-result-bar {
-  display: flex;
-  height: 5px;
-  border-radius: 999px;
+/* Left bar row: A fills from LEFT rightward */
+.vcard-bar-row-a {
+  height: 100%;
   overflow: hidden;
-  width: 100%;
-  position: relative;
-  background: rgba(26,23,20,0.1); /* grey base = unfilled parts */
+  border-right: 1.5px solid rgba(26,23,20,0.15); /* center divider */
 }
-/* Center pin */
-.vcard-result-bar::after {
-  content: '';
-  position: absolute;
-  left: 50%; top: 0;
-  transform: translateX(-50%);
-  width: 2px; height: 100%;
-  background: var(--text);
-  opacity: 0.3;
-  z-index: 2;
-}
-/* Left half: transparent wrap, blue fills from RIGHT (center) */
-.vcard-bar-a-wrap {
-  width: 50%; height: 100%;
-  background: transparent;
+/* Right bar row: B fills from RIGHT leftward */
+.vcard-bar-row-b {
+  height: 100%;
+  overflow: hidden;
   display: flex;
   justify-content: flex-end;
-  overflow: hidden;
 }
-.vcard-bar-a {
+.vcard-bar-fill {
   height: 100%;
   background: var(--accent);
-  opacity: 0.75;
-  flex-shrink: 0;
+  opacity: 0.45;
   transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
+  flex-shrink: 0;
 }
-/* Right half: transparent wrap, blue fills from LEFT (center) */
-.vcard-bar-b-wrap {
-  width: 50%; height: 100%;
-  background: transparent;
+.vcard-bar-fill.winner { opacity: 0.8; }
+
+/* ── Result row: % and name per side ── */
+.vcard-result {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 10px 14px 8px;
+  border-top: 1px solid var(--rule);
+}
+.vcard-side-label {
   display: flex;
-  justify-content: flex-start;
-  overflow: hidden;
+  flex-direction: column;
+  gap: 2px;
 }
-.vcard-bar-b {
-  height: 100%;
-  background: var(--accent);
-  opacity: 0.75;
-  flex-shrink: 0;
-  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
+.vcard-side-label-b {
+  align-items: flex-end;
+  text-align: right;
+}
+.vcard-result-pct {
+  font-size: 15px; font-weight: 600;
+  color: var(--muted); line-height: 1;
+}
+.vcard-result-name {
+  font-size: 11px; color: var(--muted);
+}
+/* Winner: bigger and darker */
+.vcard-result-winner .vcard-result-pct {
+  font-size: 20px; font-weight: 800; color: var(--text);
+}
+.vcard-result-winner .vcard-result-name {
+  font-size: 12px; font-weight: 700; color: var(--text);
 }
 
 /* Footer: votes + share */

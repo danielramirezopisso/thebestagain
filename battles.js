@@ -403,25 +403,35 @@ function buildResultCard(battle, pctA, pctB, leader, myChoice, imgA, imgB, count
   const aLeader = leader === 'a';
   const bLeader = leader === 'b';
 
+  // Bar logic: each side has its own bar row
+  // Left bar (A): fills rightward from left edge, width = pctA%
+  // Right bar (B): fills leftward from right edge, width = pctB%
+  // Both bars sit under their respective image half
+  const totalVotes = (counts.a||0) + (counts.b||0);
+
   return `
     <div class="vcard-question">${escapeHtml(battle.question)}</div>
     <div class="vcard-images">${htmlA}${htmlB}</div>
+    <div class="vcard-bars">
+      <div class="vcard-bar-row vcard-bar-row-a">
+        <div class="vcard-bar-fill vcard-bar-fill-a${aLeader ? ' winner' : ''}" style="width:${pctA}%"></div>
+      </div>
+      <div class="vcard-bar-row vcard-bar-row-b">
+        <div class="vcard-bar-fill vcard-bar-fill-b${bLeader ? ' winner' : ''}" style="width:${pctB}%"></div>
+      </div>
+    </div>
     <div class="vcard-result">
-      <div class="vcard-result-pcts">
-        <span class="vcard-result-pct${aLeader ? ' vcard-result-winner' : ''}">${pctA}%</span>
-        <span class="vcard-result-pct${bLeader ? ' vcard-result-winner' : ''}">${pctB}%</span>
+      <div class="vcard-side-label${aLeader ? ' vcard-result-winner' : ''}">
+        <span class="vcard-result-pct">${pctA}%</span>
+        <span class="vcard-result-name">${escapeHtml(battle.option_a)}</span>
       </div>
-      <div class="vcard-result-bar">
-        <div class="vcard-bar-a-wrap"><div class="vcard-bar-a" style="width:${Math.min(pctA*2,100)}%"></div></div>
-        <div class="vcard-bar-b-wrap"><div class="vcard-bar-b" style="width:${Math.min(pctB*2,100)}%"></div></div>
-      </div>
-      <div class="vcard-result-names">
-        <span class="vcard-result-name${aLeader ? ' vcard-result-winner' : ''}">${escapeHtml(battle.option_a)}</span>
-        <span class="vcard-result-name${bLeader ? ' vcard-result-winner' : ''}">${escapeHtml(battle.option_b)}</span>
+      <div class="vcard-side-label vcard-side-label-b${bLeader ? ' vcard-result-winner' : ''}">
+        <span class="vcard-result-pct">${pctB}%</span>
+        <span class="vcard-result-name">${escapeHtml(battle.option_b)}</span>
       </div>
     </div>
     <div class="vcard-footer">
-      <span class="vcard-count">${voteTotalLabel(counts, myChoice)}</span>
+      <span class="vcard-count">${totalVotes > 0 ? totalVotes.toLocaleString() + ' vote' + (totalVotes !== 1 ? 's' : '') : 'No votes yet'}</span>
       <button class="battle-share-btn" onclick="shareBattle(event,'${battle.id}')">Share ↗</button>
     </div>`;
 }
