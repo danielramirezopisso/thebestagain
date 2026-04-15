@@ -348,7 +348,7 @@ function buildVotedCard(battle, counts, myChoice) {
   if (myChoice === 'no_opinion') {
     card.innerHTML = buildNoOpinionCard(battle, imgA, imgB);
   } else {
-    card.innerHTML = buildResultCard(battle, pctA, pctB, leader, myChoice, imgA, imgB);
+    card.innerHTML = buildResultCard(battle, pctA, pctB, leader, myChoice, imgA, imgB, counts);
   }
   return card;
 }
@@ -378,7 +378,7 @@ function buildNoOpinionCard(battle, imgA, imgB) {
     </div>`;
 }
 
-function buildResultCard(battle, pctA, pctB, leader, myChoice, imgA, imgB) {
+function buildResultCard(battle, pctA, pctB, leader, myChoice, imgA, imgB, counts) {
   const chosenSide = myChoice === 'a' ? 'a' : 'b';
   const dimmedSide = myChoice === 'a' ? 'b' : 'a';
 
@@ -399,33 +399,29 @@ function buildResultCard(battle, pctA, pctB, leader, myChoice, imgA, imgB) {
   const htmlA = sideHtml('a', imgA, battle.option_a, pctA);
   const htmlB = sideHtml('b', imgB, battle.option_b, pctB);
 
-  // Result bar: grows from center outward
-  // A bar: in left half, width = pctA% of total bar (a-wrap = 50%, bar inside = pctA*2% clamped)
-  // But simpler: just use flex where a-wrap width = pctA%, b-wrap = pctB%
+  // Result bar grows from center outward
   const aLeader = leader === 'a';
   const bLeader = leader === 'b';
-  const counts = {a: 0, b: 0}; // dummy for label
-  const total = 0;
 
   return `
     <div class="vcard-question">${escapeHtml(battle.question)}</div>
     <div class="vcard-images">${htmlA}${htmlB}</div>
     <div class="vcard-result">
-      <div class="vcard-result-side vcard-result-a${aLeader ? ' vcard-result-winner' : ''}">
-        <span class="vcard-result-pct">${pctA}%</span>
-        <span class="vcard-result-name">${escapeHtml(battle.option_a)}</span>
+      <div class="vcard-result-pcts">
+        <span class="vcard-result-pct${aLeader ? ' vcard-result-winner' : ''}">${pctA}%</span>
+        <span class="vcard-result-pct${bLeader ? ' vcard-result-winner' : ''}">${pctB}%</span>
       </div>
       <div class="vcard-result-bar">
         <div class="vcard-bar-a-wrap"><div class="vcard-bar-a" style="width:${Math.min(pctA*2,100)}%"></div></div>
         <div class="vcard-bar-b-wrap"><div class="vcard-bar-b" style="width:${Math.min(pctB*2,100)}%"></div></div>
       </div>
-      <div class="vcard-result-side vcard-result-b${bLeader ? ' vcard-result-winner' : ''}">
-        <span class="vcard-result-pct">${pctB}%</span>
-        <span class="vcard-result-name">${escapeHtml(battle.option_b)}</span>
+      <div class="vcard-result-names">
+        <span class="vcard-result-name${aLeader ? ' vcard-result-winner' : ''}">${escapeHtml(battle.option_a)}</span>
+        <span class="vcard-result-name${bLeader ? ' vcard-result-winner' : ''}">${escapeHtml(battle.option_b)}</span>
       </div>
     </div>
     <div class="vcard-footer">
-      <span class="vcard-count">${voteTotalLabel({a: Math.round(pctA), b: Math.round(pctB)}, myChoice)}</span>
+      <span class="vcard-count">${voteTotalLabel(counts, myChoice)}</span>
       <button class="battle-share-btn" onclick="shareBattle(event,'${battle.id}')">Share ↗</button>
     </div>`;
 }

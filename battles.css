@@ -442,17 +442,27 @@
   color: var(--text);
 }
 
-/* Result row: A% | bar-from-center | B% */
+/* Result section: pcts on top, bar in middle, names on bottom */
 .vcard-result {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px 6px;
+  padding: 10px 14px 8px;
   border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
-.vcard-result-a { justify-content: flex-start; }
-.vcard-result-b { justify-content: flex-end;   }
+/* Row 1: percentages left and right */
+.vcard-result-pcts {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+/* Row 3: names left and right */
+.vcard-result-names {
+  display: flex;
+  justify-content: space-between;
+}
+.vcard-result-a { align-items: flex-start; }
+.vcard-result-b { align-items: flex-end; }
 
 /* Bar: grows from center pin outward
    Left half:  [grey░░░░|blue━━] right edge = center pin
@@ -465,6 +475,7 @@
   overflow: hidden;
   width: 100%;
   position: relative;
+  background: rgba(26,23,20,0.1); /* grey base = unfilled parts */
 }
 /* Center pin */
 .vcard-result-bar::after {
@@ -477,36 +488,33 @@
   opacity: 0.3;
   z-index: 2;
 }
-/* Left half: grey bg, blue fills from RIGHT (center) */
+/* Left half: transparent wrap, blue fills from RIGHT (center) */
 .vcard-bar-a-wrap {
   width: 50%; height: 100%;
-  background: var(--muted);
-  opacity: 0.2;
+  background: transparent;
   display: flex;
-  justify-content: flex-end; /* blue anchored to right=center */
+  justify-content: flex-end;
   overflow: hidden;
-  position: relative;
 }
 .vcard-bar-a {
   height: 100%;
   background: var(--accent);
-  opacity: 1; /* opacity handled by wrapper */
+  opacity: 0.75;
   flex-shrink: 0;
   transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
 }
-/* Right half: grey bg, blue fills from LEFT (center) */
+/* Right half: transparent wrap, blue fills from LEFT (center) */
 .vcard-bar-b-wrap {
   width: 50%; height: 100%;
-  background: var(--muted);
-  opacity: 0.2;
+  background: transparent;
   display: flex;
-  justify-content: flex-start; /* blue anchored to left=center */
+  justify-content: flex-start;
   overflow: hidden;
 }
 .vcard-bar-b {
   height: 100%;
   background: var(--accent);
-  opacity: 1;
+  opacity: 0.75;
   flex-shrink: 0;
   transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
 }
