@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   BATTLES PAGE v2
+   BATTLES PAGE — full CSS
 ══════════════════════════════════════════════════════ */
 
 .battles-page { background: var(--page-bg); min-height: 100dvh; }
@@ -32,34 +32,9 @@
 
 /* ── Stats ── */
 .battles-stats {
-  text-align: center; font-size: 13px; font-weight: 700;
-  letter-spacing: 0.04em; text-transform: uppercase;
-  color: var(--accent); margin-bottom: 16px;
-}
-
-/* ── Progress bar ── */
-.battles-progress {
-  max-width: 420px;
-  margin: 0 auto 28px;
-}
-.battles-progress-track {
-  height: 6px;
-  background: var(--faint);
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid var(--rule);
-  margin-bottom: 6px;
-}
-.battles-progress-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 999px;
-  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
-}
-.battles-progress-label {
-  text-align: center;
-  font-size: 11px; font-weight: 600;
-  color: var(--muted); letter-spacing: 0.04em;
+  text-align: center; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 20px;
 }
 
 /* ── Skeleton ── */
@@ -79,64 +54,44 @@
    CARD STACK
 ══════════════════════════════════════ */
 .stack-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: flex; flex-direction: column; align-items: center;
   margin-bottom: 8px;
 }
-
 .stack-wrap {
   position: relative;
   width: 100%; max-width: 420px;
-  height: 310px;
-  cursor: grab;
+  height: 310px; cursor: grab;
 }
 .stack-wrap:active { cursor: grabbing; }
 
-/* Cards: all stacked absolutely */
 .stack-card {
   position: absolute; inset: 0;
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
-  display: flex; flex-direction: column;
-  overflow: hidden;
-  user-select: none; touch-action: none;
-  transform-origin: center bottom;
-  will-change: transform;
-  /* Default: hidden far back */
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 20px; display: flex; flex-direction: column;
+  overflow: hidden; user-select: none; touch-action: none;
+  transform-origin: center bottom; will-change: transform;
   transform: scale(0.88) translateY(26px);
-  z-index: 0;
-  pointer-events: none;
-  box-shadow: none;
-  /* Only show top 3 */
+  z-index: 0; pointer-events: none; box-shadow: none;
   display: none;
 }
-
-/* Show only last 3 children */
 .stack-card:nth-last-child(1) {
-  display: flex;
-  transform: scale(1) translateY(0);
+  display: flex; transform: scale(1) translateY(0);
   z-index: 10; pointer-events: auto;
   box-shadow: 0 12px 40px rgba(26,23,20,0.14);
 }
 .stack-card:nth-last-child(2) {
-  display: flex;
-  transform: scale(0.95) translateY(10px);
+  display: flex; transform: scale(0.95) translateY(10px);
   z-index: 5; pointer-events: none;
 }
 .stack-card:nth-last-child(3) {
-  display: flex;
-  transform: scale(0.90) translateY(20px);
+  display: flex; transform: scale(0.90) translateY(20px);
   z-index: 1; pointer-events: none;
 }
-
 .stack-card.dragging {
   transition: none !important;
   box-shadow: 0 24px 60px rgba(26,23,20,0.20) !important;
 }
 
-/* Fly animations */
 @keyframes flyLeft  { to { transform: translateX(-150%) rotate(-22deg); opacity: 0; } }
 @keyframes flyRight { to { transform: translateX(150%)  rotate( 22deg); opacity: 0; } }
 @keyframes flyUp    { to { transform: translateY(-60%)  scale(0.85);    opacity: 0; } }
@@ -145,16 +100,13 @@
 .stack-card.fly-right { animation: flyRight 0.38s cubic-bezier(0.55,0,1,0.45) forwards !important; }
 .stack-card.fly-up    { animation: flyUp    0.30s ease-in forwards !important; }
 
-/* Promote — smooth transition for cards behind */
 .stack-wrap.promoting .stack-card:nth-last-child(2) {
-  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1),
-              box-shadow 0.3s ease !important;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease !important;
 }
 .stack-wrap.promoting .stack-card:nth-last-child(3) {
   transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1) !important;
 }
 
-/* Vote indicators */
 .vote-indicator {
   position: absolute; top: 18px;
   font-size: 12px; font-weight: 800;
@@ -163,16 +115,9 @@
   opacity: 0; transition: opacity 0.08s;
   z-index: 20; pointer-events: none;
 }
-.vote-indicator-a {
-  left: 16px; color: #2d9b6f; border-color: #2d9b6f;
-  background: rgba(45,155,111,0.08); transform: rotate(-8deg);
-}
-.vote-indicator-b {
-  right: 16px; color: #e05252; border-color: #e05252;
-  background: rgba(224,82,82,0.08); transform: rotate(8deg);
-}
+.vote-indicator-a { left: 16px; color: #2d9b6f; border-color: #2d9b6f; background: rgba(45,155,111,0.08); transform: rotate(-8deg); }
+.vote-indicator-b { right: 16px; color: #e05252; border-color: #e05252; background: rgba(224,82,82,0.08); transform: rotate(8deg); }
 
-/* Card question */
 .stack-card-question {
   padding: 20px 22px 0;
   font-family: 'Playfair Display', Georgia, serif;
@@ -180,41 +125,29 @@
   color: var(--text); text-align: center; flex-shrink: 0;
 }
 
-/* Options row — no border divider, VS is overlaid */
 .stack-card-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  flex: 1; min-height: 0;
-  position: relative;
+  display: grid; grid-template-columns: 1fr 1fr;
+  flex: 1; min-height: 0; position: relative;
 }
-
 .stack-card-opt {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 8px; padding: 20px 14px;
-  cursor: pointer;
+  gap: 8px; padding: 20px 14px; cursor: pointer;
   transition: background 0.12s;
   -webkit-tap-highlight-color: transparent;
 }
 .stack-card-opt:first-child { border-right: 1px solid var(--rule); }
 .stack-card-opt:active { background: var(--faint); }
 
-/* VS overlaid in the center */
 .stack-vs-overlay {
-  position: absolute;
-  top: 50%; left: 50%;
+  position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   font-size: 10px; font-weight: 900;
   letter-spacing: 0.14em; color: var(--muted);
-  background: var(--card);
-  border: 1.5px solid var(--rule);
-  border-radius: 999px;
-  padding: 4px 8px;
-  pointer-events: none;
-  z-index: 5;
+  background: var(--card); border: 1.5px solid var(--rule);
+  border-radius: 999px; padding: 4px 8px;
+  pointer-events: none; z-index: 5;
 }
-
-.stack-opt-emoji { font-size: 34px; line-height: 1; }
 .stack-opt-label {
   font-size: 14px; font-weight: 700;
   color: var(--text); text-align: center; line-height: 1.3;
@@ -224,47 +157,117 @@
   text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;
 }
 
-/* Swipe hints */
+/* Image mode */
+.stack-card-options-img { grid-template-columns: 1fr 1fr; }
+.stack-card-opt-img {
+  position: relative; background-size: cover !important;
+  background-position: center !important;
+  transform: none !important;
+}
+.stack-card-opt-img:hover { background-size: cover !important; transform: none !important; }
+.stack-opt-img-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(transparent 40%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+}
+.stack-opt-label-img, .stack-opt-hint-img {
+  position: relative; z-index: 2;
+  color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.stack-vs-overlay-img {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: rgba(255,255,255,0.88); backdrop-filter: blur(6px);
+  border: 1.5px solid rgba(255,255,255,0.5);
+  border-radius: 12px; padding: 8px 12px;
+  max-width: 130px; text-align: center; z-index: 10;
+}
+.stack-vs-question {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 11px; font-weight: 700; color: var(--text); line-height: 1.3;
+}
+.stack-vs-overlay-img span {
+  font-size: 9px; font-weight: 900; letter-spacing: 0.14em; color: var(--muted);
+}
+
+/* Single image mode */
+.stack-card-single-img {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: flex-end;
+  background-size: cover !important; background-position: center !important;
+  border-radius: 18px; overflow: hidden; position: relative;
+  transform: none !important;
+}
+.stack-single-gradient {
+  position: absolute; inset: 0;
+  background: linear-gradient(transparent 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.72) 100%);
+  pointer-events: none;
+}
+.stack-single-question {
+  position: relative; z-index: 2;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 16px; font-weight: 700; color: #fff;
+  text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  padding: 0 18px 12px; line-height: 1.35;
+}
+.stack-single-options {
+  position: relative; z-index: 2;
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  border-top: 1px solid rgba(255,255,255,0.15);
+}
+.stack-single-opt {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; padding: 14px 12px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+}
+.stack-single-opt:hover { background: rgba(255,255,255,0.08); }
+.stack-single-opt-label {
+  font-size: 13px; font-weight: 700; color: #fff;
+  text-align: center; text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.stack-single-opt-hint {
+  font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.6);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.stack-single-vs {
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 10px; font-size: 9px; font-weight: 900;
+  letter-spacing: 0.14em; color: rgba(255,255,255,0.5);
+  border-left: 1px solid rgba(255,255,255,0.12);
+  border-right: 1px solid rgba(255,255,255,0.12);
+}
+
 .stack-hint {
-  display: flex; align-items: center;
-  justify-content: space-between;
-  width: 100%; max-width: 420px;
-  padding: 10px 4px 0;
-  font-size: 11px; font-weight: 600;
-  color: var(--muted); letter-spacing: 0.04em;
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; max-width: 420px; padding: 10px 4px 0;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.04em;
 }
 .hint-a   { color: #2d9b6f; }
 .hint-b   { color: #e05252; }
 .hint-mid { color: var(--muted); font-style: italic; font-weight: 400; }
 
-/* No opinion button */
 .no-opinion-btn {
-  margin-top: 16px;
-  background: none;
-  border: 1.5px solid var(--border);
-  border-radius: 999px;
-  padding: 8px 22px;
-  font-size: 13px; font-weight: 600;
-  color: var(--muted); cursor: pointer;
-  letter-spacing: 0.03em;
-  transition: border-color 0.15s, color 0.15s;
-  box-shadow: none;
+  margin-top: 16px; background: none;
+  border: 1.5px solid var(--border); border-radius: 999px;
+  padding: 8px 22px; font-size: 13px; font-weight: 600;
+  color: var(--muted); cursor: pointer; letter-spacing: 0.03em;
+  transition: border-color 0.15s, color 0.15s; box-shadow: none;
 }
 .no-opinion-btn:hover {
   border-color: var(--text); color: var(--text);
   background: none; transform: none; box-shadow: none;
 }
 
-/* All done — hidden entirely, progress bar above is enough */
-.battles-all-done { display: none !important; }
-
 /* ══════════════════════════════════════
-   SECTION DIVIDER
+   DIVIDERS
 ══════════════════════════════════════ */
 .battles-section-divider {
   display: flex; align-items: center; gap: 14px;
-  margin: 36px 0 22px;
-  color: var(--muted); font-size: 11px; font-weight: 700;
+  margin: 36px 0 24px; color: var(--muted);
+  font-size: 11px; font-weight: 700;
   letter-spacing: 0.2em; text-transform: uppercase;
 }
 .battles-section-divider::before,
@@ -273,239 +276,211 @@
 }
 
 /* ══════════════════════════════════════
-   VOTED GRID — 2 columns on desktop
+   VOTED GRID — 2 col desktop
 ══════════════════════════════════════ */
 .battles-voted-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  display: flex; flex-direction: column; gap: 0;
+  padding-bottom: 60px;
 }
 
-/* Voted card */
-
-/* ══════════════════════════════════════
-   VOTED CARDS — clean rebuild
-══════════════════════════════════════ */
-
-/* Grid layout */
-.battles-voted-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding-bottom: 40px;
-}
-
-/* Category dividers */
-.battles-category-divider {
+/* Category label */
+.bv-category-divider {
   display: flex; align-items: center; gap: 12px;
-  margin: 28px 0 14px;
-  font-size: 11px; font-weight: 700;
-  letter-spacing: 0.18em; text-transform: uppercase;
+  margin: 20px 0 14px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
   color: var(--muted);
 }
-.battles-category-divider:first-child { margin-top: 8px; }
-.battles-category-divider::before,
-.battles-category-divider::after {
-  content: ''; flex: 1; height: 1px; background: var(--rule);
+.bv-category-divider:first-child { margin-top: 0; }
+.bv-category-divider::before,
+.bv-category-divider::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+
+/* 2-column group */
+.bv-group {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 14px; margin-bottom: 0;
 }
 
-/* Category group: 2 columns on desktop */
-.battles-category-group {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-/* ── The voted card ── */
-.voted-card {
+/* ── The card ── */
+.bv-card {
   background: var(--card);
   border: 1.5px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   transition: box-shadow 0.15s;
 }
-.voted-card:hover { box-shadow: 0 4px 20px rgba(26,23,20,0.07); }
+.bv-card:hover { box-shadow: 0 4px 20px rgba(26,23,20,0.07); }
 
-/* Question title */
-.vcard-question {
-  padding: 14px 16px 12px;
+.bv-question {
+  padding: 13px 14px 11px;
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 15px; font-weight: 700;
-  line-height: 1.3; color: var(--text);
-  border-bottom: 1px solid var(--rule);
+  font-size: 14px; font-weight: 700; line-height: 1.3;
+  color: var(--text); border-bottom: 1px solid var(--rule);
 }
 
-/* Images row */
-.vcard-images {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: 160px;
+/* ── Images ── */
+.bv-images {
+  display: grid; grid-template-columns: 1fr 1fr;
+  height: 140px; overflow: hidden;
 }
-
-/* Each image side */
-.vcard-side {
-  position: relative;
-  background-size: cover;
-  background-position: center;
+/* Each half */
+.bv-img {
+  background-size: cover !important;
+  background-position: center !important;
   background-repeat: no-repeat;
-  cursor: pointer;
-  overflow: hidden;
-  /* NO transform, NO transition on background */
-}
-.vcard-side:first-child { border-right: 1px solid var(--border); }
-
-/* Absolutely no zoom ever */
-.vcard-side,
-.vcard-side:hover,
-.vcard-side:active {
-  transform: none !important;
-  background-size: cover !important;
-}
-
-/* Label at bottom of each side */
-.vcard-label {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  padding: 8px 10px;
-  background: rgba(0,0,0,0.55);
-  color: #fff;
-  font-size: 12px; font-weight: 700;
-  text-align: center;
-  line-height: 1.3;
-}
-
-/* No-image fallback */
-.vcard-no-img {
-  background: var(--faint);
-  display: flex; align-items: center; justify-content: center;
-}
-.vcard-no-img .vcard-label {
-  position: static;
-  background: none;
-  color: var(--text);
-  font-size: 14px;
-  padding: 0 12px;
-}
-
-/* Chosen side: normal */
-.vcard-chosen {
-  opacity: 1;
-  filter: none;
-}
-/* Chosen indicator on label */
-.vcard-chosen .vcard-label::before {
-  content: '✓ ';
-}
-
-/* Dimmed side: greyed out, no zoom on hover */
-.vcard-dimmed {
-  opacity: 0.4;
-  filter: grayscale(0.6) brightness(0.85);
   transition: opacity 0.2s, filter 0.2s;
-}
-.vcard-dimmed:hover {
-  opacity: 0.65;
-  filter: grayscale(0.3) brightness(0.95);
+  cursor: pointer;
+  /* NEVER zoom */
   transform: none !important;
+}
+.bv-img:hover { transform: none !important; background-size: cover !important; }
+.bv-img:first-child { border-right: 1px solid var(--border); }
+
+/* Chosen: full colour */
+.bv-img.chosen { opacity: 1; filter: none; }
+/* Dimmed: greyed out */
+.bv-img.dimmed { opacity: 0.35; filter: grayscale(0.6) brightness(0.85); }
+.bv-img.dimmed:hover { opacity: 0.6; filter: grayscale(0.2); }
+
+/* Single image — spans full width */
+.bv-image-single {
+  height: 140px;
   background-size: cover !important;
+  background-position: center !important;
+  position: relative;
+  transform: none !important;
 }
+/* Labels overlaid at bottom for single-image battles (only case where we need them on image) */
+.bv-single-labels {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: linear-gradient(transparent, rgba(0,0,0,0.55));
+}
+.bv-single-label {
+  background: none; border: none; box-shadow: none;
+  color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 600;
+  padding: 10px 10px 10px; text-align: center;
+  cursor: pointer; border-radius: 0;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  transition: color 0.15s; transform: none;
+}
+.bv-single-label:first-child { border-right: 1px solid rgba(255,255,255,0.2); }
+.bv-single-label.chosen { color: #fff; font-weight: 800; }
+.bv-single-label:hover { color: #fff; background: rgba(255,255,255,0.08); transform: none; box-shadow: none; }
 
-/* ── Two bars directly below images ── */
-/* Grid mirrors the images: left = A, right = B */
-.vcard-bars {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: 6px;
-  background: rgba(26,23,20,0.08);
+/* No-image text fallback */
+.bv-text-options {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; padding: 18px 12px;
+  gap: 8px; border-bottom: 1px solid var(--rule);
 }
-/* Left bar row: A fills from LEFT rightward */
-.vcard-bar-row-a {
-  height: 100%;
-  overflow: hidden;
-  border-right: 1.5px solid rgba(26,23,20,0.15); /* center divider */
+.bv-text-opt {
+  background: var(--faint); border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+  cursor: pointer; text-align: center;
+  transition: background 0.12s, border-color 0.12s;
+  box-shadow: none;
 }
-/* Right bar row: B fills from RIGHT leftward */
-.vcard-bar-row-b {
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-  justify-content: flex-end;
+.bv-text-opt.chosen {
+  background: rgba(45,74,138,0.06); border-color: var(--accent); color: var(--accent);
 }
-.vcard-bar-fill {
-  height: 100%;
-  background: var(--accent);
-  opacity: 0.45;
-  transition: width 0.7s cubic-bezier(0.16,1,0.3,1);
-  flex-shrink: 0;
-}
-.vcard-bar-fill.winner { opacity: 0.8; }
+.bv-text-opt:hover { border-color: var(--text); background: var(--faint); transform: none; box-shadow: none; }
+.bv-vs { font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 0.1em; }
 
-/* ── Result row: % and name per side ── */
-.vcard-result {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 10px 14px 8px;
+/* ── Result rows ── */
+.bv-results {
+  padding: 10px 14px 4px;
+  display: flex; flex-direction: column; gap: 6px;
   border-top: 1px solid var(--rule);
 }
-.vcard-side-label {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+
+.bv-row {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 3px 0;
+  border-radius: 6px;
+  transition: background 0.1s;
 }
-.vcard-side-label-b {
-  align-items: flex-end;
-  text-align: right;
-}
-.vcard-result-pct {
-  font-size: 15px; font-weight: 600;
-  color: var(--muted); line-height: 1;
-}
-.vcard-result-name {
-  font-size: 11px; color: var(--muted);
-}
-/* Winner: bigger and darker */
-.vcard-result-winner .vcard-result-pct {
-  font-size: 20px; font-weight: 800; color: var(--text);
-}
-.vcard-result-winner .vcard-result-name {
-  font-size: 12px; font-weight: 700; color: var(--text);
+.bv-row:hover { background: var(--faint); }
+
+/* % */
+.bv-row-pct {
+  font-size: 14px; font-weight: 700;
+  color: var(--muted); text-align: right;
+  font-variant-numeric: tabular-nums;
+  min-width: 42px;
 }
 
-/* Footer: votes + share */
-.vcard-footer {
+/* Bar track */
+.bv-row-bar-wrap {
+  height: 5px;
+  background: rgba(26,23,20,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+/* Bar fill — width set inline as exact pct% */
+.bv-row-bar {
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.4;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* Label */
+.bv-row-label {
+  font-size: 12px; color: var(--muted);
+  text-align: right; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* Chosen row */
+.bv-row.bv-row-chosen .bv-row-pct  { color: var(--accent); }
+.bv-row.bv-row-chosen .bv-row-bar  { opacity: 0.7; }
+.bv-row.bv-row-chosen .bv-row-label { color: var(--accent); }
+
+/* Leader row */
+.bv-row.bv-row-leader .bv-row-pct  { font-size: 17px; color: var(--text); }
+.bv-row.bv-row-leader .bv-row-label { font-weight: 700; color: var(--text); font-size: 13px; }
+.bv-row.bv-row-leader .bv-row-bar  { opacity: 0.75; }
+
+/* Chosen + leader */
+.bv-row.bv-row-chosen.bv-row-leader .bv-row-pct  { color: var(--accent); }
+.bv-row.bv-row-chosen.bv-row-leader .bv-row-label { color: var(--accent); }
+
+/* ── Footer ── */
+.bv-footer {
   display: flex; align-items: center;
   justify-content: space-between;
   padding: 8px 14px 10px;
   font-size: 11px; color: var(--muted);
   border-top: 1px solid var(--rule);
 }
-.vcard-count { font-weight: 600; }
-
-/* ── No-opinion state ── */
-.vcard-nop-hint {
-  padding: 8px 14px;
-  font-size: 11px; color: var(--muted);
-  text-align: center;
-  border-top: 1px solid var(--rule);
+.bv-vote-count { font-weight: 600; }
+.bv-share-btn {
+  background: none; border: none; box-shadow: none;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  cursor: pointer; padding: 2px 4px; border-radius: 4px;
+  transition: color 0.12s;
 }
+.bv-share-btn:hover { color: var(--text); background: none; transform: none; box-shadow: none; }
 
-/* ── Stats line ── */
-.battles-stats {
-  text-align: center;
-  font-size: 12px; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
+/* ── Empty state ── */
+.battles-empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+.battles-empty-icon { font-size: 40px; margin-bottom: 12px; }
 
 /* ══════════════════════════════════════
    MOBILE
 ══════════════════════════════════════ */
-@media (max-width: 640px) {
-  .battles-category-group {
-    grid-template-columns: 1fr;
-  }
-  .vcard-images { height: 130px; }
-  .vcard-question { font-size: 13px; }
-  .vcard-result-winner .vcard-result-pct { font-size: 16px; }
+@media (max-width: 620px) {
+  .battles-main { padding: 0 14px 80px; }
+  .battles-hero { padding: 28px 0 14px; }
+  .bv-images { height: 110px; }
+  .bv-image-single { height: 110px; }
+  .bv-row-label { max-width: 80px; }
 }
