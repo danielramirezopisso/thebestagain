@@ -77,79 +77,82 @@ function brandsForCategory(category_id) {
 function renderHero(m, user) {
   document.title = `${m.title} — The Best Again`;
 
-  // Use active category context, fall back to primary
   const activeCatId = ACTIVE_CATEGORY_ID || m.category_id;
   const cat = getCategoryById(activeCatId) || getCategoryById(m.category_id);
-
-  const rawIconUrl = cat?.icon_url || '';
-  const absIconUrl = rawIconUrl
-    ? (rawIconUrl.startsWith('http') ? rawIconUrl
-        : window.location.href.replace(/\/[^/]*(\?.*)?$/, '/') + rawIconUrl)
-    : '';
-  const iconHtml = absIconUrl
-    ? `<img src="${escapeHtml(absIconUrl)}" alt="" onerror="this.style.display='none'" />`
-    : '📦';
-  document.getElementById("heroCatIcon").innerHTML = iconHtml;
-
-  // Type tag
   const isPlace = m.group_type === "place";
-  document.getElementById("heroTypeTag").className = `hero-type-tag ${isPlace ? "type-tag-place" : "type-tag-product"}`;
-  document.getElementById("heroTypeTag").textContent = isPlace ? "📍 Place" : "🛒 Product";
-
-  // Title & subtitle
-  document.getElementById("markerTitle").textContent = m.title;
-  const sub = [];
-  if (cat) sub.push(cat.name);
-  if (!isPlace && m.brand_id) {
-    const brand = getBrandById(m.brand_id);
-    if (brand) sub.push(brand.name);
-  }
-  if (!isPlace && m.product_name) sub.push(m.product_name);
-  if (isPlace && m.chain_id) {
-    const chain = CHAINS_ALL.find(c => c.id === m.chain_id);
-    if (chain) sub.push(`⛓ ${chain.name}`);
-  }
-  document.getElementById("markerSubtitle").textContent = sub.join(" · ");
-
-  // Render other-category chips
-  renderOtherCategoryChips(m, activeCatId);
-
-  // Actions area
-  const actionsEl = document.getElementById("heroActions");
-  const isAdmin   = user?.email?.includes("dropisso");
+  const isAdmin = user?.email?.includes("dropisso");
   const isCreator = user && (m.created_by === user.id || m.created_by === null || isAdmin);
 
-  if (isPlace) {
-    actionsEl.innerHTML = `
-      <button class="tba-btn traction-hero-preorder" onclick="openTraction('preorder', MARKER_ID, '${escapeHtml(cat?.name || "this dish")}')">
-        🛒 Pre-order
-      </button>
-      <a class="tba-btn traction-hero-claim" href="claim.html?id=${encodeURIComponent(MARKER_ID)}">
-        🏢 Claim this place
-      </a>
-      ${wlBtnHtml(m.id)}
-      <button class="tba-btn share-hero-btn" onclick="shareMarker()" title="Share">
-        ↗ Share
-      </button>
-    `;
-  } else {
-    actionsEl.innerHTML = `
-      ${wlBtnHtml(m.id)}
-      <button class="tba-btn share-hero-btn" onclick="shareMarker()" title="Share">
-        ↗ Share
-      </button>
-    `;
+  // Breadcrumb: Category > Place/Product
+  const breadcrumbEl = document.getElementById("mkBreadcrumb");
+  if (breadcrumbEl) {
+    const catLink = cat
+      ? `<a href="map.html">${escapeHtml(cat.name)}</a>`
+      : (isPlace ? "Place" : "Product");
+    breadcrumbEl.innerHTML = `<a href="index.html">Home</a><span>›</span>${catLink}`;
   }
 
-  if (isCreator) {
-    const titleEl = document.getElementById("markerTitle");
-    titleEl.style.display = "flex";
-    titleEl.style.alignItems = "center";
-    titleEl.style.gap = "8px";
-    titleEl.insertAdjacentHTML("beforeend",
-      `<button class="edit-pencil-btn" onclick="enterEditMode()" title="Edit marker">✏️</button>`
-    );
+  // Title
+  const titleEl = document.getElementById("markerTitle");
+  if (titleEl) {
+    titleEl.textContent = m.title;
+    if (isCreator) {
+      titleEl.insertAdjacentHTML("beforeend",
+        `<button class="edit-pencil-btn" onclick="enterEditMode()" title="Edit" style="font-size:14px;background:none;border:none;cursor:pointer;margin-left:8px;">✏️</button>`
+      );
+    }
   }
+
+  // Meta line: category · brand · address snippet
+  const metaEl = document.getElementById("mkMeta");
+  if (metaEl) {
+    const parts = [];
+    if (cat) parts.push(escapeHtml(cat.name));
+    if (!isPlace && m.brand_id) {
+      const brand = getBrandById(m.brand_id);
+      if (brand) parts.push(escapeHtml(brand.name));
+    }
+    if (!isPlace && m.product_name) parts.push(escapeHtml(m.product_name));
+    if (isPlace && m.address) {
+      // Just neighbourhood/city snippet
+      const addrParts = m.address.split(",");
+      if (addrParts.length > 1) parts.push(escapeHtml(addrParts[addrParts.length - 1].trim()));
+    }
+    if (isPlace && m.chain_id) {
+      const chain = CHAINS_ALL.find(ch => ch.id === m.chain_id);
+      if (chain) parts.push(`⛓ ${escapeHtml(chain.name)}`);
+    }
+    metaEl.textContent = parts.join(" · ");
+  }
+
+  // Placeholder icon (shown when no photos)
+  const placeholderIcon = document.getElementById("mkPhotoPlaceholderIcon");
+  if (placeholderIcon && cat?.icon_url) {
+    const iconUrl = cat.icon_url.startsWith("http") ? cat.icon_url
+      : window.location.href.replace(/\/[^/]*(\?.*)?$/, "/") + cat.icon_url;
+    placeholderIcon.innerHTML = `<img src="${escapeHtml(iconUrl)}" style="width:64px;height:64px;object-fit:contain;opacity:0.25;" onerror="this.parentNode.textContent='🍽'" />`;
+  }
+
+  // Side actions (wishlist, claim, edit)
+  const sideActions = document.getElementById("mkSideActions");
+  if (sideActions) {
+    let btns = `<button class="mk-side-action-btn" onclick="shareMarker()">↗ Share</button>`;
+    btns += `<span>${wlBtnHtml(m.id)}</span>`;
+    if (isPlace) {
+      btns += `<a class="mk-side-action-btn" href="claim.html?id=${encodeURIComponent(MARKER_ID)}">🏢 Claim this place</a>`;
+    }
+    sideActions.innerHTML = btns;
+  }
+
+  // Admin row
+  const adminRow = document.getElementById("mkAdminRow");
+  if (adminRow && isAdmin) {
+    adminRow.style.display = "flex";
+    adminRow.innerHTML = `<button class="tba-btn tba-btn-primary" onclick="enterEditMode()">✏️ Edit marker</button>`;
+  }
+
+  // Other category chips
+  renderOtherCategoryChips(m, activeCatId);
 }
 
 // Get rating for the active category, fall back to overall marker rating
@@ -283,46 +286,56 @@ async function reactivateMarker() {
 /* ══════════════════════════════
    RENDER RATING CARD
 ══════════════════════════════ */
-function renderRating(m, isFirst) {
+function renderRating(m, rankPos, rankTotal) {
   const { avg, count: cnt } = getActiveCatRating(m);
-  const cls = colorClass(avg, cnt);
-  const bCls = barClass(avg, cnt);
-  const pct = cnt ? Math.round((avg / 10) * 100) : 0;
   const displayAvg = cnt ? avg.toFixed(1) : "—";
-  const CROWN_SVG = `<svg class="rating-crown" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"><path d="M94.52 21.81c2.44-1.18 4.13-3.67 4.13-6.56a7.28 7.28 0 0 0-14.56 0c0 2.93 1.73 5.44 4.22 6.6c-2.88 15.6-7.3 27.21-23.75 29.69c0 0 4.43 22.15 25.15 22.15s22.82-21.93 22.82-21.93c-16.81.86-18.23-20.27-18.01-29.95z" fill="#f19534"/><path d="M34.74 21.81c-2.44-1.18-4.13-3.67-4.13-6.56a7.28 7.28 0 0 1 14.56 0c0 2.93-1.73 5.44-4.22 6.6c2.88 15.6 7.3 27.21 23.75 29.69c0 0-4.43 22.15-25.15 22.15S16.74 51.77 16.74 51.77c16.8.85 18.22-20.28 18-29.96z" fill="#f19534"/><path d="M119.24 16.86c-3.33-.45-6.51 2.72-7.09 7.06c-.36 2.71.37 5.24 1.78 6.87l-2.4 9.95s-3.67 23.51-22.21 28.15C74.5 72.6 69.13 45.47 67.83 37.09c2.82-1.4 4.77-4.3 4.77-7.67c0-4.73-3.83-8.56-8.56-8.56s-8.56 3.83-8.56 8.56c0 3.39 1.98 6.32 4.85 7.7c-1.03 8.27-5.57 34.5-21.57 31.76c-16.24-2.79-23.33-30.14-24.97-37.58c1.95-1.6 3.04-4.42 2.64-7.45c-.58-4.35-4.02-7.47-7.68-6.98c-3.66.49-6.15 4.41-5.57 8.75c.42 3.16 2.36 5.67 4.79 6.62l12.72 79.03s11.1 8.77 43.35 8.77s43.35-8.77 43.35-8.77l12.75-79.24c2.06-1.08 3.68-3.51 4.08-6.49c.59-4.35-1.64-8.23-4.98-8.68z" fill="#ffca28"/><ellipse cx="64.44" cy="88.3" rx="9.74" ry="11.61" fill="#26a69a"/><path d="M64.44 79.56c.38.42.72 1.19 0 2.69s-4.6 3.53-5.31 3.94c-.71.42-1.18.23-1.4.06c-1.05-.84-.65-2.74.03-3.9c1.46-2.51 4.55-5.1 6.68-2.79z" fill="#69f0ae"/><path d="M109.15 98.21c-5.99 3-19.73 10.99-45.1 10.99s-39.11-7.99-45.1-10.99c0 0-2.15 1.15-2.15 2.35v9.21c0 1.23.65 2.36 1.71 2.99c4.68 2.76 18.94 9.28 45.55 9.28s40.87-6.52 45.55-9.28a3.475 3.475 0 0 0 1.71-2.99v-9.21c-.02-1.2-2.17-2.35-2.17-2.35z" fill="#ffca28"/></svg>`;
+  const activeCatId = ACTIVE_CATEGORY_ID || m.category_id;
+  const cat = getCategoryById(activeCatId) || getCategoryById(m.category_id);
 
-  const crownHtml = (isFirst && cnt > 0 && m.is_active) ? CROWN_SVG : "";
+  let scoreClass = "score-none";
+  if (cnt) {
+    const x = Number(avg);
+    if (x >= 8) scoreClass = "score-high";
+    else if (x >= 6) scoreClass = "score-mid";
+    else scoreClass = "score-low";
+  }
 
   let myVoteHtml = "";
   if (CURRENT_VOTE !== null) {
-    const myCls = colorClass(CURRENT_VOTE, 1);
     myVoteHtml = `
-      <div class="rating-my">
-        <span class="rating-label">Your vote</span>
-        <span class="rating-my-number ${myCls}">${Number(CURRENT_VOTE).toFixed(1)}</span>
-      </div>
+      <div class="mk-score-my-vote">
+        <span class="mk-score-my-vote-label">Your vote</span>
+        <span class="mk-score-my-vote-val">${Number(CURRENT_VOTE).toFixed(1)}</span>
+      </div>`;
+  }
+
+  const scoreBlock = document.getElementById("mkScoreBlock");
+  if (scoreBlock) {
+    scoreBlock.innerHTML = `
+      <div class="mk-score-number ${scoreClass}">${escapeHtml(displayAvg)}</div>
+      <div class="mk-score-meta">out of 10</div>
+      <div class="mk-score-votes">${cnt} vote${cnt !== 1 ? "s" : ""}</div>
+      ${myVoteHtml}
     `;
   }
 
-  document.getElementById("ratingDisplay").innerHTML = `
-    <div class="rating-badge ${cls}" style="margin-top:${isFirst && cnt > 0 ? '40px' : '0'}">
-      ${crownHtml}
-      <div class="rating-badge-number">${escapeHtml(displayAvg)}</div>
-      <div class="rating-badge-label">Overall</div>
-    </div>
-    <div class="rating-right">
-      <div class="rating-bar-block">
-        <div class="rating-bar-header">
-          <span class="rating-bar-score">${escapeHtml(displayAvg)} <span class="rating-bar-max">/ 10</span></span>
-        </div>
-        <div class="rating-bar-track">
-          <div class="rating-bar-fill ${bCls}" style="width:${pct}%"></div>
-        </div>
-        <div class="rating-votes-txt">${cnt} vote${cnt === 1 ? "" : "s"}</div>
-      </div>
-      ${myVoteHtml}
-    </div>
-  `;
+  if (rankPos && rankTotal) {
+    const ctx = document.getElementById("mkContextLine");
+    if (ctx) {
+      const catName = cat ? escapeHtml(cat.name) : "";
+      const verdict = rankPos <= 3 ? "Essential" :
+                      rankPos <= Math.ceil(rankTotal * 0.3) ? "Very good" :
+                      rankPos <= Math.ceil(rankTotal * 0.6) ? "Worth trying" : "Among the options";
+      ctx.innerHTML = `
+        <span class="mk-context-rank">#${rankPos} of ${rankTotal}</span>
+        <span class="mk-context-sep">·</span>
+        <span>${catName}</span>
+        <span class="mk-context-sep">·</span>
+        <span class="mk-context-verdict">${verdict}</span>
+      `;
+      ctx.style.display = "flex";
+    }
+  }
 }
 
 /* ══════════════════════════════
@@ -384,9 +397,9 @@ function renderDetails(m, creatorName) {
   }
 
   document.getElementById("detailsContent").innerHTML = rows.map(r => `
-    <div class="detail-row">
-      <div class="detail-key">${r.key}</div>
-      <div class="detail-val">${r.val}</div>
+    <div class="mk-detail-row">
+      <div class="mk-detail-label">${r.key}</div>
+      <div class="mk-detail-value">${r.val}</div>
     </div>
   `).join("");
 }
@@ -400,7 +413,7 @@ function renderMiniMap(m) {
   if (!m.lat || !m.lon || isNaN(lat) || isNaN(lon)) return;
 
   const card = document.getElementById("miniMapCard");
-  card.style.display = "block";
+  if (card) card.style.display = "block";
 
   // Set address text
   const addrEl = document.getElementById("miniMapAddress");
@@ -467,81 +480,62 @@ async function renderRankingWidget(m) {
 
   const position = currentIdx + 1;
   const total = sorted.length;
-  const { count: activeCnt } = getActiveCatRating(m);
-  const isFirst = position === 1 && activeCnt > 0;
-  renderRating(m, isFirst);
+  renderRating(m, position, total);
 
-  const editLink = document.getElementById("editVotesCatLink");
-  if (editLink) editLink.href = "my-votes.html";
+  // Show full ranking section
+  const section = document.getElementById("mkRankingSection");
+  if (section) {
+    section.style.display = "block";
 
-  const positionCrownHtml = isFirst ? `<div style="font-size:24px;line-height:1;">👑</div>` : "";
-  document.getElementById("rankingPosition").innerHTML = `
-    <div class="ranking-pos-number">${positionCrownHtml}#${position}</div>
-    <div class="ranking-pos-sub">of ${total} ${escapeHtml(cat.name)}</div>
-  `;
+    // Title
+    const titleEl = document.getElementById("mkRankingTitle");
+    if (titleEl) titleEl.textContent = `${escapeHtml(cat.name)} · ${m.group_type === "place" ? "BCN" : ""}`;
 
-  // Build the 5-card window: 2 above, current, 2 below
-  const windowItems = [];
+    // Edit link
+    const editLink = document.getElementById("editVotesCatLink");
+    if (editLink) { editLink.href = "my-votes.html"; editLink.style.display = "inline"; }
 
-  const aboveStart = Math.max(0, currentIdx - 2);
-  const belowEnd   = Math.min(sorted.length - 1, currentIdx + 2);
+    // Full ranked list (not windowed)
+    const listEl = document.getElementById("rankingList");
+    if (listEl) {
+      const maxAvg = Number(sorted[0]?.rating_avg ?? 0) || 10;
+      listEl.innerHTML = sorted.map((r, i) => {
+        const pos = i + 1;
+        const avg = Number(r.rating_avg ?? 0);
+        const cnt = Number(r.rating_count ?? 0);
+        const pct = maxAvg > 0 ? Math.round((avg / maxAvg) * 100) : 0;
+        const scoreText = cnt ? avg.toFixed(1) : "—";
+        const isCurrent = r.id === m.id;
 
-  // Show "…" if there are items above the window
-  if (aboveStart > 0) {
-    windowItems.push({ type: "sep" });
-  }
+        let name = r.title;
+        if (m.group_type === "product" && r.brand_id) {
+          name = getBrandById(r.brand_id)?.name || r.title;
+        }
 
-  for (let i = aboveStart; i <= belowEnd; i++) {
-    windowItems.push({ type: "item", item: sorted[i], pos: i + 1, isCurrent: i === currentIdx });
-  }
+        const href = `marker.html?id=${encodeURIComponent(r.id)}&cat=${encodeURIComponent(activeCatId)}`;
+        return `
+          <a class="mk-rank-row ${isCurrent ? "mk-rank-current" : ""}" href="${href}" id="${isCurrent ? "mkCurrentRankRow" : ""}">
+            <div class="mk-rank-pos">${pos}</div>
+            <div class="mk-rank-info">
+              <div class="mk-rank-name">${escapeHtml(name)}</div>
+              <div class="mk-rank-bar-wrap">
+                <div class="mk-rank-bar" style="width:${cnt ? pct : 0}%"></div>
+              </div>
+            </div>
+            <div class="mk-rank-score ${cnt ? "" : "mk-rank-score-none"}">${escapeHtml(scoreText)}</div>
+          </a>`;
+      }).join("");
 
-  // Show "…" if there are items below the window
-  if (belowEnd < sorted.length - 1) {
-    windowItems.push({ type: "sep" });
-  }
-
-  const listEl = document.getElementById("rankingList");
-  listEl.innerHTML = windowItems.map(w => {
-    if (w.type === "sep") return `<div class="rank-row rank-separator">⋯</div>`;
-
-    const r = w.item;
-    const avg = Number(r.rating_avg ?? 0);
-    const cnt = Number(r.rating_count ?? 0);
-    const cls = colorClass(avg, cnt);
-    const scoreText = cnt ? avg.toFixed(1) : "—";
-
-    // Name: for products show brand, for places show title
-    let name = r.title;
-    if (m.group_type === "product" && r.brand_id) {
-      name = getBrandById(r.brand_id)?.name || r.title;
-    }
-
-    const href = `marker.html?id=${encodeURIComponent(r.id)}&cat=${encodeURIComponent(activeCatId)}`;
-    return `
-      <a class="rank-row ${w.isCurrent ? "rank-current" : ""}" href="${href}">
-        <div class="rank-pos">${w.pos}</div>
-        <div class="rank-name">${escapeHtml(name)}</div>
-        <div class="rank-score ${cls}">${escapeHtml(scoreText)}</div>
-      </a>
-    `;
-  }).join("");
-
-  card.style.display = "block";
-
-  // Add "Taste the Top 5" button for product markers
-  if (m.group_type === "product") {
-    const existing = card.querySelector(".top5-btn");
-    if (!existing) {
-      const btn = document.createElement("button");
-      btn.className = "top5-btn";
-      btn.style.marginTop = "12px";
-      btn.style.width = "100%";
-      btn.style.justifyContent = "center";
-      btn.textContent = "🍽️ Taste the Top 5";
-      btn.onclick = () => openTraction("top5", m.category_id);
-      card.appendChild(btn);
+      // Scroll current row into view after a tick
+      setTimeout(() => {
+        const row = document.getElementById("mkCurrentRankRow");
+        if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }, 300);
     }
   }
+
+  // Also update legacy card if exists
+  if (card) card.style.display = "none"; // hide old card
 }
 
 /* ══════════════════════════════
@@ -668,40 +662,28 @@ async function renderAlsoWorthTrying(m) {
 
   if (error || !data?.length) return;
 
-  // Find or create the container
-  let card = document.getElementById("alsoWorthCard");
-  if (!card) {
-    card = document.createElement("div");
-    card.id = "alsoWorthCard";
-    card.className = "card m-card also-worth-card";
-    // Insert before comments card
-    const commentsCard = document.getElementById("commentsCard");
-    if (commentsCard?.parentNode) commentsCard.parentNode.insertBefore(card, commentsCard);
-  }
+  const alsoSection = document.getElementById("alsoSection");
+  const alsoGrid = document.getElementById("alsoGrid");
+  const alsoLink = document.getElementById("alsoSeeAllLink");
+  if (!alsoSection || !alsoGrid) return;
 
-  const cat = getCategoryById(activeCatId);
-  card.innerHTML = `
-    <div class="m-card-head-row">
-      <span class="m-card-head">Also worth trying</span>
-      <a href="list.html?category=${encodeURIComponent(activeCatId)}" class="m-card-link">See all →</a>
-    </div>
-    <div class="also-worth-grid">
-      ${data.map(r => {
-        const avg = Number(r.rating_avg ?? 0);
-        const cnt = Number(r.rating_count ?? 0);
-        const cls = colorClass(avg, cnt);
-        const score = cnt ? avg.toFixed(1) : "—";
-        const addr = r.address ? r.address.split(",").slice(0,2).join(",") : "";
-        const href = `marker.html?id=${encodeURIComponent(r.id)}&cat=${activeCatId}`;
-        return `
-          <a class="also-worth-item" href="${href}">
-            <div class="also-worth-name">${escapeHtml(r.title)}</div>
-            ${addr ? `<div class="also-worth-addr">${escapeHtml(addr)}</div>` : ""}
-            <span class="also-worth-score ${cls}">${escapeHtml(score)}</span>
-          </a>`;
-      }).join("")}
-    </div>
-  `;
+  if (alsoLink) alsoLink.href = `map.html`;
+
+  alsoGrid.innerHTML = data.map(r => {
+    const avg = Number(r.rating_avg ?? 0);
+    const cnt = Number(r.rating_count ?? 0);
+    const score = cnt ? avg.toFixed(1) : "—";
+    const addr = r.address ? r.address.split(",").slice(0,2).join(",") : "";
+    const href = `marker.html?id=${encodeURIComponent(r.id)}&cat=${activeCatId}`;
+    return `
+      <a class="mk-also-card" href="${href}">
+        <div class="mk-also-name">${escapeHtml(r.title)}</div>
+        ${addr ? `<div class="mk-also-addr">${escapeHtml(addr)}</div>` : ""}
+        <div class="mk-also-score">${escapeHtml(score)}</div>
+      </a>`;
+  }).join("");
+
+  alsoSection.style.display = "block";
 }
 
 /* ══════════════════════════════
@@ -1466,10 +1448,8 @@ async function initMarkerPage() {
   // ── INACTIVE MARKER ── show banner, skip all further UI
   if (!m.is_active) {
     document.getElementById('markerTitle').textContent = m.title;
-    document.getElementById('voteCard').style.display    = 'none';
-    document.getElementById('rankingCard').style.display = 'none';
-    document.getElementById('commentsCard').style.display = 'none';
-    document.getElementById('photosCard') && (document.getElementById('photosCard').style.display = 'none');
+    const mkVI = document.getElementById('mkVoteInline'); if(mkVI) mkVI.style.display='none';
+    const mkRS = document.getElementById('mkRankingSection'); if(mkRS) mkRS.style.display='none';
 
     const banner = document.getElementById('pageStatus');
     banner.innerHTML = `
@@ -1491,9 +1471,16 @@ async function initMarkerPage() {
   const creatorName = await resolveCreatorName(m, user);
 
   if (user) {
-    document.getElementById("voteCard").style.display = "block";
+    const voteInline = document.getElementById("mkVoteInline");
+    if (voteInline) voteInline.style.display = "flex";
     await loadMyVote(user);
   }
+
+  // Show main content
+  const loading = document.getElementById("pageLoadingState");
+  const main = document.getElementById("mkMain");
+  if (loading) loading.style.display = "none";
+  if (main) main.style.display = "block";
 
   renderHero(m, user);
   renderRating(m);
@@ -1502,13 +1489,104 @@ async function initMarkerPage() {
 
   if (m.group_type === "place") renderMiniMap(m);
 
+  // Ruta lookup — check if this marker is in any ruta
+  await renderRutaBadge(m);
+
   await renderRankingWidget(m);
   await renderMoreFromBrand(m);
   await renderOthersFromChain(m);
   await renderAlsoWorthTrying(m);
   await initComments(user);
 
+  // Load photos into new hero strip
+  await loadPhotosHero(m.id, user);
+
   setStatus("");
+}
+
+/* ══════════════════════════════
+   RUTA BADGE
+══════════════════════════════ */
+async function renderRutaBadge(m) {
+  const badge = document.getElementById("mkRutaBadge");
+  if (!badge) return;
+
+  try {
+    // Find rutas containing this marker
+    const { data: items } = await sb.from("ruta_items")
+      .select("ruta_id, position")
+      .eq("marker_id", m.id)
+      .eq("is_active", true)
+      .limit(1);
+
+    if (!items?.length) return;
+
+    const rutaId = items[0].ruta_id;
+    const stopPos = items[0].position;
+
+    // Get ruta details
+    const { data: ruta } = await sb.from("rutas")
+      .select("id, name, city")
+      .eq("id", rutaId)
+      .single();
+
+    if (!ruta) return;
+
+    // Count total stops
+    const { count } = await sb.from("ruta_items")
+      .select("id", { count: "exact", head: true })
+      .eq("ruta_id", rutaId)
+      .eq("is_active", true);
+
+    badge.innerHTML = `
+      <a class="mk-ruta-badge" href="rutas.html">
+        <span class="mk-ruta-badge-icon">🗺</span>
+        <span>${escapeHtml(ruta.name)}</span>
+        <span class="mk-ruta-badge-stops">Stop ${stopPos} of ${count || "?"}</span>
+      </a>`;
+    badge.style.display = "block";
+  } catch(e) {
+    // Silently fail
+  }
+}
+
+/* ══════════════════════════════
+   PHOTO HERO STRIP
+══════════════════════════════ */
+async function loadPhotosHero(markerId, user) {
+  const strip = document.getElementById("mkPhotoStrip");
+  const countEl = document.getElementById("mkPhotoCount");
+  const placeholder = document.getElementById("mkPhotoPlaceholder");
+  const addBtn = document.getElementById("mkPhotoAddBtn");
+
+  if (!strip) return;
+
+  // Show upload button for logged-in users
+  if (user && addBtn) addBtn.style.display = "flex";
+
+  // Also call the existing loadPhotos function which sets up PHOTOS array & lightbox
+  await loadPhotos(markerId);
+
+  if (!PHOTOS.length) {
+    // Keep placeholder visible
+    return;
+  }
+
+  // Hide placeholder, show photos
+  if (placeholder) placeholder.style.display = "none";
+
+  // Render up to 3 photos in the hero strip
+  const toShow = PHOTOS.slice(0, 3);
+  strip.innerHTML = toShow.map((p, i) => {
+    const url = photoPublicUrl(p.storage_path);
+    return `<img src="${escapeHtml(url)}" alt="" onclick="openLightbox(${i})" />`;
+  }).join("");
+
+  // Photo count pill
+  if (PHOTOS.length > 1 && countEl) {
+    countEl.textContent = `${PHOTOS.length} photos`;
+    countEl.style.display = "block";
+  }
 }
 
 /* ══════════════════════════════════════════════════════
