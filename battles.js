@@ -64,15 +64,38 @@ async function initBattles() {
     TALLY[v.battle_id][v.choice]++;
   });
 
-  // My personal votes (visitor + auth user)
+  // My personal votes — fetch by visitor_id AND user_id if logged in
   const visitorId = getVisitorId();
-  const { data: myVotes } = await sb.from('battle_votes')
+  const user = await maybeUser();
+
+  let myVotesQuery = sb.from('battle_votes')
     .select('battle_id, choice')
-    .eq('visitor_id', visitorId)
     .eq('is_active', true);
-  const dbMap = {};
-  (myVotes || []).forEach(v => { dbMap[v.battle_id] = v.choice; });
-  MY_VOTES = { ...getLocalVotes(), ...dbMap };
+
+  if (user) {
+    // Logged in: prefer user votes, fall back to visitor
+    const { data: userVotes } = await sb.from('battle_votes')
+      .select('battle_id, choice')
+      .eq('user_id', user.id)
+      .eq('is_active', true);
+    const { data: visitorVotes } = await sb.from('battle_votes')
+      .select('battle_id, choice')
+      .eq('visitor_id', visitorId)
+      .eq('is_active', true);
+    const dbMap = {};
+    // Visitor votes first, user votes override
+    (visitorVotes || []).forEach(v => { dbMap[v.battle_id] = v.choice; });
+    (userVotes   || []).forEach(v => { dbMap[v.battle_id] = v.choice; });
+    MY_VOTES = { ...getLocalVotes(), ...dbMap };
+  } else {
+    const { data: myVotes } = await sb.from('battle_votes')
+      .select('battle_id, choice')
+      .eq('visitor_id', visitorId)
+      .eq('is_active', true);
+    const dbMap = {};
+    (myVotes || []).forEach(v => { dbMap[v.battle_id] = v.choice; });
+    MY_VOTES = { ...getLocalVotes(), ...dbMap };
+  }
 
   STACK_IDS = ALL_BATTLES.filter(b => !MY_VOTES[b.id]).map(b => b.id);
   const voted = ALL_BATTLES.filter(b => !!MY_VOTES[b.id]);

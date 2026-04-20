@@ -7,11 +7,11 @@
 .battles-main {
   max-width: 900px;
   margin: 0 auto;
-  padding: 0 20px 120px;
+  padding: 0 20px 80px;
 }
 
 /* ── Hero ── */
-.battles-hero { text-align: center; padding: 44px 0 20px; }
+.battles-hero { text-align: center; padding: 24px 0 12px; }
 .battles-hero-label {
   font-family: 'DM Sans', sans-serif;
   font-size: 11px; font-weight: 700;
@@ -20,7 +20,7 @@
 }
 .battles-hero-title {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(52px, 10vw, 80px);
+  font-size: clamp(40px, 8vw, 64px);
   font-weight: 900; letter-spacing: -0.04em;
   line-height: 0.92; color: var(--text); margin: 0 0 12px;
 }
@@ -266,7 +266,7 @@
 ══════════════════════════════════════ */
 .battles-section-divider {
   display: flex; align-items: center; gap: 14px;
-  margin: 36px 0 24px; color: var(--muted);
+  margin: 20px 0 12px; color: var(--muted);
   font-size: 11px; font-weight: 700;
   letter-spacing: 0.2em; text-transform: uppercase;
 }
@@ -286,7 +286,7 @@
 /* Category label */
 .bv-category-divider {
   display: flex; align-items: center; gap: 12px;
-  margin: 20px 0 14px;
+  margin: 14px 0 10px;
   font-size: 10px; font-weight: 700;
   letter-spacing: 0.2em; text-transform: uppercase;
   color: var(--muted);
@@ -322,16 +322,18 @@
 .bv-images {
   display: grid; grid-template-columns: 1fr 1fr;
   height: 140px; overflow: hidden;
+  min-height: 0;
 }
 /* Each half */
 .bv-img {
   background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
   transition: opacity 0.2s, filter 0.2s;
   cursor: pointer;
-  /* NEVER zoom */
   transform: none !important;
+  min-width: 0;
+  overflow: hidden;
 }
 .bv-img:hover { transform: none !important; background-size: cover !important; }
 .bv-img:first-child { border-right: 1px solid var(--border); }
@@ -346,27 +348,35 @@
 .bv-image-single {
   height: 140px;
   background-size: cover !important;
-  background-position: center !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
   position: relative;
+  overflow: hidden;
   transform: none !important;
 }
-/* Labels overlaid at bottom for single-image battles (only case where we need them on image) */
-.bv-single-labels {
-  position: absolute; bottom: 0; left: 0; right: 0;
+/* Single image — full clickable halves */
+.bv-single-halves {
+  position: absolute; inset: 0;
   display: grid; grid-template-columns: 1fr 1fr;
-  background: linear-gradient(transparent, rgba(0,0,0,0.55));
 }
-.bv-single-label {
-  background: none; border: none; box-shadow: none;
-  color: rgba(255,255,255,0.8); font-size: 12px; font-weight: 600;
-  padding: 10px 10px 10px; text-align: center;
-  cursor: pointer; border-radius: 0;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-  transition: color 0.15s; transform: none;
+.bv-single-half {
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 10px;
+  cursor: pointer;
+  background: linear-gradient(transparent 40%, rgba(0,0,0,0.5) 100%);
+  transition: background 0.15s;
+  transform: none !important;
 }
-.bv-single-label:first-child { border-right: 1px solid rgba(255,255,255,0.2); }
-.bv-single-label.chosen { color: #fff; font-weight: 800; }
-.bv-single-label:hover { color: #fff; background: rgba(255,255,255,0.08); transform: none; box-shadow: none; }
+.bv-single-half:first-child { border-right: 1px solid rgba(255,255,255,0.25); }
+.bv-single-half:hover { background: linear-gradient(transparent 20%, rgba(0,0,0,0.65) 100%); }
+.bv-single-half.dimmed { opacity: 0.45; filter: brightness(0.7); }
+.bv-single-half.chosen { background: linear-gradient(transparent 30%, rgba(45,74,138,0.6) 100%); }
+.bv-single-half-label {
+  color: #fff; font-size: 12px; font-weight: 700;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+  text-align: center; padding: 0 8px;
+  pointer-events: none;
+}
 
 /* No-image text fallback */
 .bv-text-options {
