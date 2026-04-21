@@ -13,6 +13,10 @@ let MARKER_CATEGORIES = [];
 let CHAINS_ALL = [];       // all chains (for lookup by id)
 
 let miniMapInstance = null;
+// City is stored directly on place markers (null for products)
+// Products never filter by city
+function markerCity(m) { return m?.city || null; }
+
 
 function qp(name) {
   return new URLSearchParams(window.location.search).get(name);
@@ -96,11 +100,7 @@ function renderHero(m, user) {
   const titleEl = document.getElementById("markerTitle");
   if (titleEl) {
     titleEl.textContent = m.title;
-    if (isCreator) {
-      titleEl.insertAdjacentHTML("beforeend",
-        `<button class="edit-pencil-btn" onclick="enterEditMode()" title="Edit" style="font-size:14px;background:none;border:none;cursor:pointer;margin-left:8px;">✏️</button>`
-      );
-    }
+    // Edit button moved to side actions
   }
 
   // Meta line: category · brand · address snippet
@@ -137,19 +137,18 @@ function renderHero(m, user) {
   const sideActions = document.getElementById("mkSideActions");
   if (sideActions) {
     let btns = `<button class="mk-side-action-btn" onclick="shareMarker()">↗ Share</button>`;
-    btns += `<span>${wlBtnHtml(m.id)}</span>`;
+    btns += `<span class="mk-wl-wrap">${wlBtnHtml(m.id)}</span>`;
     if (isPlace) {
       btns += `<a class="mk-side-action-btn" href="claim.html?id=${encodeURIComponent(MARKER_ID)}">🏢 Claim this place</a>`;
+    }
+    if (isCreator) {
+      btns += `<button class="mk-side-action-btn" onclick="enterEditMode()">✏️ Edit marker</button>`;
     }
     sideActions.innerHTML = btns;
   }
 
-  // Admin row
-  const adminRow = document.getElementById("mkAdminRow");
-  if (adminRow && isAdmin) {
-    adminRow.style.display = "flex";
-    adminRow.innerHTML = `<button class="tba-btn tba-btn-primary" onclick="enterEditMode()">✏️ Edit marker</button>`;
-  }
+  // Admin/creator edit button goes in side actions (#18 - single edit button)
+  // (no separate admin row needed)
 
   // Other category chips
   renderOtherCategoryChips(m, activeCatId);
@@ -311,11 +310,15 @@ function renderRating(m, rankPos, rankTotal) {
 
   const scoreBlock = document.getElementById("mkScoreBlock");
   if (scoreBlock) {
+    const votePrompt = (!window._mkUser && cnt >= 0)
+      ? `<a class="mk-score-vote-prompt" href="login.html?redirect=${encodeURIComponent(location.href)}">Vote →</a>`
+      : "";
     scoreBlock.innerHTML = `
       <div class="mk-score-number ${scoreClass}">${escapeHtml(displayAvg)}</div>
       <div class="mk-score-meta">out of 10</div>
       <div class="mk-score-votes">${cnt} vote${cnt !== 1 ? "s" : ""}</div>
       ${myVoteHtml}
+      ${votePrompt}
     `;
   }
 
@@ -323,15 +326,17 @@ function renderRating(m, rankPos, rankTotal) {
     const ctx = document.getElementById("mkContextLine");
     if (ctx) {
       const catName = cat ? escapeHtml(cat.name) : "";
-      const verdict = rankPos <= 3 ? "Essential" :
-                      rankPos <= Math.ceil(rankTotal * 0.3) ? "Very good" :
-                      rankPos <= Math.ceil(rankTotal * 0.6) ? "Worth trying" : "Among the options";
+      const verdict = rankPos === 1 ? "The Best Again 🏆" :
+                      rankPos <= 3    ? "Top pick" :
+                      rankPos <= Math.ceil(rankTotal * 0.25) ? "Highly rated" :
+                      rankPos <= Math.ceil(rankTotal * 0.55) ? "Worth a visit" : "Has its fans";
+      const isNumber1 = rankPos === 1;
       ctx.innerHTML = `
-        <span class="mk-context-rank">#${rankPos} of ${rankTotal}</span>
+        <span class="mk-context-rank${isNumber1 ? ' mk-context-rank-gold' : ''}">#${rankPos} of ${rankTotal}</span>
         <span class="mk-context-sep">·</span>
         <span>${catName}</span>
         <span class="mk-context-sep">·</span>
-        <span class="mk-context-verdict">${verdict}</span>
+        <span class="mk-context-verdict${isNumber1 ? ' mk-context-verdict-gold' : ''}">${verdict}</span>
       `;
       ctx.style.display = "flex";
     }
@@ -374,9 +379,7 @@ function renderDetails(m, creatorName) {
 
   const rows = [];
 
-  if (isPlace && m.address) {
-    rows.push({ key: "Address", val: escapeHtml(m.address) });
-  }
+  // Address shown under map — not duplicated in details
   if (!isPlace && brand) {
     rows.push({ key: "Brand", val: escapeHtml(brand.name) });
   }
@@ -390,8 +393,7 @@ function renderDetails(m, creatorName) {
     const chain = CHAINS_ALL.find(c => c.id === m.chain_id);
     if (chain) rows.push({ key: "Chain", val: escapeHtml(chain.name) });
   }
-  rows.push({ key: "Added", val: escapeHtml(formatDate(m.created_at)) });
-  rows.push({ key: "By", val: `<span id="createdByName">${escapeHtml(creatorName || "…")}</span>` });
+  // Added/By removed per UX improvement
   if (!m.is_active) {
     rows.push({ key: "Status", val: `<span style="color:#ef4444;font-weight:900;">Inactive</span>` });
   }
@@ -455,16 +457,20 @@ async function renderRankingWidget(m) {
     .eq("category_id", activeCatId)
     .eq("is_active", true);
 
-  const markerIds = (mcData || []).map(r => r.marker_id);
+  let markerIds = (mcData || []).map(r => r.marker_id);
   if (!markerIds.length) return;
 
-  const { data, error } = await sb
-    .from("markers")
-    .select("id,title,rating_avg,rating_count,brand_id")
+  const currentCity = markerCity(m); // null for products → no city filter
+
+  // Build markers query — filter by city if it's a place
+  let markersQ = sb.from("markers")
+    .select("id,title,rating_avg,rating_count,brand_id,city")
     .eq("is_active", true)
     .eq("group_type", m.group_type)
     .in("id", markerIds)
     .order("rating_avg", { ascending: false });
+  if (currentCity) markersQ = markersQ.eq("city", currentCity);
+  const { data, error } = await markersQ;
 
   if (error || !data?.length) return;
 
@@ -493,44 +499,92 @@ async function renderRankingWidget(m) {
 
     // Edit link
     const editLink = document.getElementById("editVotesCatLink");
-    if (editLink) { editLink.href = "my-votes.html"; editLink.style.display = "inline"; }
+    if (editLink) editLink.style.display = "none"; // removed - vote inline on this page
 
     // Full ranked list (not windowed)
     const listEl = document.getElementById("rankingList");
     if (listEl) {
       const maxAvg = Number(sorted[0]?.rating_avg ?? 0) || 10;
-      listEl.innerHTML = sorted.map((r, i) => {
+      const WINDOW = 3; // rows above/below current
+      const SHOW_FULL_THRESHOLD = 8; // if total <= this, show all
+      const showAll = sorted.length <= SHOW_FULL_THRESHOLD;
+
+      function buildRow(r, i) {
         const pos = i + 1;
         const avg = Number(r.rating_avg ?? 0);
         const cnt = Number(r.rating_count ?? 0);
         const pct = maxAvg > 0 ? Math.round((avg / maxAvg) * 100) : 0;
         const scoreText = cnt ? avg.toFixed(1) : "—";
         const isCurrent = r.id === m.id;
-
         let name = r.title;
-        if (m.group_type === "product" && r.brand_id) {
-          name = getBrandById(r.brand_id)?.name || r.title;
-        }
-
+        if (m.group_type === "product" && r.brand_id) name = getBrandById(r.brand_id)?.name || r.title;
         const href = `marker.html?id=${encodeURIComponent(r.id)}&cat=${encodeURIComponent(activeCatId)}`;
-        return `
-          <a class="mk-rank-row ${isCurrent ? "mk-rank-current" : ""}" href="${href}" id="${isCurrent ? "mkCurrentRankRow" : ""}">
-            <div class="mk-rank-pos">${pos}</div>
-            <div class="mk-rank-info">
-              <div class="mk-rank-name">${escapeHtml(name)}</div>
-              <div class="mk-rank-bar-wrap">
-                <div class="mk-rank-bar" style="width:${cnt ? pct : 0}%"></div>
-              </div>
-            </div>
-            <div class="mk-rank-score ${cnt ? "" : "mk-rank-score-none"}">${escapeHtml(scoreText)}</div>
-          </a>`;
-      }).join("");
+        // Vote button: only show for logged-in users on non-current rows
+        const voteBtn = (window._mkUser && !isCurrent)
+          ? `<a class="mk-rank-vote-btn" href="${href}" title="Vote">Vote</a>`
+          : "";
+        return `<a class="mk-rank-row ${isCurrent ? "mk-rank-current" : ""}" href="${href}" id="${isCurrent ? "mkCurrentRankRow" : ""}">
+          <div class="mk-rank-pos">${pos}</div>
+          <div class="mk-rank-info">
+            <div class="mk-rank-name">${escapeHtml(name)}</div>
+            <div class="mk-rank-bar-wrap"><div class="mk-rank-bar" style="width:${cnt ? pct : 0}%"></div></div>
+          </div>
+          <div class="mk-rank-score ${cnt ? "" : "mk-rank-score-none"}">${escapeHtml(scoreText)}</div>
+          ${voteBtn}
+        </a>`;
+      }
 
-      // Scroll current row into view after a tick
-      setTimeout(() => {
-        const row = document.getElementById("mkCurrentRankRow");
-        if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }, 300);
+      function renderTruncated() {
+        const rows = [];
+        // Top rows (always show first 3)
+        const topEnd = Math.min(2, currentIdx - WINDOW - 1);
+        for (let i = 0; i <= topEnd; i++) rows.push(buildRow(sorted[i], i));
+        if (currentIdx - WINDOW > 3) rows.push('<div class="mk-rank-ellipsis">⋯</div>');
+        // Window around current
+        const winStart = Math.max(3, currentIdx - WINDOW);
+        const winEnd   = Math.min(sorted.length - 1, currentIdx + WINDOW);
+        for (let i = winStart; i <= winEnd; i++) rows.push(buildRow(sorted[i], i));
+        if (winEnd < sorted.length - 1) rows.push('<div class="mk-rank-ellipsis">⋯</div>');
+        return rows.join("");
+      }
+
+      function renderFull() {
+        return sorted.map((r, i) => buildRow(r, i)).join("");
+      }
+
+      let expanded = showAll;
+      function renderList() {
+        listEl.innerHTML = expanded ? renderFull() : renderTruncated();
+        // See all / Collapse link
+        const seeAllEl = document.getElementById("mkRankingSeeAll");
+        if (seeAllEl && !showAll) {
+          seeAllEl.textContent = expanded ? "Show less" : `See all ${sorted.length} →`;
+          seeAllEl.onclick = (e) => { e.preventDefault(); expanded = !expanded; renderList(); };
+        }
+        if (seeAllEl && showAll) seeAllEl.style.display = "none";
+        // Scroll current into view
+        setTimeout(() => {
+          const row = document.getElementById("mkCurrentRankRow");
+          if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }, 100);
+      }
+      renderList();
+
+      // Wire up see-all link (in section head)
+      const seeAllLink = document.getElementById("mkRankingSeeAll");
+      if (!seeAllLink && !showAll) {
+        // Create it if not in HTML
+        const head = document.querySelector("#mkRankingSection .mk-section-head");
+        if (head) {
+          const a = document.createElement("a");
+          a.id = "mkRankingSeeAll";
+          a.href = "#";
+          a.className = "mk-section-link";
+          a.textContent = `See all ${sorted.length} →`;
+          head.appendChild(a);
+          a.onclick = (e) => { e.preventDefault(); expanded = !expanded; renderList(); };
+        }
+      }
     }
   }
 
@@ -653,23 +707,31 @@ async function renderAlsoWorthTrying(m) {
   const catIds = (mcData || []).map(r => r.marker_id).filter(id => id !== MARKER_ID);
   if (!catIds.length) return;
 
-  const { data, error } = await sb.from("markers")
-    .select("id,title,rating_avg,rating_count,address")
+  let alsoQ = sb.from("markers")
+    .select("id,title,rating_avg,rating_count,address,city")
     .eq("is_active", true)
     .in("id", catIds)
-    .order("rating_avg", { ascending: false })
-    .limit(4);
+    .order("rating_avg", { ascending: false });
+  if (markerCity(m)) alsoQ = alsoQ.eq("city", markerCity(m));
+  const { data, error } = await alsoQ.limit(6);
 
   if (error || !data?.length) return;
+
+  // Filter by city if it's a place (products have no city)
+  const currentCity = markerCity(m);
+  const filtered = currentCity
+    ? data.filter(r => r.city === currentCity)
+    : data;
+  if (!filtered.length) return;
 
   const alsoSection = document.getElementById("alsoSection");
   const alsoGrid = document.getElementById("alsoGrid");
   const alsoLink = document.getElementById("alsoSeeAllLink");
   if (!alsoSection || !alsoGrid) return;
 
-  if (alsoLink) alsoLink.href = `map.html`;
+  if (alsoLink) alsoLink.href = `map.html?category=${encodeURIComponent(activeCatId)}`;
 
-  alsoGrid.innerHTML = data.map(r => {
+  alsoGrid.innerHTML = filtered.map(r => {
     const avg = Number(r.rating_avg ?? 0);
     const cnt = Number(r.rating_count ?? 0);
     const score = cnt ? avg.toFixed(1) : "—";
@@ -710,6 +772,14 @@ async function loadMyVote(user) {
 
   renderVoteButtons();
   renderRating(CURRENT_MARKER);
+  // Show current float vote (#6)
+  const statusEl = document.getElementById("voteStatus");
+  if (statusEl && CURRENT_VOTE !== null) {
+    const actual = data?.vote ? Number(data.vote) : CURRENT_VOTE;
+    if (actual !== Math.round(actual)) {
+      statusEl.textContent = `Current: ${actual.toFixed(1)} (shown as ${Math.round(actual)} above)`;
+    }
+  }
 }
 
 async function saveMyVote() {
@@ -1229,25 +1299,35 @@ function renderCommentRow(c, user, nameById, reactionsByComment, repliesByParent
       </div>
     </div>` : "";
 
+  // Smaller reaction add button
+  const addReactionBtnSmall = user ? `
+    <button class="comment-action-btn" onclick="toggleEmojiPicker('${c.id}')" title="Add reaction">＋</button>
+    <div class="emoji-picker" id="picker-${c.id}" style="display:none;position:absolute;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+      ${EMOJI_OPTIONS.map(e => {
+        const b64 = btoa(unescape(encodeURIComponent(e)));
+        return `<button class="reaction-emoji-btn" onclick="toggleReactionB64('${c.id}','${b64}');toggleEmojiPicker('${c.id}')">${e}</button>`;
+      }).join("")}
+    </div>` : "";
+
+  const avatarSize = isReply ? "reply-avatar" : "comment-avatar";
+
   return `
-    <div class="comment-row ${isReply ? "comment-reply" : ""} ${isOwn ? "comment-own" : ""}" data-id="${c.id}">
-      <div class="comment-avatar ${isReply ? "avatar-sm" : ""}">${escapeHtml(initial)}</div>
-      <div class="comment-body">
-        <div class="comment-meta">
-          <span class="comment-author">${escapeHtml(name)}</span>
-          ${scorePill}
-          <span class="comment-time">${timeAgo}</span>
-          ${isOwn ? `<button class="comment-action-btn" onclick="deleteComment('${c.id}')">Delete</button>` : ""}
-        </div>
-        <div class="comment-text">${escapeHtml(c.body)}</div>
-        <div class="comment-actions-row">
-          ${existingReactions}
-          ${addReactionBtn}
-          ${!isReply && user ? `<button class="comment-action-btn" onclick="toggleReplyArea('${c.id}')">↩ Reply</button>` : ""}
-        </div>
-        ${replyArea}
-        ${!isReply && repliesHtml ? `<div class="replies-list">${repliesHtml}</div>` : ""}
+    <div class="comment-item ${isReply ? "reply-item" : ""} ${isOwn ? "comment-own" : ""}" data-id="${c.id}" style="position:relative;">
+      <div class="comment-meta">
+        <span class="${avatarSize}">${escapeHtml(initial)}</span>
+        <span class="comment-author">${escapeHtml(name)}</span>
+        ${scorePill}
+        <span class="comment-time">${timeAgo}</span>
+        ${isOwn ? `<button class="comment-action-btn" onclick="deleteComment('${c.id}')">Delete</button>` : ""}
       </div>
+      <div class="comment-text" style="margin-left:${isReply ? '25' : '34'}px;">${escapeHtml(c.body)}</div>
+      <div class="comment-actions" style="margin-left:${isReply ? '25' : '34'}px;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        ${existingReactions}
+        ${addReactionBtnSmall}
+        ${!isReply && user ? `<button class="comment-action-btn" onclick="toggleReplyArea('${c.id}')">↩ Reply</button>` : ""}
+      </div>
+      ${replyArea}
+      ${!isReply && repliesHtml ? `<div class="replies-section">${repliesHtml}</div>` : ""}
     </div>`;
 }
 
@@ -1415,7 +1495,7 @@ async function initMarkerPage() {
     sb.from("categories").select("id,name,icon_url,is_active,for_places,for_products").eq("is_active", true).order("name"),
     sb.from("brands").select("id,name,icon_url,is_active").eq("is_active", true).order("name"),
     sb.from("markers")
-      .select("id,title,group_type,category_id,brand_id,product_name,chain_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
+      .select("id,title,group_type,category_id,brand_id,product_name,chain_id,rating_manual,rating_avg,rating_count,address,lat,lon,city,is_active,created_at,created_by")
       .eq("id", MARKER_ID)
       .single(),
     sb.from("marker_categories")
@@ -1470,6 +1550,7 @@ async function initMarkerPage() {
 
   const creatorName = await resolveCreatorName(m, user);
 
+  window._mkUser = user || null;
   if (user) {
     const voteInline = document.getElementById("mkVoteInline");
     if (voteInline) voteInline.style.display = "flex";
@@ -1487,10 +1568,16 @@ async function initMarkerPage() {
   renderDetails(m, creatorName);
   updatePageSEO(m);
 
-  if (m.group_type === "place") renderMiniMap(m);
-
-  // Ruta lookup — check if this marker is in any ruta
-  await renderRutaBadge(m);
+  if (m.group_type === "place") {
+    renderMiniMap(m);
+    await renderRutaBadge(m); // rutas only for places
+  } else {
+    // Products: hide map and ruta badge
+    const mapCard = document.getElementById("miniMapCard");
+    if (mapCard) mapCard.style.display = "none";
+    const rutaBadge = document.getElementById("mkRutaBadge");
+    if (rutaBadge) rutaBadge.style.display = "none";
+  }
 
   await renderRankingWidget(m);
   await renderMoreFromBrand(m);
@@ -1538,8 +1625,10 @@ async function renderRutaBadge(m) {
       .eq("ruta_id", rutaId)
       .eq("is_active", true);
 
+    const rutaUrl = `rutas.html?ruta=${encodeURIComponent(ruta.id)}`;
     badge.innerHTML = `
-      <a class="mk-ruta-badge" href="rutas.html">
+      <div class="mk-ruta-label">Ruta</div>
+      <a class="mk-ruta-badge" href="${rutaUrl}">
         <span class="mk-ruta-badge-icon">🗺</span>
         <span>${escapeHtml(ruta.name)}</span>
         <span class="mk-ruta-badge-stops">Stop ${stopPos} of ${count || "?"}</span>
