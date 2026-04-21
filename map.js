@@ -324,23 +324,10 @@ function attachMarkerHoverAndClick(mk, id) {
   mk.on("click", () => selectMarkerById(id, false));
 }
 
-function toggleAddPanel() {
-  const panel = document.getElementById('addPanel');
-  const fab   = document.getElementById('mapAddFab');
-  if (!panel) return;
-  const isOpen = panel.classList.contains('map-panel-open');
-  if (isOpen) {
-    panel.classList.remove('map-panel-open');
-    panel.classList.add('map-panel-collapsed');
-    if (fab) fab.textContent = '＋';
-  } else {
-    panel.classList.add('map-panel-open');
-    panel.classList.remove('map-panel-collapsed');
-    if (fab) fab.textContent = '✕';
-  }
-}
-
 async function initMap() {
+  // Read URL params (e.g. from marker page "See all" link)
+  const _mapQp = new URLSearchParams(location.search);
+  const _catParam = _mapQp.get('category');
   const user = await maybeUser();
   // On desktop: show add panel always, but redirect to login if not logged in
   // On mobile: panel is hidden via CSS, hint button shown instead
@@ -361,7 +348,7 @@ async function initMap() {
   initRatingDropdown("m_rating", 7);
   renderRatingButtons();
   MAP = L.map("map", { zoomControl: false }).setView([41.3889, 2.1618], 15);
-  L.control.zoom({ position: "topright" }).addTo(MAP);
+  L.control.zoom({ position: "bottomright" }).addTo(MAP);
   L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(MAP);
   LAYER_GROUP = L.layerGroup().addTo(MAP);
   setMapStatus("Loading categories…");
@@ -387,6 +374,13 @@ async function initMap() {
 
   renderCategoryQuickChips(); showClearIfNeeded();
   await reloadMarkers();
+  // Apply category filter from URL param (after initial load)
+  if (typeof _catParam !== 'undefined' && _catParam) {
+    FILTER_CATEGORY = _catParam;
+    if (typeof renderCategoryQuickChips === 'function') renderCategoryQuickChips();
+    if (typeof showClearIfNeeded === 'function') showClearIfNeeded();
+    await reloadMarkers();
+  }
 
   MAP.on("click", async (e) => {
     const user = await maybeUser();

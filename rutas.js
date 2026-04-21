@@ -44,7 +44,17 @@ async function initRutasPage() {
   CURRENT_USER = await maybeUser();
   if (CURRENT_USER) await loadMyVotes(CURRENT_USER.id);
 
-  await selectCity('BCN');
+  // Read URL params from marker page links
+  const _qp  = new URLSearchParams(location.search);
+  const _city = _qp.get('city') || 'BCN';
+  const _rutaId = _qp.get('ruta');
+
+  await selectCity(_city);
+
+  if (_rutaId) {
+    const _target = ALL_RUTAS.find(r => r.id === _rutaId);
+    if (_target) await selectCategory(_target.category_id);
+  }
 }
 
 async function loadMyVotes(userId) {

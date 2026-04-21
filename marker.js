@@ -482,9 +482,12 @@ async function renderRankingWidget(m) {
   });
 
   const currentIdx = sorted.findIndex(r => r.id === m.id);
-  if (currentIdx === -1) return;
-
-  const position = currentIdx + 1;
+  // If not found (e.g. current marker filtered out), insert it at the end
+  if (currentIdx === -1) {
+    sorted.push({ id: m.id, title: m.title, rating_avg: m.rating_avg, rating_count: m.rating_count, brand_id: m.brand_id, city: m.city });
+  }
+  const resolvedIdx = currentIdx === -1 ? sorted.length - 1 : currentIdx;
+  const position = resolvedIdx + 1;
   const total = sorted.length;
   renderRating(m, position, total);
 
@@ -537,12 +540,12 @@ async function renderRankingWidget(m) {
       function renderTruncated() {
         const rows = [];
         // Top rows (always show first 3)
-        const topEnd = Math.min(2, currentIdx - WINDOW - 1);
+        const topEnd = Math.min(2, resolvedIdx - WINDOW - 1);
         for (let i = 0; i <= topEnd; i++) rows.push(buildRow(sorted[i], i));
-        if (currentIdx - WINDOW > 3) rows.push('<div class="mk-rank-ellipsis">⋯</div>');
+        if (resolvedIdx - WINDOW > 3) rows.push('<div class="mk-rank-ellipsis">⋯</div>');
         // Window around current
-        const winStart = Math.max(3, currentIdx - WINDOW);
-        const winEnd   = Math.min(sorted.length - 1, currentIdx + WINDOW);
+        const winStart = Math.max(3, resolvedIdx - WINDOW);
+        const winEnd   = Math.min(sorted.length - 1, resolvedIdx + WINDOW);
         for (let i = winStart; i <= winEnd; i++) rows.push(buildRow(sorted[i], i));
         if (winEnd < sorted.length - 1) rows.push('<div class="mk-rank-ellipsis">⋯</div>');
         return rows.join("");
@@ -841,7 +844,7 @@ async function clearMyVote() {
 async function refreshMarker() {
   const { data } = await sb
     .from("markers")
-    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,is_active,created_at,created_by")
+    .select("id,title,group_type,category_id,brand_id,rating_manual,rating_avg,rating_count,address,lat,lon,city,is_active,created_at,created_by")
     .eq("id", MARKER_ID)
     .single();
   if (data) CURRENT_MARKER = data;
