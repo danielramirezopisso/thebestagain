@@ -293,19 +293,6 @@
     "brand    .";
 }
 
-/* Products: single column, no right sidebar */
-.mk-body.mk-product-layout {
-  grid-template-columns: 1fr;
-  grid-template-areas:
-    "cta"
-    "ranking"
-    "also"
-    "nearby"
-    "comments"
-    "brand"
-    "chain";
-}
-
 /* Assign grid areas — use both class and ID selectors */
 .mk-cell-ranking, #mkRankingSection  { grid-area: ranking; }
 .mk-cell-ruta,    #mkRutaBadge       { grid-area: ruta; }
