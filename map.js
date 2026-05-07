@@ -706,3 +706,69 @@ function hideSearchResults() {
 document.addEventListener('click', e => {
   if (!document.getElementById('mapSearchWrap')?.contains(e.target)) hideSearchResults();
 });
+
+/* ── Geolocation — "locate me" ── */
+let USER_LOCATION_MARKER = null;
+let USER_ACCURACY_CIRCLE = null;
+
+function locateMe() {
+  const btn = document.getElementById('mapLocateBtn');
+  if (!navigator.geolocation) {
+    alert('Geolocation is not supported by your browser.');
+    return;
+  }
+  // Show loading state
+  if (btn) { btn.textContent = '⟳'; btn.classList.add('locating'); }
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const acc = pos.coords.accuracy; // metres
+
+      // Fly to position
+      MAP.flyTo([lat, lng], 15, { duration: 1.2 });
+
+      // Remove previous markers
+      if (USER_LOCATION_MARKER) MAP.removeLayer(USER_LOCATION_MARKER);
+      if (USER_ACCURACY_CIRCLE) MAP.removeLayer(USER_ACCURACY_CIRCLE);
+
+      // Accuracy circle
+      USER_ACCURACY_CIRCLE = L.circle([lat, lng], {
+        radius: acc,
+        color: '#2d4a8a', fillColor: '#2d4a8a',
+        fillOpacity: 0.08, weight: 1, opacity: 0.3
+      }).addTo(MAP);
+
+      // Pulsing dot marker
+      const icon = L.divIcon({
+        className: '',
+        html: '<div class="user-location-dot"><div class="user-location-pulse"></div></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      USER_LOCATION_MARKER = L.marker([lat, lng], { icon, zIndexOffset: 1000 })
+        .addTo(MAP)
+        .bindPopup('You are here');
+
+      // Reset button
+      if (btn) { btn.textContent = '📍'; btn.classList.remove('locating'); btn.classList.add('located'); }
+    },
+    function(err) {
+      if (btn) { btn.textContent = '📍'; btn.classList.remove('locating'); }
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (err.code === err.PERMISSION_DENIED) {
+        if (isIOS) {
+          alert('Location access denied.\n\nTo fix on iPhone:\nSettings → Privacy & Security → Location Services → Safari → While Using App');
+        } else {
+          alert('Location access denied. Tap the lock icon in your browser bar and allow location access.');
+        }
+      } else if (err.code === err.POSITION_UNAVAILABLE) {
+        alert('Your location could not be determined. Make sure Location Services is enabled.');
+      } else if (err.code === err.TIMEOUT) {
+        alert('Location request timed out. Please try again.');
+      }
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+  );
+}
