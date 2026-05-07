@@ -28,7 +28,7 @@
 
 <body class="map-page" onload="initMap()">
     <header class="topbar topbar-sticky">
-    <a class="brand" href="index.html">The Best Again</a>
+    <a class="brand" href="index.html">TBA</a>
     <nav class="nav" id="mainNav">
       <a href="index.html">Home</a>
       <a class="active" href="map.html">Map</a>
@@ -102,6 +102,23 @@
         <label class="map-chain-toggle">
           <input type="checkbox" id="chainToggle" checked onchange="onChainToggleChanged()" />
           <span class="map-chain-slider"></span>
+        </label>
+      </div>
+
+
+      <!-- Colorblind mode toggle -->
+      <div class="cb-toggle-row">
+        <label class="cb-toggle-label">
+          <span>👁</span>
+          <div>
+            Colorblind mode
+            <div class="cb-toggle-sub">Replaces red/green with blue/orange</div>
+          </div>
+        </label>
+        <label class="cb-toggle-switch">
+          <input type="checkbox" class="cb-toggle-input" id="cbToggleMap"
+            onchange="toggleColorblindMode()">
+          <span class="cb-toggle-track"></span>
         </label>
       </div>
 
@@ -208,6 +225,7 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="accessibility.js"></script>
   <script src="auth.js"></script>
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
@@ -278,5 +296,11 @@
     document.getElementById('mapFilterOverlay').classList.remove('open');
   }
   </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var on = localStorage.getItem('tba_colorblind') === '1';
+  document.querySelectorAll('.cb-toggle-input').forEach(function(el) { el.checked = on; });
+});
+</script>
 </body>
 </html>

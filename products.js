@@ -226,10 +226,12 @@ function toggleLaneSort(catId){
   const id = parseInt(catId);
   const cur = LANE_SORT[id] || "desc";
   LANE_SORT[id] = (cur === "desc") ? "asc" : "desc";
+  event.stopPropagation(); // prevent opening drawer
   renderAll();
 }
 
 function openDrawer(catId){
+  document.body.style.overflow = 'hidden';
   DRAWER_CAT = parseInt(catId);
   DRAWER_SORT = LANE_SORT[DRAWER_CAT] || "desc";
   qs("drawerOverlay").style.display = "block";
@@ -240,6 +242,7 @@ function openDrawer(catId){
 }
 
 function closeDrawer(){
+  document.body.style.overflow = '';
   qs("drawerOverlay").style.display = "none";
   qs("drawer").style.display = "none";
   DRAWER_CAT = null;
@@ -275,29 +278,43 @@ function ratingBadgeHtml(m){
   const cnt = Number(m.rating_count ?? 0);
   const hasVoted = MY_VOTED_IDS_PROD.has(m.id);
 
-  // In My Journey: show MY score if voted, empty outline if not
-  // In Discover: always show global average
-  let cls, n, tip;
+  let n, tip, color;
   if (JOURNEY_MODE_PROD && hasVoted) {
     const myScore = MY_VOTE_SCORES_PROD[m.id];
-    cls = colorClassForRating(myScore, 1);
-    n   = String(Math.round(myScore));
-    tip = `Your vote: ${myScore}/10`;
+    n     = String(Math.round(myScore));
+    tip   = `Your vote: ${myScore}/10`;
+    color = scoreColor(myScore);
   } else if (JOURNEY_MODE_PROD && !hasVoted) {
-    cls = 'rating-none journey-empty-badge';
-    n   = '';
-    tip = 'Not voted yet — click to vote';
+    n     = '';
+    tip   = 'Not voted yet — click to vote';
+    color = 'var(--muted)';
   } else {
-    // Discover mode: global average
-    cls = colorClassForRating(avg, cnt);
-    n   = cnt ? String(Math.round(avg)) : '—';
-    tip = cnt ? `${avg.toFixed(2)}/10 (${cnt} votes)` : 'No votes yet';
+    n     = cnt ? String(Math.round(avg)) : '—';
+    tip   = cnt ? `${avg.toFixed(2)}/10 (${cnt} votes)` : 'No votes yet';
+    color = cnt ? scoreColor(avg) : 'var(--muted)';
   }
 
-  const myVote = hasVoted ? ' voted' : '';
-  return `<div class="rate-badge ${cls}${myVote}" title="${escapeHtml(tip)}"
+  const myVote = hasVoted ? ' prod-voted' : '';
+  return `<div class="prod-score${myVote}" style="color:${color}" title="${escapeHtml(tip)}"
     onclick="event.preventDefault(); event.stopPropagation(); openProductVote('${m.id}', '${m.category_id}', this); return false;"
     >${escapeHtml(n)}</div>`;
+}
+
+function scoreColor(score) {
+  const s = Number(score);
+  const cb = localStorage.getItem('tba_colorblind') === '1';
+  if (cb) {
+    if (s >= 9) return '#1a3f8f';
+    if (s >= 7) return '#2d6be4';
+    if (s >= 5) return '#c8972a';
+    if (s >= 3) return '#e87722';
+    return '#b35c00';
+  }
+  if (s >= 9) return '#1e5c3a';
+  if (s >= 7) return '#4a7c59';
+  if (s >= 5) return '#c8972a';
+  if (s >= 3) return '#e76f51';
+  return '#c1440e';
 }
 
 // ── Inline vote popover ──
@@ -415,16 +432,23 @@ function renderLane(catId, markersForCat){
   const visible = sorted.slice(0, 5);
   const hasMore = sorted.length > 5;
 
-  const itemsHtml = visible.map(m=>{
+  // Max avg for bar width
+  const maxAvg = Math.max(...sorted.map(m => Number(m.rating_avg || 0)), 1);
+
+  const itemsHtml = visible.map((m, idx)=>{
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
-    const displayName = m.product_name || brand;
-    const unvisited = JOURNEY_MODE_PROD && !MY_VOTED_IDS_PROD.has(m.id); // grey only in journey mode
+    const displayName = m.product_name ? `${brand} · ${m.product_name}` : brand;
+    const unvisited = JOURNEY_MODE_PROD && !MY_VOTED_IDS_PROD.has(m.id);
+    const avg = Number(m.rating_avg || 0);
+    const cnt = Number(m.rating_count || 0);
+    const barPct = cnt ? Math.round((avg / maxAvg) * 100) : 0;
     return `
       <div class="item-row${unvisited ? " journey-unvisited-item" : ""}">
         <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}&cat=${encodeURIComponent(catId)}">
-          <div class="item-left">
-            ${brandIconSlotHtml(m.brand_id)}
+          ${brandIconSlotHtml(m.brand_id)}
+          <div class="item-info">
             <div class="item-name">${escapeHtml(displayName)}</div>
+            ${cnt ? `<div class="item-bar-wrap"><div class="item-bar" style="width:${barPct}%"></div></div>` : ''}
           </div>
           ${ratingBadgeHtml(m)}
         </a>
@@ -443,18 +467,12 @@ function renderLane(catId, markersForCat){
   return `
     <div class="lane ${density}">
       <div class="lane-head">
-        <div class="lane-title">
+        <div class="lane-title" onclick="openDrawer(${catId})" style="cursor:pointer;">
           <img class="lane-ic" src="${escapeHtml(icon)}" alt=""/>
-          <div style="min-width:0;">
-            <div class="lane-name">${escapeHtml(name)}</div>
-            <div class="lane-count">${markersForCat.length} brand${markersForCat.length === 1 ? "" : "s"}</div>
-          </div>
+          <div class="lane-name">${escapeHtml(name)}</div>
         </div>
         <button class="tba-btn lane-sort" onclick="toggleLaneSort(${catId})" title="Toggle sort">
           ${escapeHtml(arrowFor(dir))}
-        </button>
-        <button class="top5-btn" onclick="openTraction('top5', ${catId})" title="Get a tasting set of the top 5">
-          🍽️ Taste the Top 5
         </button>
       </div>
       ${itemsHtml || `<div class="muted">No products in this category yet.</div>`}
@@ -470,14 +488,12 @@ function renderDrawer(){
   rows = sortMarkers(rows.slice(), DRAWER_SORT);
   qs("drawerList").innerHTML = rows.map(m=>{
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
-    const displayName = m.product_name || brand;
+    const displayName = m.product_name ? `${brand} · ${m.product_name}` : brand;
     return `
       <div class="item-row">
         <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}&cat=${encodeURIComponent(catId)}">
-          <div class="item-left">
-            ${brandIconSlotHtml(m.brand_id)}
-            <div class="item-name">${escapeHtml(displayName)}</div>
-          </div>
+          ${brandIconSlotHtml(m.brand_id)}
+          <div class="item-name">${escapeHtml(displayName)}</div>
           ${ratingBadgeHtml(m)}
         </a>
         ${wlBtnHtml(m.id, "wl-btn-sm")}
@@ -503,10 +519,19 @@ function renderAll(){
   TOP_CATS = computeTopCategories();
 
   const more = qs("catMore");
-  more.innerHTML = `<option value="">More…</option>` + CATS
-    .map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
-    .join("");
-  more.value = FILTER_CATEGORY ? FILTER_CATEGORY : "";
+  if (more) {
+    more.innerHTML = `<option value="">More…</option>` + CATS
+      .map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
+      .join("");
+    more.value = FILTER_CATEGORY ? FILTER_CATEGORY : "";
+  }
+
+  // Update filter pill active state
+  const pill = qs("prodFilterPill");
+  const count = qs("prodFilterCount");
+  const activeCount = (FILTER_CATEGORY ? 1 : 0) + (FILTER_BUCKET ? 1 : 0);
+  if (pill) pill.classList.toggle("active", activeCount > 0);
+  if (count) { count.textContent = activeCount; count.style.display = activeCount > 0 ? "inline" : "none"; }
 
   renderCatQuick();
 
@@ -522,7 +547,10 @@ function renderAll(){
     (byCat[cid] ||= []).push(m);
   });
 
-  qs("lanes").innerHTML = laneIds.map(cid => renderLane(cid, byCat[cid] || [])).join("");
+  // Hide empty lanes when filtering
+  qs("lanes").innerHTML = laneIds
+    .filter(cid => (byCat[cid] || []).length > 0)
+    .map(cid => renderLane(cid, byCat[cid] || [])).join("");
   setStatus(`Loaded ${filtered.length} product(s).`);
   if (DRAWER_CAT) renderDrawer();
 }
