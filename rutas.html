@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-VYVTQPBTPC"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-VYVTQPBTPC");</script>
-  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="base.css?v=1778169939" />
   <link rel="stylesheet" href="rutas.css" />
 </head>
 <body class="rutas-page" onload="initRutasPage()">
@@ -26,7 +26,10 @@
       <a href="ranking.html">Rankings</a>
       <a href="battles.html">Debates</a>
     </nav>
-    <div class="nav-right"><button class="burger" id="burgerBtn" onclick="toggleNav()" aria-label="Menu" aria-expanded="false">&#9776;</button><div id="authHeaderSlot"></div></div>
+    <div class="nav-right">
+      <span id="authStatus" class="auth-pill"></span>
+      <button class="burger" id="burgerBtn" onclick="toggleNav()" aria-label="Menu" aria-expanded="false">&#9776;</button>
+    </div>
   </header>
 
   <!-- Sticky progress bar -->
@@ -44,7 +47,7 @@
     <!-- CITY TABS -->
     <section class="rutas-city-section">
       <div class="rutas-city-tabs">
-        <button class="city-tab city-tab-active" id="cityBCN" onclick="selectCity('BCN')">Barcelona</button>
+        <button class="city-tab" id="cityBCN" onclick="selectCity('BCN')">Barcelona</button>
         <button class="city-tab" id="cityMAD" onclick="selectCity('MAD')">Madrid</button>
       </div>
     </section>
@@ -121,7 +124,7 @@
   <script src="header-auth.js"></script>
   <script>renderAuthHeader();</script>
   <script src="wishlist-btn.js"></script>
-  <script src="rutas.js?v=3"></script>
+  <script src="rutas.js?v=1778169939"></script>
 
   <script>
   function toggleNav() {

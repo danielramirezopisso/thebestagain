@@ -1,6 +1,6 @@
 // rutas.js v2 — full redesign with map, celebrations, sticky bar, tier teaser
 
-let SELECTED_CITY = 'BCN';
+let SELECTED_CITY = null;
 let SELECTED_CAT_ID = null;
 let ACTIVE_RUTA = null;
 let ALL_RUTAS = [];
@@ -46,16 +46,19 @@ async function initRutasPage() {
   if (CURRENT_USER) await loadMyVotes(CURRENT_USER.id);
 
   // Read URL params from marker page links
-  const _qp  = new URLSearchParams(location.search);
-  const _city = _qp.get('city') || 'BCN';
+  const _qp    = new URLSearchParams(location.search);
+  const _city  = _qp.get('city');
   const _rutaId = _qp.get('ruta');
 
-  await selectCity(_city);
-
-  if (_rutaId) {
-    const _target = ALL_RUTAS.find(r => r.id === _rutaId);
-    if (_target) await selectCategory(_target.category_id);
+  if (_city) {
+    // Came from a direct link with city param
+    await selectCity(_city);
+    if (_rutaId) {
+      const _target = ALL_RUTAS.find(r => r.id === _rutaId);
+      if (_target) await selectCategory(_target.category_id);
+    }
   }
+  // Otherwise: no city preselected — user picks
 }
 
 async function loadMyVotes(userId) {
@@ -84,7 +87,7 @@ async function selectCity(city) {
 
   closeRuta();
   renderCatCards();
-  preloadAllRutaItems(); // load items in background so progress shows immediately
+  await preloadAllRutaItems(); // must complete before showing cards
 
   const catSection = document.getElementById('catSection');
   catSection.style.display = 'block';
@@ -136,10 +139,14 @@ function updateCatCardProgress() {
     const countEl = document.getElementById(`catCount-${ruta.category_id}`);
     const items = RUTA_ITEMS_BY_CAT[ruta.category_id] || [];
     if (!items.length) return;
-    const total = items.filter(ri => ri.markers?.is_active).length;
+    const total = items.filter(ri => ri.marker_id || ri.markers?.is_active).length;
     const voted = items.filter(ri => {
-      if (!ri.markers?.is_active) return false;
-      return !!MY_VOTES[`${ri.markers.id}__${ruta.category_id}`];
+      const mid = ri.marker_id || ri.markers?.id;
+      if (!mid) return false;
+      // Try both string and number forms of category_id
+      return !!(MY_VOTES[`${mid}__${ruta.category_id}`] ||
+                MY_VOTES[`${mid}__${String(ruta.category_id)}`] ||
+                MY_VOTES[`${mid}__${Number(ruta.category_id)}`]);
     }).length;
     const pct = total ? Math.round((voted / total) * 100) : 0;
     if (progressEl) {
@@ -159,18 +166,22 @@ async function preloadAllRutaItems() {
   const catIds = ALL_RUTAS.map(r => r.category_id);
   if (!catIds.length) return;
 
-  const { data } = await sb.from('ruta_items')
-    .select('category_id, markers(id, title, is_active)')
-    .in('category_id', catIds);
+  // Simple query matching selectCategory pattern exactly
+  const { data, error } = await sb.from('ruta_items')
+    .select('id, position, category_id, marker_id, markers(id, title, is_active)')
+    .in('category_id', catIds)
+    .order('position', { ascending: true });
 
-  if (!data) return;
+  if (error) { console.warn('preloadAllRutaItems error:', error.message); return; }
+  if (!data || !data.length) { console.warn('preloadAllRutaItems: no data returned'); return; }
+  console.log('preloadAllRutaItems: loaded', data.length, 'items');
 
+  // Group by category, only active markers
   data.forEach(item => {
+    if (!item.markers?.is_active) return;
     const cid = item.category_id;
     if (!RUTA_ITEMS_BY_CAT[cid]) RUTA_ITEMS_BY_CAT[cid] = [];
-    if (!RUTA_ITEMS_BY_CAT[cid].find(x => x.markers?.id === item.markers?.id)) {
-      RUTA_ITEMS_BY_CAT[cid].push(item);
-    }
+    RUTA_ITEMS_BY_CAT[cid].push(item);
   });
 
   updateCatCardProgress();
@@ -215,7 +226,7 @@ function showRutaSection(ruta) {
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   document.getElementById('rutaTitleLabel').textContent = 'La Selección · ' + (cat?.name || '');
-  document.getElementById('rutaTitle').textContent = SELECTED_CITY === 'BCN' ? 'Barcelona' : 'Madrid';
+  document.getElementById('rutaTitle').textContent = SELECTED_CITY === 'BCN' ? 'Barcelona' : SELECTED_CITY === 'MAD' ? 'Madrid' : '';
 
   updateProgress(ruta);
   renderGrid(ruta);
