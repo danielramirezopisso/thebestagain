@@ -1,3 +1,17 @@
+function scoreRowClass(score, hasVoted) {
+  if (!hasVoted) return 'score-none';
+  const s = Math.round(Number(score));
+  if (s >= 10) return 'score-10';
+  if (s >= 9)  return 'score-9';
+  if (s >= 8)  return 'score-8';
+  if (s >= 7)  return 'score-7';
+  if (s >= 6)  return 'score-6';
+  if (s >= 5)  return 'score-5';
+  if (s >= 4)  return 'score-4';
+  if (s >= 3)  return 'score-3';
+  return 'score-low';
+}
+
 // products.js — Products UX v2.3
 // NEW: brands filtered by selected category via category_brands table
 
@@ -285,9 +299,12 @@ function ratingBadgeHtml(m){
     tip   = `Your vote: ${myScore}/10`;
     color = scoreColor(myScore);
   } else if (JOURNEY_MODE_PROD && !hasVoted) {
-    n     = '';
+    n     = '–';
     tip   = 'Not voted yet — click to vote';
-    color = 'var(--muted)';
+    color = 'var(--border)';
+    return `<div class="prod-score prod-score-empty" title="${escapeHtml(tip)}"
+      onclick="event.preventDefault(); event.stopPropagation(); openProductVote('${m.id}', '${m.category_id}', this); return false;"
+      >–</div>`;
   } else {
     n     = cnt ? String(Math.round(avg)) : '—';
     tip   = cnt ? `${avg.toFixed(2)}/10 (${cnt} votes)` : 'No votes yet';
@@ -295,7 +312,7 @@ function ratingBadgeHtml(m){
   }
 
   const myVote = hasVoted ? ' prod-voted' : '';
-  return `<div class="prod-score${myVote}" style="color:${color}" title="${escapeHtml(tip)}"
+  return `<div class="prod-score${myVote}" style="background:${color}" title="${escapeHtml(tip)}"
     onclick="event.preventDefault(); event.stopPropagation(); openProductVote('${m.id}', '${m.category_id}', this); return false;"
     >${escapeHtml(n)}</div>`;
 }
@@ -432,24 +449,22 @@ function renderLane(catId, markersForCat){
   const visible = sorted.slice(0, 5);
   const hasMore = sorted.length > 5;
 
-  // Max avg for bar width
-  const maxAvg = Math.max(...sorted.map(m => Number(m.rating_avg || 0)), 1);
-
   const itemsHtml = visible.map((m, idx)=>{
     const brand = BRAND_BY_ID[m.brand_id]?.name || "(unknown brand)";
     const displayName = m.product_name ? `${brand} · ${m.product_name}` : brand;
     const unvisited = JOURNEY_MODE_PROD && !MY_VOTED_IDS_PROD.has(m.id);
+    const myScore = JOURNEY_MODE_PROD && MY_VOTED_IDS_PROD.has(m.id) ? MY_VOTE_SCORES_PROD[m.id] : null;
+    const rowScore = myScore ?? m.rating_avg;
+    const rowHasVotes = myScore != null || (!JOURNEY_MODE_PROD && Number(m.rating_count) > 0);
+    const rowScoreCls = scoreRowClass(rowScore, rowHasVotes);
     const avg = Number(m.rating_avg || 0);
     const cnt = Number(m.rating_count || 0);
-    const barPct = cnt ? Math.round((avg / maxAvg) * 100) : 0;
     return `
-      <div class="item-row${unvisited ? " journey-unvisited-item" : ""}">
+      <div class="item-row ${rowScoreCls}${unvisited ? " journey-unvisited-item" : ""}">
         <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}&cat=${encodeURIComponent(catId)}">
+          <div class="item-pos">${idx + 1}</div>
           ${brandIconSlotHtml(m.brand_id)}
-          <div class="item-info">
-            <div class="item-name">${escapeHtml(displayName)}</div>
-            ${cnt ? `<div class="item-bar-wrap"><div class="item-bar" style="width:${barPct}%"></div></div>` : ''}
-          </div>
+          <div class="item-name">${escapeHtml(displayName)}</div>
           ${ratingBadgeHtml(m)}
         </a>
         ${wlBtnHtml(m.id, "wl-btn-sm")}
@@ -492,9 +507,11 @@ function renderDrawer(){
     return `
       <div class="item-row">
         <a class="item" href="marker.html?id=${encodeURIComponent(m.id)}&cat=${encodeURIComponent(catId)}">
-          ${brandIconSlotHtml(m.brand_id)}
-          <div class="item-name">${escapeHtml(displayName)}</div>
-          ${ratingBadgeHtml(m)}
+          <div class="item-top">
+            ${brandIconSlotHtml(m.brand_id)}
+            <div class="item-name">${escapeHtml(displayName)}</div>
+            ${ratingBadgeHtml(m)}
+          </div>
         </a>
         ${wlBtnHtml(m.id, "wl-btn-sm")}
       </div>
