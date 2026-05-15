@@ -8,18 +8,15 @@ let rotatingIdx = 0;
 const DEFAULT_ICON_URL = "https://danielramirezopisso.github.io/thebestagain/icons/default.svg";
 
 const ROTATING_FALLBACK = [
-  "Pizza Margherita",
-  "Tortilla de Patatas",
-  "Croqueta de Pollo",
-  "Patatas Bravas",
-  "Ensaladilla Rusa",
-  "Cheesecake",
-  "Tiramisu",
-  "Bloody Mary",
-  "Flan",
-  "Lemon Pie",
-  "Pasta Carbonara",
+  "Tortilla",
+  "Croqueta",
+  "Vermut",
+  "Bravas",
   "Bikini",
+  "Cheesecake",
+  "Tiramisú",
+  "Ensaladilla",
+  "Croissant",
 ];
 
 function escapeHtml(s) {
@@ -65,8 +62,9 @@ async function initHomePage() {
   startHeroRotation();
   loadHeroStat();
   initHomeMap();
+  loadTopRanked();
+  loadDebatesPreview();
   loadRutasPreview();
-  loadRankingsPreview();
 }
 
 async function loadLookups() {
@@ -94,7 +92,7 @@ function startHeroRotation() {
   if (!el) return;
   // Use curated fallback list always — DB cats may include non-photogenic names
   const cats = ROTATING_FALLBACK;
-  el.textContent = cats[0];
+  // First word already in HTML — skip setting it again
   el.classList.add("fade-in");
   setInterval(() => {
     el.classList.add("fade-out");
@@ -141,7 +139,7 @@ async function initHomeMap() {
     dragging: false, doubleClickZoom: false,
     boxZoom: false, keyboard: false,
     touchZoom: false, attributionControl: false,
-  }).setView([41.3888, 2.1589], 13);
+  }).setView([41.3889, 2.1618], 13);
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
     maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO"
@@ -154,12 +152,10 @@ async function initHomeMap() {
     .slice(0, 80);
 
   places.forEach(m => {
-    const icon = iconForCategory(m.category_id);
-    // Monochrome on home — elegant, not a dashboard
     const leafIcon = L.divIcon({
-      className: "tba-marker home-map-marker",
-      html: `<div class="tba-marker-inner"><img src="${escapeHtml(icon)}" alt="" onerror="this.style.display='none'" /></div>`,
-      iconSize: [28, 28], iconAnchor: [14, 14],
+      className: "",
+      html: `<div class="home-dot"></div>`,
+      iconSize: [10, 10], iconAnchor: [5, 5],
     });
     L.marker([m.lat, m.lon], { icon: leafIcon })
       .addTo(HOME_MAP)
@@ -210,7 +206,7 @@ async function loadRutasPreview() {
     const pct = total ? Math.round((voted / total) * 100) : 0;
     const city = ruta.city === "BCN" ? "Barcelona" : "Madrid";
     return `
-      <a class="home-ruta-card" href="rutas.html">
+      <a class="home-ruta-card" href="rutas.html?city=${encodeURIComponent(ruta.city)}&ruta=${encodeURIComponent(ruta.id)}">
         <img class="home-ruta-icon" src="${escapeHtml(icon)}" alt="" />
         <div class="home-ruta-name">${escapeHtml(cat?.name || ruta.name)}</div>
         <div class="home-ruta-city">${escapeHtml(city)}</div>
@@ -274,4 +270,129 @@ async function loadRankingsPreview() {
         <span class="home-rank-score ${cls}">${escapeHtml(score)}</span>
       </a>`;
   }).join("");
+}
+
+/* ══════════════════════════════
+   TOP RANKED NOW
+══════════════════════════════ */
+function scoreColor(avg) {
+  const s = Number(avg);
+  if (s >= 9) return '#1e5c3a';
+  if (s >= 7) return '#4a7c59';
+  if (s >= 5) return '#c8972a';
+  if (s >= 3) return '#e76f51';
+  return '#c1440e';
+}
+
+async function loadTopRanked() {
+  const host = document.getElementById('homeTopGrid');
+  if (!host) return;
+
+  // Places only, top rated, min 2 votes
+  const { data } = await sb.from('markers')
+    .select('id,title,group_type,category_id,address,city,rating_avg,rating_count')
+    .eq('is_active', true)
+    .eq('group_type', 'place')
+    .gte('rating_count', 2)
+    .order('rating_avg', { ascending: false })
+    .limit(12);
+
+  if (!data?.length) { host.innerHTML = ''; return; }
+
+  // Pick 4 from different categories
+  const seen = new Set();
+  const top = [];
+  for (const m of data) {
+    if (!seen.has(m.category_id)) {
+      seen.add(m.category_id);
+      top.push(m);
+      if (top.length >= 4) break;
+    }
+  }
+
+  host.innerHTML = top.map(m => {
+    const cat = CAT[String(m.category_id)];
+    const avg = Number(m.rating_avg ?? 0);
+    const cnt = Number(m.rating_count ?? 0);
+    const color = scoreColor(avg);
+    const cityLabel = m.city === 'BCN' ? 'Barcelona' : m.city === 'MAD' ? 'Madrid' : '';
+    // Extract neighbourhood from address (first part before comma)
+    const neighbourhood = m.address ? m.address.split(',').slice(-2,-1)[0]?.trim() : '';
+    const location = neighbourhood ? `${neighbourhood} · ${cityLabel}` : cityLabel;
+    return `
+      <a class="home-top-card" href="marker.html?id=${encodeURIComponent(m.id)}&cat=${m.category_id}">
+        <div class="home-top-card-cat">${escapeHtml(cat?.name || '')}</div>
+        <div class="home-top-card-name">${escapeHtml(m.title)}</div>
+        ${location ? `<div class="home-top-card-location">${escapeHtml(location)}</div>` : ''}
+        <div class="home-top-card-foot">
+          <div class="home-top-card-votes">${cnt} votes</div>
+          <div class="home-top-card-score" style="background:${color}">${avg.toFixed(1)}</div>
+        </div>
+      </a>`;
+  }).join('');
+}
+
+/* ══════════════════════════════
+   DEBATES PREVIEW
+══════════════════════════════ */
+async function loadDebatesPreview() {
+  const host = document.getElementById('homeDebatesGrid');
+  if (!host) return;
+
+  const [battlesRes, votesRes] = await Promise.all([
+    sb.from('battles').select('id,question,option_a,option_b')
+      .eq('is_active', true)
+      .order('position', { ascending: true })
+      .limit(2),
+    sb.from('battle_votes').select('battle_id,choice')
+      .limit(100000)  // no is_active filter — matches battles.js
+  ]);
+
+  const battles = battlesRes.data || [];
+  if (!battles.length) {
+    host.innerHTML = '';
+    host.closest('.home-section')?.style.setProperty('display', 'none');
+    return;
+  }
+
+  // Tally votes
+  const tally = {};
+  (votesRes.data || []).forEach(v => {
+    if (v.choice !== 'a' && v.choice !== 'b') return;
+    if (!tally[v.battle_id]) tally[v.battle_id] = { a: 0, b: 0 };
+    tally[v.battle_id][v.choice]++;
+  });
+
+  host.innerHTML = battles.map(b => {
+    const t = tally[b.id] || { a: 0, b: 0 };
+    const total = t.a + t.b;
+    const pctA = total ? Math.round((t.a / total) * 100) : 50;
+    const pctB = 100 - pctA;
+    const leading = pctA >= pctB ? b.option_a : b.option_b;
+    const leadPct = Math.max(pctA, pctB);
+    return `
+      <a class="home-debate-card" href="battles.html">
+        <div class="home-debate-question">${escapeHtml(b.question)}</div>
+        <div class="home-debate-options">
+          <div class="home-debate-opt">
+            <div class="home-debate-opt-label">${escapeHtml(b.option_a)}</div>
+            <div class="home-debate-bar-wrap">
+              <div class="home-debate-bar-fill" style="width:${pctA}%"></div>
+            </div>
+            <div class="home-debate-pct">${pctA}%</div>
+          </div>
+          <div class="home-debate-opt">
+            <div class="home-debate-opt-label">${escapeHtml(b.option_b)}</div>
+            <div class="home-debate-bar-wrap">
+              <div class="home-debate-bar-fill opt-b" style="width:${pctB}%"></div>
+            </div>
+            <div class="home-debate-pct">${pctB}%</div>
+          </div>
+        </div>
+        <div class="home-debate-foot">
+          <span class="home-debate-votes">${total.toLocaleString()} votes</span>
+          <span class="home-debate-cta">Vote now →</span>
+        </div>
+      </a>`;
+  }).join('');
 }
