@@ -302,9 +302,9 @@ function ratingBadgeHtml(m){
     n     = '–';
     tip   = 'Not voted yet — click to vote';
     color = 'var(--border)';
-    return `<div class="prod-score prod-score-empty" title="${escapeHtml(tip)}"
+    return `<div class="item-score-wrap"><div class="prod-score prod-score-empty" title="${escapeHtml(tip)}"
       onclick="event.preventDefault(); event.stopPropagation(); openProductVote('${m.id}', '${m.category_id}', this); return false;"
-      >–</div>`;
+      >☆</div></div>`;
   } else {
     n     = cnt ? String(Math.round(avg)) : '—';
     tip   = cnt ? `${avg.toFixed(2)}/10 (${cnt} votes)` : 'No votes yet';
@@ -312,9 +312,11 @@ function ratingBadgeHtml(m){
   }
 
   const myVote = hasVoted ? ' prod-voted' : '';
-  return `<div class="prod-score${myVote}" style="background:${color}" title="${escapeHtml(tip)}"
+  const voteCountHtml = (!JOURNEY_MODE_PROD && cnt > 0)
+    ? `<span class="prod-vote-count">${cnt}</span>` : '';
+  return `<div class="item-score-wrap">${voteCountHtml}<div class="prod-score${myVote}" style="background:${color}" title="${escapeHtml(tip)}"
     onclick="event.preventDefault(); event.stopPropagation(); openProductVote('${m.id}', '${m.category_id}', this); return false;"
-    >${escapeHtml(n)}</div>`;
+    >${escapeHtml(n)}</div></div>`;
 }
 
 function scoreColor(score) {
@@ -564,9 +566,28 @@ function renderAll(){
   });
 
   // Hide empty lanes when filtering
-  qs("lanes").innerHTML = laneIds
-    .filter(cid => (byCat[cid] || []).length > 0)
-    .map(cid => renderLane(cid, byCat[cid] || [])).join("");
+  const activeLaneIds = laneIds.filter(cid => (byCat[cid] || []).length > 0);
+
+  // Distribute lanes into 3 columns (masonry-style: fill shortest column)
+  const cols = [[], [], []];
+  const colHeights = [0, 0, 0];
+  activeLaneIds.forEach(cid => {
+    const items = byCat[cid] || [];
+    const height = items.length + 1; // items + header
+    const shortest = colHeights.indexOf(Math.min(...colHeights));
+    cols[shortest].push(cid);
+    colHeights[shortest] += height;
+  });
+
+  // Render 3 column divs
+  const grid = qs("lanes");
+  grid.innerHTML = '';
+  cols.forEach(colCatIds => {
+    const col = document.createElement('div');
+    col.className = 'lane-col';
+    col.innerHTML = colCatIds.map(cid => renderLane(cid, byCat[cid] || [])).join('');
+    grid.appendChild(col);
+  });
   setStatus(`Loaded ${filtered.length} product(s).`);
   if (DRAWER_CAT) renderDrawer();
 }
@@ -650,6 +671,7 @@ async function toggleJourneyModeProd() {
     return;
   }
   JOURNEY_MODE_PROD = !JOURNEY_MODE_PROD;
+  LANE_SORT = {}; // reset sort on mode switch
   updateJourneyToggleUIProd();
   renderAll();
 }
