@@ -73,65 +73,266 @@ async function loadAllData() {
 }
 
 /* ══════════════════════════════════ NORMAL VIEW */
+/* ══════════════════════════════════
+   VOTES VIEW STATE
+══════════════════════════════════ */
+let VOTES_SORT  = 'category';
+let VOTES_QUERY = '';
+let VOTES_CAT   = null;   // null = all
+let VOTES_TYPE  = null;   // null | 'place' | 'product'
+let VOTES_MIN   = null;   // null | 1-10
+let VOTES_MAX   = null;   // null | 1-10
+
 function renderNormalView() {
   const wrap = document.getElementById("votesByCategory");
   if (!MY_VOTES.length) {
     wrap.innerHTML = `
-      <div style="text-align:center;padding:48px 20px;">
-        <div style="font-size:36px;margin-bottom:10px;">🗳️</div>
-        <h3 style="margin:0 0 6px;">No votes yet</h3>
+      <div class="votes-empty">
+        <div class="votes-empty-icon">🗳️</div>
+        <h3>No votes yet</h3>
         <p class="muted">Open any marker and cast your first vote.</p>
       </div>`;
     return;
   }
 
-  const byCat = {};
-  MY_VOTES.forEach(v => {
-    const cid = v.markers.category_id;
-    if (!byCat[cid]) byCat[cid] = [];
-    byCat[cid].push(v);
-  });
-  Object.values(byCat).forEach(arr => arr.sort((a, b) => b.vote - a.vote));
-
-  const catIds = Object.keys(byCat).map(Number)
-    .sort((a, b) => (byCat[b][0]?.vote ?? 0) - (byCat[a][0]?.vote ?? 0));
-
-  wrap.innerHTML = catIds.map(cid => {
-    const cat   = CAT_BY_ID[cid];
-    const votes = byCat[cid];
-    const iconHtml = cat?.icon_url
-      ? `<div class="cat-block-icon"><img src="${escapeHtml(cat.icon_url)}" alt=""/></div>`
-      : `<div class="cat-block-icon">📦</div>`;
-
-    const rows = votes.map((v, i) => {
-      const m     = v.markers;
-      const score = Number(v.vote);
-      const cls   = colorClass(score);
-      let info = "";
-      if (m.group_type === "product" && m.brand_id)
-        info = `<span class="muted" style="font-size:12px;"> · ${escapeHtml(BRAND_BY_ID[m.brand_id]?.name || "")}</span>`;
-      return `
-        <tr onclick="window.location.href='marker.html?id=${encodeURIComponent(m.id)}'">
-          <td><span class="rank-badge">${i + 1}</span></td>
-          <td><b>${escapeHtml(m.title)}</b>${info}</td>
-          <td><span class="score-pill ${cls}">${score.toFixed(1)}</span></td>
-        </tr>`;
-    }).join("");
-
-    return `
-      <div class="cat-block">
-        <div class="cat-block-head">
-          ${iconHtml}
-          <span class="cat-block-name">${escapeHtml(cat?.name || "Unknown")}</span>
-          <span class="cat-block-count">${votes.length} vote${votes.length === 1 ? "" : "s"}</span>
-        </div>
-        <table class="votes-table">
-          <colgroup><col class="col-rank"/><col class="col-title"/><col class="col-score"/></colgroup>
-          <thead><tr><th>#</th><th>Title</th><th>Score</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+  // Search + sort controls
+  if (!document.getElementById("votesControls")) {
+    const controls = document.createElement("div");
+    controls.id = "votesControls";
+    controls.className = "votes-controls";
+    controls.innerHTML = `
+      <div class="votes-controls-row">
+        <input class="votes-search" id="votesSearch" placeholder="Search…" oninput="onVotesSearch(this.value)" />
+        <button class="votes-filter-btn" id="votesFilterBtn" onclick="toggleVotesFilter()">⊟ Filter</button>
+      </div>
+      <div class="votes-sort-pills">
+        <button class="votes-sort-pill active" data-sort="category" onclick="setVotesSort('category')">Category</button>
+        <button class="votes-sort-pill"        data-sort="name"   onclick="setVotesSort('name')">Name</button>
+        <button class="votes-sort-pill"        data-sort="recent" onclick="setVotesSort('recent')">Recent</button>
       </div>`;
-  }).join("");
+    wrap.parentNode.insertBefore(controls, wrap);
+
+    // Filter drawer
+    if (!document.getElementById('votesFilterDrawer')) {
+      const myCats = [...new Set(MY_VOTES.map(v => v.markers.category_id))];
+      const catOpts = myCats.map(cid => {
+        const name = CAT_BY_ID[cid]?.name || 'Unknown';
+        return `<button class="vf-chip" data-type="cat" data-val="${cid}" onclick="setVotesCat(${cid})">${escapeHtml(name)}</button>`;
+      }).join('');
+
+      const drawer = document.createElement('div');
+      drawer.id = 'votesFilterDrawer';
+      drawer.className = 'votes-filter-drawer';
+      drawer.style.display = 'none';
+      drawer.innerHTML = `
+        <div class="vf-section">
+          <div class="vf-label">Category</div>
+          <div class="vf-chips">
+            <button class="vf-chip active" data-type="cat" data-val="all" onclick="setVotesCat(null)">All</button>
+            ${catOpts}
+          </div>
+        </div>
+        <div class="vf-section">
+          <div class="vf-label">Type</div>
+          <div class="vf-chips">
+            <button class="vf-chip active" data-type="type" data-val="all" onclick="setVotesType(null)">All</button>
+            <button class="vf-chip" data-type="type" data-val="place"   onclick="setVotesType('place')">🗺 Places</button>
+            <button class="vf-chip" data-type="type" data-val="product" onclick="setVotesType('product')">🛒 Products</button>
+          </div>
+        </div>
+        <div class="vf-section">
+          <div class="vf-label">Min score</div>
+          <div class="vf-chips">
+            ${[null,7,8,9].map(n => `<button class="vf-chip ${n===null?'active':''}" data-type="min" data-val="${n??'all'}" onclick="setVotesMin(${n})">${n===null?'Any':'≥'+n}</button>`).join('')}
+          </div>
+        </div>
+        <div class="vf-footer">
+          <button class="vf-clear" onclick="clearVotesFilters()">✕ Clear filters</button>
+        </div>`;
+      wrap.parentNode.insertBefore(drawer, wrap);
+    }
+  }
+
+  updateVotesFilterBtn();
+  renderVotesList();
+}
+
+function toggleVotesFilter() {
+  const d = document.getElementById('votesFilterDrawer');
+  if (d) d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+
+function updateVotesFilterBtn() {
+  const btn = document.getElementById('votesFilterBtn');
+  if (!btn) return;
+  const active = VOTES_CAT !== null || VOTES_TYPE !== null || VOTES_MIN !== null;
+  btn.classList.toggle('active', active);
+  btn.textContent = active ? '⊟ Filter •' : '⊟ Filter';
+}
+
+function setVotesCat(cid) {
+  VOTES_CAT = cid;
+  document.querySelectorAll('[data-type="cat"]').forEach(b =>
+    b.classList.toggle('active', cid === null ? b.dataset.val === 'all' : String(b.dataset.val) === String(cid))
+  );
+  updateVotesFilterBtn(); renderVotesList();
+}
+
+function setVotesType(type) {
+  VOTES_TYPE = type;
+  document.querySelectorAll('[data-type="type"]').forEach(b =>
+    b.classList.toggle('active', type === null ? b.dataset.val === 'all' : b.dataset.val === type)
+  );
+  updateVotesFilterBtn(); renderVotesList();
+}
+
+function setVotesMin(min) {
+  VOTES_MIN = min;
+  document.querySelectorAll('[data-type="min"]').forEach(b =>
+    b.classList.toggle('active', min === null ? b.dataset.val === 'all' : String(b.dataset.val) === String(min))
+  );
+  updateVotesFilterBtn(); renderVotesList();
+}
+
+function clearVotesFilters() {
+  VOTES_CAT = null; VOTES_TYPE = null; VOTES_MIN = null;
+  document.querySelectorAll('.vf-chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === 'all');
+  });
+  updateVotesFilterBtn(); renderVotesList();
+}
+
+function onVotesSearch(q) {
+  VOTES_QUERY = q.toLowerCase().trim();
+  renderVotesList();
+}
+
+function setVotesSort(sort) {
+  VOTES_SORT = sort;
+  document.querySelectorAll('.votes-sort-pill').forEach(b => {
+    b.classList.toggle('active', b.dataset.sort === sort);
+  });
+  renderVotesList();
+}
+
+function renderVotesList() {
+  const wrap = document.getElementById("votesByCategory");
+
+  // Filter by search
+  let votes = MY_VOTES.filter(v => {
+    if (VOTES_CAT  !== null && v.markers.category_id !== VOTES_CAT) return false;
+    if (VOTES_TYPE !== null && v.markers.group_type  !== VOTES_TYPE) return false;
+    if (VOTES_MIN  !== null && Number(v.vote) < VOTES_MIN) return false;
+    if (!VOTES_QUERY) return true;
+    const name  = (v.markers.title || '').toLowerCase();
+    const cat   = (CAT_BY_ID[v.markers.category_id]?.name || '').toLowerCase();
+    const brand = (BRAND_BY_ID[v.markers.brand_id]?.name || '').toLowerCase();
+    return name.includes(VOTES_QUERY) || cat.includes(VOTES_QUERY) || brand.includes(VOTES_QUERY);
+  });
+
+  // Sort
+  if (VOTES_SORT === 'score')    votes.sort((a, b) => b.vote - a.vote);
+  if (VOTES_SORT === 'name')     votes.sort((a, b) => (a.markers.title || '').localeCompare(b.markers.title || ''));
+  if (VOTES_SORT === 'category') votes.sort((a, b) => {
+    const ca = CAT_BY_ID[a.markers.category_id]?.name || '';
+    const cb = CAT_BY_ID[b.markers.category_id]?.name || '';
+    return ca.localeCompare(cb) || b.vote - a.vote;
+  });
+  if (VOTES_SORT === 'recent')   votes.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  if (!votes.length) {
+    wrap.innerHTML = `<div class="votes-empty"><p class="muted">No votes match your search.</p></div>`;
+    return;
+  }
+
+  // Insert category dividers when sorted by score/recent/name
+  // Group into sections with category headers
+  let html = '';
+  let lastCat = null;
+  let posInCat = {};
+  const showDividers = (VOTES_SORT === 'score' || VOTES_SORT === 'category' || VOTES_SORT === 'recent');
+
+  votes.forEach((v, i) => {
+    const cid = v.markers.category_id;
+    if (showDividers && cid !== lastCat) {
+      const catName = CAT_BY_ID[cid]?.name || "";
+      html += `<div class="vote-cat-divider">${escapeHtml(catName)}</div>`;
+      lastCat = cid;
+      posInCat[cid] = 0;
+    }
+    posInCat[cid] = (posInCat[cid] || 0) + 1;
+    html += renderVoteRow(v, i, posInCat[cid] || i + 1);
+  });
+  wrap.innerHTML = html;
+}
+
+function renderVoteRow(v, globalIdx, posInCat) {
+  const i = globalIdx;
+    const m     = v.markers;
+    const score = Number(v.vote);
+    const cat   = CAT_BY_ID[m.category_id];
+    const brand = m.brand_id ? BRAND_BY_ID[m.brand_id]?.name : null;
+    const sub   = brand ? brand : (cat?.name || '');
+    const scoreColor = getScoreColor(score);
+    const sizeClass  = i === 0 ? 'vote-row-1' : i === 1 ? 'vote-row-2' : i < 4 ? 'vote-row-3' : '';
+
+  return `
+      <div class="vote-row ${sizeClass}" id="vrow-${encodeURIComponent(v.id)}">
+        <a class="vote-row-link" href="marker.html?id=${encodeURIComponent(m.id)}&cat=${m.category_id}">
+          <div class="vote-row-pos">${i + 1}</div>
+          <div class="vote-row-info">
+            <div class="vote-row-name">${escapeHtml(m.title)}</div>
+            <div class="vote-row-sub">${escapeHtml(sub)}</div>
+          </div>
+        </a>
+        <div class="vote-row-actions">
+          <div class="vote-inline-scores" id="vscores-${encodeURIComponent(v.id)}" style="display:none;">
+            ${[1,2,3,4,5,6,7,8,9,10].map(n => `<button class="vote-score-btn ${n === score ? 'active' : ''}" 
+              onclick="changeMyVote('${v.id}','${m.id}','${m.category_id}',${n})">${n}</button>`).join('')}
+            <button class="vote-score-remove" onclick="removeMyVote('${v.id}','${m.id}')">✕</button>
+          </div>
+          <div class="vote-score-badge" style="background:${scoreColor}"
+            onclick="toggleVoteScores('${encodeURIComponent(v.id)}')"
+            title="Click to change">${score}</div>
+        </div>
+      </div>`;
+
+}
+
+function getScoreColor(s) {
+  if (s >= 9) return '#1e5c3a';
+  if (s >= 7) return '#4a7c59';
+  if (s >= 5) return '#c8972a';
+  if (s >= 3) return '#e76f51';
+  return '#c1440e';
+}
+
+function toggleVoteScores(id) {
+  // Close all others first
+  document.querySelectorAll('.vote-inline-scores').forEach(el => {
+    if (el.id !== 'vscores-' + id) el.style.display = 'none';
+  });
+  const el = document.getElementById('vscores-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+async function changeMyVote(voteId, markerId, categoryId, newScore) {
+  const { error } = await sb.from('votes')
+    .update({ vote: newScore, updated_at: new Date().toISOString() })
+    .eq('id', voteId);
+  if (error) { alert('Could not update vote'); return; }
+  // Update local data
+  const v = MY_VOTES.find(x => x.id === voteId);
+  if (v) v.vote = newScore;
+  renderVotesList();
+}
+
+async function removeMyVote(voteId, markerId) {
+  if (!confirm('Remove this vote?')) return;
+  const { error } = await sb.from('votes').update({ is_active: false }).eq('id', voteId);
+  if (error) { alert('Could not remove vote'); return; }
+  MY_VOTES = MY_VOTES.filter(v => v.id !== voteId);
+  renderVotesList();
 }
 
 /* ══════════════════════════════════ EDIT MODE: ENTRY/EXIT */

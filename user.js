@@ -63,12 +63,15 @@ async function initUserPage() {
     : "";
   if (joined) document.getElementById("userJoined").textContent = `Member since ${joined}`;
 
-  if (IS_ADMIN) document.getElementById("adminBar").style.display = "";
+  // Admin: use admin.html and traction-admin.html directly
 
   // Load wishlist state + stats + votes in parallel
   wlInit();
   await Promise.all([ loadStats(), loadAllData() ]);
   renderNormalView();
+
+  // Hide tabs with no content
+  hideEmptyTabs();
 
   // Check URL tab param
   const tab = new URLSearchParams(location.search).get("tab");
@@ -96,11 +99,14 @@ async function loadStats() {
     ? (votes.reduce((s,v) => s + Number(v.vote), 0) / votes.length).toFixed(1)
     : "—";
 
-  document.getElementById("statVotes").textContent    = voteCount;
-  document.getElementById("statAvg").textContent      = avg;
-  document.getElementById("statMarkers").textContent  = markerCount;
-  document.getElementById("statComments").textContent = commentCount;
-  document.getElementById("statPhotos").textContent   = photoCount;
+  document.getElementById("statVotes").textContent = voteCount;
+  document.getElementById("statAvg").textContent   = avg;
+  const smEl = document.getElementById("statMarkers");
+  if (smEl) smEl.textContent = markerCount;
+  const scEl = document.getElementById("statComments");
+  if (scEl) scEl.textContent = commentCount;
+  const spEl = document.getElementById("statPhotos");
+  if (spEl) spEl.textContent = photoCount;
 
   const score = voteCount + (markerCount*3) + commentCount + (photoCount*2);
   const badge = getBadge(score);
@@ -125,6 +131,9 @@ function getBadge(score) {
    TABS
 ══════════════════════════════════════════ */
 function switchTab(name) {
+  // Sync mobile dropdown
+  const sel = document.getElementById('userTabSelect');
+  if (sel && sel.value !== name) sel.value = name;
   document.querySelectorAll(".user-tab").forEach(btn =>
     btn.classList.toggle("active", btn.dataset.tab === name));
   document.querySelectorAll(".user-tab-panel").forEach(p =>
@@ -180,38 +189,32 @@ async function loadWishlist() {
   const catMap   = Object.fromEntries((CATEGORIES_CACHE || []).map(c => [c.id, c]));
   const brandMap = Object.fromEntries((BRANDS_CACHE    || []).map(b => [b.id, b]));
 
-  host.innerHTML = items.map(r => {
+  host.innerHTML = items.map((r, i) => {
     const m   = r.markers;
     const cat = catMap[m.category_id];
     const avg = Number(m.rating_avg ?? 0);
     const cnt = Number(m.rating_count ?? 0);
-    const ratingTxt = cnt ? avg.toFixed(1) : "—";
-    const isPlace   = m.group_type === "place";
-    const sub       = isPlace
-      ? (m.address || cat?.name || "")
-      : (brandMap[m.brand_id]?.name || cat?.name || "");
-    const iconUrl   = cat?.icon_url
-      ? cat.icon_url
-      : (isPlace ? "icons/default-place.svg" : "icons/default-product.svg");
-    const colorCls  = cnt >= 3
-      ? (avg >= 9 ? "rating-9-10" : avg >= 7 ? "rating-7-8" : avg >= 5 ? "rating-5-6" : avg >= 3 ? "rating-3-4" : "rating-1-2")
-      : "rating-none";
+    const isPlace = m.group_type === "place";
+    const sub = cat?.name || "";
+    const scoreColor = cnt
+      ? (avg >= 9 ? "#1e5c3a" : avg >= 7 ? "#4a7c59" : avg >= 5 ? "#c8972a" : avg >= 3 ? "#e76f51" : "#c1440e")
+      : null;
+    const sizeClass = i === 0 ? "vote-row-1" : i === 1 ? "vote-row-2" : i < 4 ? "vote-row-3" : "";
 
     return `
-      <div class="wishlist-item">
-        <a class="wishlist-item-link" href="marker.html?id=${encodeURIComponent(m.id)}">
-          <div class="wishlist-item-icon">
-            <img src="${escapeHtml(iconUrl)}" alt="" onerror="this.style.display='none'" />
+      <div class="vote-row ${sizeClass}">
+        <a class="vote-row-link" href="marker.html?id=${encodeURIComponent(m.id)}&cat=${m.category_id}">
+          <div class="vote-row-pos">${i + 1}</div>
+          <div class="vote-row-info">
+            <div class="vote-row-name">${escapeHtml(m.title)}</div>
+            <div class="vote-row-sub">${escapeHtml(sub)}</div>
           </div>
-          <div class="wishlist-item-body">
-            <div class="wishlist-item-title">${escapeHtml(m.title)}</div>
-            <div class="wishlist-item-sub muted">${escapeHtml(sub)}</div>
-          </div>
-          <div class="wishlist-item-rating rating-badge ${colorCls}">${escapeHtml(ratingTxt)}</div>
         </a>
-        ${wlBtnHtml(m.id)}
-      </div>
-    `;
+        <div class="vote-row-actions">
+          ${scoreColor ? `<div class="vote-score-badge" style="background:${scoreColor}">${avg.toFixed(1)}</div>` : ""}
+          ${wlBtnHtml(m.id)}
+        </div>
+      </div>`;
   }).join("");
 
   // After rendering, refresh all heart states
@@ -283,52 +286,37 @@ async function loadPlaces() {
   const active   = markers.filter(m => m.is_active);
   const inactive = markers.filter(m => !m.is_active);
 
-  const renderRow = m => {
+  const renderRow = (m, idx) => {
     const cat      = catMap[m.category_id];
     const score    = voteMap[m.id];
-    const photos   = photoCount[m.id]   || 0;
-    const comments = commentCount[m.id] || 0;
-    const icon = cat?.icon_url
-      ? `<img src="${esc(cat.icon_url)}" class="places-row-icon" alt="" />`
-      : `<span class="places-row-icon-fallback">📍</span>`;
-
-    const scorePill = score != null
-      ? `<span class="score-pill ${colorClass(score)}" style="font-size:12px;flex:0 0 auto;">${Number(score).toFixed(1)}</span>`
-      : `<span class="places-no-vote" title="You haven't voted yet">—</span>`;
-
-    const inactiveBadge = !m.is_active
-      ? `<span class="places-inactive-badge">inactive</span>`
-      : "";
-
-    const counters = (photos || comments) ? `
-      <span class="places-counters">
-        ${photos   ? `<span class="places-counter" title="${photos} photo${photos>1?"s":""}">📷 ${photos}</span>`     : ""}
-        ${comments ? `<span class="places-counter" title="${comments} comment${comments>1?"s":""}">💬 ${comments}</span>` : ""}
-      </span>` : "";
-
-    const actions = !m.is_active
-      ? `<div class="places-row-actions"><span class="muted" style="font-size:12px;padding:0 14px;">Deactivated</span></div>`
-      : `<div class="places-row-actions">
-          <button class="places-action-btn" onclick="openEditModal('${esc(m.id)}')" title="Edit">✏️ Edit</button>
-          <button class="places-action-btn places-action-btn--danger" onclick="openDeactivate('${esc(m.id)}','${esc(m.title)}')" title="Remove">🗑 Remove</button>
-        </div>`;
+    const inactive = !m.is_active;
+    const scoreColor = score != null
+      ? (score >= 9 ? "#1e5c3a" : score >= 7 ? "#4a7c59" : score >= 5 ? "#c8972a" : score >= 3 ? "#e76f51" : "#c1440e")
+      : null;
+    const scoreBadge = scoreColor
+      ? `<div class="vote-score-badge" style="background:${scoreColor}">${Number(score).toFixed(0)}</div>`
+      : `<div class="vote-score-badge" style="background:var(--border);color:var(--muted)">—</div>`;
 
     return `
-      <div class="places-row${!m.is_active ? " places-row--inactive" : ""}" data-id="${esc(m.id)}">
-        <a class="places-row-main" href="marker.html?id=${esc(m.id)}">
-          ${icon}
-          <div class="places-row-body">
-            <span class="places-row-title">${esc(m.title)} ${inactiveBadge}</span>
-            <span class="places-row-sub">${esc(cat?.name || "")} · ${timeAgo(m.created_at)}</span>
-            ${counters}
+      <div class="vote-row${inactive ? ' places-inactive' : ''}" data-id="${esc(m.id)}">
+        <a class="vote-row-link" href="marker.html?id=${esc(m.id)}&cat=${m.category_id}">
+          <div class="vote-row-pos">${idx + 1}</div>
+          <div class="vote-row-info">
+            <div class="vote-row-name">${esc(m.title)}</div>
+            <div class="vote-row-sub">${esc(cat?.name || '')}</div>
           </div>
-          ${scorePill}
         </a>
-        ${actions}
+        <div class="vote-row-actions">
+          ${scoreBadge}
+          ${!inactive ? `
+          <button class="places-edit-btn" onclick="event.stopPropagation();openEditModal('${esc(m.id)}')" title="Edit">✏</button>
+          <button class="places-del-btn"  onclick="event.stopPropagation();openDeactivate('${esc(m.id)}','${esc(m.title)}')" title="Remove">✕</button>
+          ` : '<span class="places-inactive-label">inactive</span>'}
+        </div>
       </div>`;
   };
 
-  let html = active.map(renderRow).join("");
+  let html = active.map((m,i) => renderRow(m,i)).join("");
 
   if (inactive.length) {
     html += `
@@ -338,7 +326,7 @@ async function loadPlaces() {
         </button>
       </div>
       <div class="places-inactive-section" style="display:none;">
-        ${inactive.map(renderRow).join("")}
+        ${inactive.map((m,i) => renderRow(m,i)).join("")}
       </div>`;
   }
 
@@ -393,7 +381,9 @@ async function openEditModal(markerId) {
     `${EDIT_LAT.toFixed(5)}, ${EDIT_LNG.toFixed(5)}`;
 
   // Show modal first (map needs visible container)
+  window._editScrollY = window.scrollY;
   document.getElementById("editModalOverlay").classList.add("active");
+  document.body.style.overflow = "hidden";
 
   // Init map after brief delay for layout
   setTimeout(() => initEditMap(EDIT_LAT, EDIT_LNG), 80);
@@ -448,6 +438,8 @@ function initEditMap(lat, lng) {
 
 function closeEditModal() {
   document.getElementById("editModalOverlay").classList.remove("active");
+  document.body.style.overflow = "";
+  if (window._editScrollY !== undefined) window.scrollTo(0, window._editScrollY);
   if (EDIT_MAP_INST) { EDIT_MAP_INST.remove(); EDIT_MAP_INST = null; EDIT_PIN = null; }
   EDIT_MARKER_ID = null;
 }
@@ -500,11 +492,15 @@ function openDeactivate(markerId, markerTitle) {
   document.getElementById("deactivateName").textContent      = markerTitle;
   document.getElementById("deactivateStatus").textContent    = "";
   document.getElementById("deactivateConfirmBtn").disabled   = false;
+  window._editScrollY = window.scrollY;
   document.getElementById("deactivateOverlay").classList.add("active");
+  document.body.style.overflow = "hidden";
 }
 
 function closeDeactivate() {
   document.getElementById("deactivateOverlay").classList.remove("active");
+  document.body.style.overflow = "";
+  if (window._editScrollY !== undefined) window.scrollTo(0, window._editScrollY);
   DEACTIVATE_ID = null;
 }
 
@@ -540,6 +536,8 @@ async function confirmDeactivate() {
 ══════════════════════════════════════════ */
 async function loadComments() {
   const host = document.getElementById("commentsList");
+  if (!host) return;
+  if (!USER_ID) { host.innerHTML = `<p class="muted" style="padding:20px 0;">Please log in to see your comments.</p>`; return; }
   host.innerHTML = `<p class="muted" style="padding:20px 0;">Loading…</p>`;
 
   const { data, error } = await sb
@@ -558,20 +556,34 @@ async function loadComments() {
     return;
   }
 
-  // Fetch marker titles separately
+  // Fetch marker titles + ratings
   const mids = [...new Set(data.map(c => c.marker_id))];
-  const { data: mData } = await sb.from("markers").select("id,title").in("id", mids);
-  const titleMap = Object.fromEntries((mData || []).map(m => [m.id, m.title]));
+  const { data: mData } = await sb.from("markers")
+    .select("id,title,rating_avg,rating_count,category_id")
+    .in("id", mids);
+  const markerMap = Object.fromEntries((mData || []).map(m => [m.id, m]));
 
-  host.innerHTML = data.map(c => `
-    <a class="user-comment-row" href="marker.html?id=${esc(c.marker_id)}">
-      <div class="user-comment-meta">
-        <span class="user-comment-place">${esc(titleMap[c.marker_id] || "Unknown place")}</span>
-        <span class="user-comment-time muted">${timeAgo(c.created_at)}</span>
-      </div>
-      <p class="user-comment-body">${esc(c.body)}</p>
-    </a>
-  `).join("");
+  host.innerHTML = data.map(d => {
+    const m = markerMap[d.marker_id] || {};
+    const avg = Number(m.rating_avg ?? 0);
+    const cnt = Number(m.rating_count ?? 0);
+    const scoreColor = cnt ? (avg >= 9 ? "#1e5c3a" : avg >= 7 ? "#4a7c59" : avg >= 5 ? "#c8972a" : avg >= 3 ? "#e76f51" : "#c1440e") : null;
+    const scoreBadge = scoreColor
+      ? `<div class="vote-score-badge" style="background:${scoreColor};font-size:13px;">${avg.toFixed(1)}</div>`
+      : "";
+    return `
+      <a class="comment-card" href="marker.html?id=${esc(d.marker_id)}">
+        <div class="comment-card-head">
+          <span class="comment-card-place">${esc(m.title || "Unknown place")}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${scoreBadge}
+            <span class="comment-card-time">${timeAgo(d.created_at)}</span>
+          </div>
+        </div>
+        <p class="comment-card-body">"${esc(d.body)}"</p>
+        <div class="comment-card-foot">Open →</div>
+      </a>`;
+  }).join("");
 }
 
 /* ══════════════════════════════════════════
@@ -579,6 +591,8 @@ async function loadComments() {
 ══════════════════════════════════════════ */
 async function loadPhotos() {
   const host = document.getElementById("photosList");
+  if (!host) return;
+  if (!USER_ID) { host.innerHTML = `<p class="muted" style="padding:20px 0;">Please log in to see your photos.</p>`; return; }
   host.innerHTML = `<p class="muted" style="padding:20px 0;">Loading…</p>`;
 
   const { data, error } = await sb
@@ -605,12 +619,137 @@ async function loadPhotos() {
     .in("id", mids);
   const titleMap = Object.fromEntries((mData || []).map(m => [m.id, m.title]));
 
-  host.innerHTML = data.map(p => {
-    const url = `${SUPABASE_URL_USER}/storage/v1/object/public/marker-photos/${p.storage_path}`;
+  // Group photos by marker — show first photo, badge for count
+  const grouped = {};
+  data.forEach(p => {
+    if (!grouped[p.marker_id]) grouped[p.marker_id] = [];
+    grouped[p.marker_id].push(p);
+  });
+
+  host.innerHTML = Object.entries(grouped).map(([mid, photos]) => {
+    const first = photos[0];
+    const url   = `${SUPABASE_URL_USER}/storage/v1/object/public/marker-photos/${first.storage_path}`;
+    const count = photos.length;
+
+    // Build all photo URLs for lightbox
+    const allUrls = photos.map(p =>
+      `${SUPABASE_URL_USER}/storage/v1/object/public/marker-photos/${p.storage_path}`
+    );
+    const allIds  = photos.map(p => p.id);
+    const allPaths = photos.map(p => p.storage_path);
+
+    const deleteBtns = photos.map((p, pi) => `
+      <button class="photo-delete-btn"
+        onclick="event.stopPropagation();deletePhoto('${esc(p.id)}','${esc(p.storage_path)}',this)"
+        title="Delete photo">✕</button>`).join('');
+
+    const urlsJson  = esc(JSON.stringify(allUrls));
+    const idsJson   = esc(JSON.stringify(allIds));
+    const pathsJson = esc(JSON.stringify(allPaths));
+
     return `
-      <a class="user-photo-tile" href="marker.html?id=${esc(p.marker_id)}">
-        <img src="${esc(url)}" alt="" loading="lazy" />
-        <div class="user-photo-label">${esc(titleMap[p.marker_id] || "")}</div>
-      </a>`;
+      <div class="photo-tile">
+        <div class="photo-tile-link" onclick="openLightbox(${JSON.stringify(allUrls)},${JSON.stringify(allIds)},${JSON.stringify(allPaths)},0)">
+          <div class="photo-tile-img" style="background-image:url('${esc(url)}');cursor:pointer;">
+            ${count > 1 ? `<div class="photo-tile-count">${count}</div>` : ""}
+          </div>
+        </div>
+        <div class="photo-tile-footer">
+          <a href="marker.html?id=${esc(mid)}" class="photo-tile-label" onclick="event.stopPropagation()">${esc(titleMap[mid] || "")}</a>
+          <div class="photo-tile-actions">${deleteBtns}</div>
+        </div>
+      </div>`;
   }).join("");
+}
+
+/* ── Photo lightbox ── */
+let LB_URLS = [], LB_IDS = [], LB_PATHS = [], LB_IDX = 0;
+
+function openLightbox(urls, ids, paths, idx) {
+  LB_URLS = urls; LB_IDS = ids; LB_PATHS = paths; LB_IDX = idx;
+  const lb = document.getElementById('photoLightbox');
+  if (!lb) return;
+  lb.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  renderLightbox();
+}
+
+function closeLightbox() {
+  const lb = document.getElementById('photoLightbox');
+  if (lb) lb.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function lbNav(dir) {
+  LB_IDX = (LB_IDX + dir + LB_URLS.length) % LB_URLS.length;
+  renderLightbox();
+}
+
+function renderLightbox() {
+  document.getElementById('lbImg').src = LB_URLS[LB_IDX];
+  document.getElementById('lbCounter').textContent = LB_URLS.length > 1
+    ? `${LB_IDX + 1} / ${LB_URLS.length}` : '';
+  document.getElementById('lbNav').style.display = LB_URLS.length > 1 ? 'flex' : 'none';
+}
+
+async function deletePhoto(photoId, storagePath, btn) {
+  // Inline confirmation — change button to confirm state
+  if (btn.dataset.confirming !== "1") {
+    btn.dataset.confirming = "1";
+    btn.textContent = "Sure?";
+    btn.style.borderColor = "#e05252";
+    btn.style.color = "#e05252";
+    setTimeout(() => {
+      if (btn.dataset.confirming === "1") {
+        btn.dataset.confirming = "";
+        btn.textContent = "✕";
+        btn.style.borderColor = "";
+        btn.style.color = "";
+      }
+    }, 2500);
+    return;
+  }
+  btn.dataset.confirming = "";
+  btn.disabled = true;
+  btn.textContent = "…";
+
+  // Soft delete in DB
+  const { error } = await sb.from("marker_photos")
+    .update({ is_active: false })
+    .eq("id", photoId);
+
+  if (error) { btn.textContent = "✕"; btn.disabled = false; alert("Could not delete photo"); return; }
+
+  // Remove tile from DOM — if last photo for this place, remove whole tile
+  const tile = btn.closest(".photo-tile");
+  const remaining = tile.querySelectorAll(".photo-delete-btn:not([disabled])").length;
+  if (remaining <= 1) {
+    tile.style.opacity = "0";
+    tile.style.transition = "opacity 0.2s";
+    setTimeout(() => tile.remove(), 200);
+  } else {
+    btn.closest(".photo-delete-btn").remove();
+    // Update count badge
+    const countBadge = tile.querySelector(".photo-tile-count");
+    if (countBadge) {
+      const newCount = remaining - 1;
+      if (newCount > 1) countBadge.textContent = newCount;
+      else countBadge.remove();
+    }
+  }
+}
+
+function hideEmptyTabs() {
+  // Hide comments tab if no comments
+  const comments = document.getElementById("commentsList");
+  const commentsTab = document.querySelector('[data-tab="comments"]');
+  if (commentsTab && comments && !comments.children.length) {
+    commentsTab.style.display = "none";
+  }
+  // Hide photos tab if no photos
+  const photos = document.getElementById("photosList");
+  const photosTab = document.querySelector('[data-tab="photos"]');
+  if (photosTab && photos && !photos.children.length) {
+    photosTab.style.display = "none";
+  }
 }
