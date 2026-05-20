@@ -570,10 +570,8 @@ async function initMap() {
 
   MAP.on("zoomend", refreshAllMarkerIcons);
   MAP.on("click", async (e) => {
-    const user = await maybeUser();
     const panelOpen = document.getElementById("addPanel")?.classList.contains("map-panel-open");
-    const inManualMode = ADD_MODE || panelOpen;
-    if (!user || !inManualMode) return;
+    if (!panelOpen && !ADD_MODE) return;
 
     // If came from search result already, don't override
     if (LAST_CLICK && !ADD_MODE) return;
