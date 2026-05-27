@@ -166,7 +166,7 @@ function renderHero(m, user) {
   const cat = getCategoryById(activeCatId) || getCategoryById(m.category_id);
   const isPlace = m.group_type === "place";
   const isAdmin = user?.email?.includes("dropisso");
-  const isCreator = user && (m.created_by === user.id || m.created_by === null || isAdmin);
+  const isCreator = user && (m.created_by === user.id || isAdmin);
 
   // Breadcrumb: Category > Place/Product
   const breadcrumbEl = document.getElementById("mkBreadcrumb");
@@ -226,19 +226,37 @@ function renderHero(m, user) {
     placeholderIcon.innerHTML = `<img src="${escapeHtml(iconUrl)}" style="width:64px;height:64px;object-fit:contain;opacity:0.25;" onerror="this.parentNode.textContent='🍽'" />`;
   }
 
-  // Side actions (wishlist, claim, edit)
+  // Action row — compact icon buttons below score
   const sideActions = document.getElementById("mkSideActions");
   if (sideActions) {
-    let btns = "";
+    let btns = `<span class="mk-wl-wrap">${wlBtnHtml(m.id)}</span>`;
+    btns += `<button class="mk-action-btn" onclick="shareMarker()" title="Share">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+      <span>Share</span>
+    </button>`;
     if (isPlace) {
-      btns += `<a class="mk-side-action-btn mk-side-action-primary" href="claim.html?id=${encodeURIComponent(MARKER_ID)}">🏢 Claim this place</a>`;
+      btns += `<a class="mk-action-btn" href="claim.html?id=${encodeURIComponent(MARKER_ID)}" title="Claim">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>Claim</span>
+      </a>`;
     }
-    btns += `<button class="mk-side-action-btn mk-side-action-ghost" onclick="shareMarker()">↗ Share</button>`;
-    btns += `<span class="mk-wl-wrap">${wlBtnHtml(m.id)}</span>`;
-    if (isCreator) {
-      btns += `<button class="mk-side-action-btn mk-side-action-subtle" onclick="enterEditMode()">✏️ Edit</button>`;
+    if (isCreator && isPlace) {
+      btns += `<button class="mk-action-btn" onclick="enterEditMode()" title="Edit">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        <span>Edit</span>
+      </button>`;
     }
     sideActions.innerHTML = btns;
+    // Re-init wishlist so buttons reflect current state
+    if (typeof wlInit === "function") wlInit();
   }
 
   // Admin/creator edit button goes in side actions (#18 - single edit button)
@@ -396,7 +414,7 @@ function renderRating(m, rankPos, rankTotal) {
     // Sub-line: votes count + your vote on same line if voted, or login prompt if not
     let subLine = "";
     if (CURRENT_VOTE !== null) {
-      subLine = `<div class="mk-score-sub">${cnt} vote${cnt !== 1 ? "s" : ""} · Your vote: <strong>${Number(CURRENT_VOTE).toFixed(1)}</strong></div>`;
+      subLine = `<div class="mk-score-sub">${cnt} vote${cnt !== 1 ? "s" : ""}</div>`;
     } else if (!window._mkUser) {
       subLine = `<div class="mk-score-sub">${cnt} vote${cnt !== 1 ? "s" : ""} · <a class="mk-score-vote-prompt" href="login.html?redirect=${encodeURIComponent(location.href)}">Vote →</a></div>`;
     } else {
@@ -660,10 +678,7 @@ async function renderRankingWidget(m) {
 
     // Title
     const titleEl = document.getElementById("mkRankingTitle");
-    const cityLabel = m.group_type === "place" && m.city
-      ? ` · ${m.city === "BCN" ? "Barcelona" : m.city === "MAD" ? "Madrid" : m.city}`
-      : "";
-    if (titleEl) titleEl.textContent = `${escapeHtml(cat.name)}${cityLabel}`;
+    if (titleEl) titleEl.textContent = "How it ranks";
 
     // Edit link
     const editLink = document.getElementById("editVotesCatLink");
@@ -1533,16 +1548,7 @@ function renderCommentRow(c, user, nameById, reactionsByComment, repliesByParent
     </button>`;
   }).join("");
 
-  const addReactionBtn = user ? `
-    <div class="reaction-add-wrap">
-      <button class="reaction-add-btn" onclick="toggleEmojiPicker('${c.id}')">＋</button>
-      <div class="emoji-picker" id="picker-${c.id}" style="display:none;">
-        ${EMOJI_OPTIONS.map(e => {
-          const b64 = btoa(unescape(encodeURIComponent(e)));
-          return `<button onclick="toggleReactionB64('${c.id}','${b64}');toggleEmojiPicker('${c.id}')">${e}</button>`;
-        }).join("")}
-      </div>
-    </div>` : "";
+  const addReactionBtn = ""; // removed — using addReactionBtnSmall only
 
   // Replies
   const commentReplies = repliesByParent[c.id] || [];
@@ -1563,8 +1569,9 @@ function renderCommentRow(c, user, nameById, reactionsByComment, repliesByParent
 
   // Smaller reaction add button
   const addReactionBtnSmall = user ? `
+    <span style="position:relative;display:inline-block;">
     <button class="comment-action-btn" onclick="toggleEmojiPicker('${c.id}')" title="Add reaction">＋</button>
-    <div class="emoji-picker" id="picker-${c.id}" style="display:none;position:absolute;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+    <div class="emoji-picker" id="picker-${c.id}" style="display:none;position:absolute;bottom:28px;left:0;z-index:200;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;box-shadow:0 4px 16px rgba(0,0,0,0.15);min-width:160px;">
       ${EMOJI_OPTIONS.map(e => {
         const b64 = btoa(unescape(encodeURIComponent(e)));
         return `<button class="reaction-emoji-btn" onclick="toggleReactionB64('${c.id}','${b64}');toggleEmojiPicker('${c.id}')">${e}</button>`;
@@ -1897,7 +1904,8 @@ async function renderRutaBadge(m) {
       .eq("ruta_id", rutaId)
       .eq("is_active", true);
 
-    const rutaUrl = `rutas.html?ruta=${encodeURIComponent(ruta.id)}`;
+    const rutaCity = ruta.city || (window.CURRENT_MARKER?.city) || "BCN";
+    const rutaUrl = `rutas.html?city=${encodeURIComponent(rutaCity)}&ruta=${encodeURIComponent(ruta.id)}`;
     badge.innerHTML = `
       <a class="mk-ruta-badge" href="${rutaUrl}">
         <span class="mk-ruta-badge-icon">🗺</span>

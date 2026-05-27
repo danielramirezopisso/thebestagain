@@ -564,6 +564,32 @@
 .edit-status { font-size: 12px; color: var(--muted); margin: 0; flex: 1; }
 .edit-modal-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .tba-btn-danger {
-  background: #e05252; color: #fff; border-color: #e05252;
+  background: var(--accent); color: #fff; border-color: var(--accent);
 }
 .tba-btn-danger:hover { background: #c73d3d; border-color: #c73d3d; }
+
+/* ── Logout button ── */
+.user-logout-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+.user-logout-btn {
+  background: none;
+  border: none;
+  box-shadow: none;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.user-logout-btn:hover {
+  color: var(--accent);
+  transform: none;
+  box-shadow: none;
+}
